@@ -15,4 +15,6 @@
     <string name="select_favorite">Select Favorite</string>
     <string name="add_favorite">Add favorite</string>
     <string name="not_available">Not available</string>
+    <string name="appwidget_text">EXAMPLE</string>
+    <string name="add_widget">Add widget</string>
 </resources>

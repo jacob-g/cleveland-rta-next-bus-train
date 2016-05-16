@@ -1,7 +1,9 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -27,6 +29,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
     String[] stops = new String[1];
     Map<String, Integer> stopIds = new HashMap<>();
     Map<String, String> destMappings = new HashMap<>();
+
+    private int preSelectedLineId = -1, preSelectedDirId = -1, preSelectedStopId = -1;
+
     private final int updateInterval = 30; //the number of seconds to wait before refreshing the train information
 
     class UpdateTimesTask extends TimerTask { //the task to update the stop times
@@ -48,7 +53,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     }
 
-    //listener that runs when a route is selected (loads the appropriat edirections)
+    //listener that runs when a route is selected (loads the appropriate directions)
     private Spinner.OnItemSelectedListener routeSelectedListener = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
@@ -61,6 +66,44 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         public void onNothingSelected(AdapterView<?> parent) {
 
+        }
+    };
+
+    //listener that runs when the "add favorite" button is clicked
+    private Button.OnClickListener addFavoriteClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View view) {
+            //use a dialog box to ask the user for the name of the station
+            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+            inputAlert.setTitle("Add Favorite");
+            inputAlert.setMessage("Please enter the name you want to save");
+            final EditText userInput = new EditText(view.getContext());
+            inputAlert.setView(userInput);
+            inputAlert.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    String name = userInput.getText().toString();
+                    DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
+                    String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+                    String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+                    String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+                    int lineId = lineIds.get(lineName);
+                    int dirId = dirIds.get(dirName);
+                    int stationId = stopIds.get(stationName);
+
+                    Station st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name); //create the station object
+                    db.addFavoriteLocation(st);
+                    db.close();
+                }
+            });
+            inputAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            AlertDialog alertDialog = inputAlert.create();
+            alertDialog.setCancelable(false);
+            alertDialog.show();
         }
     };
 
@@ -112,6 +155,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         dirSpinner.setOnItemSelectedListener(dirSelectedListener);
         Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner); //this is for finding stops after a direction and line are selected
         stationSpinner.setOnItemSelectedListener(stopSelectedSpinner);
+        Button addFavoriteBtn = (Button) findViewById(R.id.addFavoriteBtn); //this is for when the "add favorite" button is clicked
+        addFavoriteBtn.setOnClickListener(addFavoriteClickedListener);
 
         //cut off some destinations by replacing them with shorter names
         destMappings.put("Blue Line - Van Aken / Warrensville", "Blue - Warrensville");
@@ -121,8 +166,23 @@ public class NextBusTrainActivity extends AppCompatActivity {
         destMappings.put("Red Line - Stokes / Windermere", "Windermere");
         destMappings.put("Red Line - Airport", "Airport");
 
+        DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
+        //db.fry();
+        List<Station> stl = db.getFavoriteLocations();
+        System.out.println(stl);
+        db.close();
+
         //get the original list of routes
         try {
+            if (getIntent().hasExtra("lineId")) {
+                preSelectedLineId = getIntent().getExtras().getInt("lineId");
+            }
+            if (getIntent().hasExtra("dirId")) {
+                preSelectedDirId = getIntent().getExtras().getInt("dirId");
+            }
+            if (getIntent().hasExtra("stopId")) {
+                preSelectedStopId = getIntent().getExtras().getInt("stopId");
+            }
             new GetLinesTask(this).execute();
 
             //create a timer to get the list of stops as appropriate
@@ -201,16 +261,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 JSONArray arr = json.getJSONArray("d");
                 lineNames = new String[arr.length()];
                 lineIds = new HashMap<>();
+                int selectPos = -1;
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject lineObj = arr.getJSONObject(i);
                     lineNames[i] = lineObj.getString("name");
-                    lineIds.put(lineNames[i], lineObj.getInt("id"));
+                    int id = lineObj.getInt("id");
+                    lineIds.put(lineNames[i], id);
+                    if (preSelectedLineId == id) {
+                        selectPos = i;
+                        preSelectedLineId = -1;
+                    }
                 }
 
                 //put that into the spinner
                 Spinner lineSpinner = (Spinner)findViewById(R.id.lineSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
                 lineSpinner.setAdapter(adapter);
+                if (selectPos != -1) {
+                    lineSpinner.setSelection(selectPos);
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -234,17 +303,27 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 JSONObject json = new JSONObject(result);
                 JSONArray arr = json.getJSONArray("d");
 
+                int selectPos = -1;
+                dirIds = new HashMap<>();
                 directions = new String[arr.length()];
                 for (int i = 0; i < arr.length(); i++) {
-                    JSONObject lineObj = arr.getJSONObject(i);
-                    directions[i] = lineObj.getString("name");
-                    dirIds.put(directions[i], lineObj.getInt("id"));
+                    JSONObject dirObj = arr.getJSONObject(i);
+                    directions[i] = dirObj.getString("name");
+                    int id = dirObj.getInt("id");
+                    dirIds.put(directions[i], id);
+                    if (preSelectedDirId == id) {
+                        selectPos = i;
+                        preSelectedDirId = -1;
+                    }
                 }
 
                 //put that into the spinner
                 Spinner dirSpinner = (Spinner)findViewById(R.id.dirSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
+                if (selectPos != -1) {
+                    dirSpinner.setSelection(selectPos);
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
@@ -270,16 +349,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 JSONArray arr = json.getJSONArray("d");
 
                 stops = new String[arr.length()];
+                int selectPos = -1;
                 for (int i = 0; i < arr.length(); i++) {
-                    JSONObject lineObj = arr.getJSONObject(i);
-                    stops[i] = lineObj.getString("name");
-                    stopIds.put(stops[i], lineObj.getInt("id"));
+                    JSONObject stopObj = arr.getJSONObject(i);
+                    stops[i] = stopObj.getString("name");
+                    int id = stopObj.getInt("id");
+                    stopIds.put(stops[i], id);
+                    if (preSelectedStopId == id) {
+                        selectPos = i;
+                        preSelectedStopId = -1;
+                    }
                 }
 
                 //put that into the spinner
                 Spinner stationSpinner = (Spinner)findViewById(R.id.stationSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
+                if (selectPos != -1) {
+                    stationSpinner.setSelection(selectPos);
+                }
             } catch (JSONException e) {
                 e.printStackTrace();
             }
