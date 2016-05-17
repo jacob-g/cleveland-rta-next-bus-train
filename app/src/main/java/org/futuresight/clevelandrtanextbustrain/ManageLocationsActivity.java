@@ -40,6 +40,7 @@ public class ManageLocationsActivity extends AppCompatActivity {
             mainBtn.setOnClickListener(new AdapterView.OnClickListener() {
                 public void onClick(View view) {
                     Intent intent = new Intent(context, NextBusTrainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                     intent.putExtra("lineId", station.getLineId());
                     intent.putExtra("lineName", station.getLineName());
                     intent.putExtra("dirId", station.getDirId());
@@ -47,6 +48,7 @@ public class ManageLocationsActivity extends AppCompatActivity {
                     intent.putExtra("stopId", station.getStationId());
                     intent.putExtra("stopName", station.getStationName());
                     startActivity(intent);
+                    finish();
                 }
             });
             mainBtn.setId(3000);
@@ -93,11 +95,15 @@ public class ManageLocationsActivity extends AppCompatActivity {
 
             lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             lp.addRule(RelativeLayout.LEFT_OF, deleteBtn.getId());
+            lp.addRule(RelativeLayout.ALIGN_TOP, mainBtn.getId());
+            lp.addRule(RelativeLayout.ALIGN_BOTTOM, mainBtn.getId());
             editBtn.setLayoutParams(lp);
             this.addView(editBtn, lp);
 
             lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             lp.addRule(RelativeLayout.ALIGN_PARENT_END);
+            lp.addRule(RelativeLayout.ALIGN_TOP, mainBtn.getId());
+            lp.addRule(RelativeLayout.ALIGN_BOTTOM, mainBtn.getId());
             deleteBtn.setLayoutParams(lp);
             this.addView(deleteBtn, lp);
         }
