@@ -45,6 +45,10 @@ public class Station {
         return this.name;
     }
 
+    public void setName(String n) {
+        this.name = n;
+    }
+
     public String toString() {
         return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + ")]";
     }

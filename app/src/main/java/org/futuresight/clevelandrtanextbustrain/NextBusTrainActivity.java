@@ -76,16 +76,23 @@ public class NextBusTrainActivity extends AppCompatActivity {
             final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
             inputAlert.setTitle("Add Favorite");
             inputAlert.setMessage("Please enter the name you want to save");
+
+            //get the current station information
+            final String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            final String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+            final String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+
+            //create the text box and automatically populate it with the current station name
             final EditText userInput = new EditText(view.getContext());
+            userInput.setText(stationName + " (" + dirName + ")");
             inputAlert.setView(userInput);
+
             inputAlert.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     String name = userInput.getText().toString();
                     DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-                    String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-                    String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-                    String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+
                     int lineId = lineIds.get(lineName);
                     int dirId = dirIds.get(dirName);
                     int stationId = stopIds.get(stationName);
@@ -155,7 +162,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         dirSpinner.setOnItemSelectedListener(dirSelectedListener);
         Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner); //this is for finding stops after a direction and line are selected
         stationSpinner.setOnItemSelectedListener(stopSelectedSpinner);
-        Button addFavoriteBtn = (Button) findViewById(R.id.addFavoriteBtn); //this is for when the "add favorite" button is clicked
+        ImageButton addFavoriteBtn = (ImageButton) findViewById(R.id.addFavoriteBtn); //this is for when the "add favorite" button is clicked
         addFavoriteBtn.setOnClickListener(addFavoriteClickedListener);
 
         //cut off some destinations by replacing them with shorter names
@@ -350,20 +357,30 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 JSONArray arr = json.getJSONArray("d");
 
                 stops = new String[arr.length()];
+                Spinner stationSpinner = (Spinner)findViewById(R.id.stationSpinner);
+
                 int selectPos = -1;
+
+                //get the current selection in case the direction is changing
+                String curSelection = "";
+                if (stationSpinner.getSelectedItem() != null) {
+                    curSelection = stationSpinner.getSelectedItem().toString();
+                }
+
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject stopObj = arr.getJSONObject(i);
                     stops[i] = stopObj.getString("name");
                     int id = stopObj.getInt("id");
                     stopIds.put(stops[i], id);
-                    if (preSelectedStopId == id) {
+                    if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
                         selectPos = i;
                         preSelectedStopId = -1;
+                    } else if (stops[i].equals(curSelection)) { //otherwise, if changing direction and it's the same station that was selected before, select it
+                        selectPos = i;
                     }
                 }
 
                 //put that into the spinner
-                Spinner stationSpinner = (Spinner)findViewById(R.id.stationSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
                 if (selectPos != -1) {

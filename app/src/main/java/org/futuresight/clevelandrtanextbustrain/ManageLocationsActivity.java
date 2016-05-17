@@ -56,6 +56,40 @@ public class ManageLocationsActivity extends AppCompatActivity {
             RelativeLayout.LayoutParams lp;
             editBtn = new ImageButton(context);
             editBtn.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_menu_edit));
+            editBtn.setOnClickListener(new AdapterView.OnClickListener() {
+                public void onClick(View view) {
+                    final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+                    inputAlert.setTitle("Edit Favorite");
+                    inputAlert.setMessage("Please enter the new name for this station");
+
+                    //create the text box and automatically populate it with the current station name
+                    final EditText userInput = new EditText(view.getContext());
+                    userInput.setText(station.getName());
+                    inputAlert.setView(userInput);
+
+                    inputAlert.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            //save the new station name
+                            String newName = userInput.getText().toString();
+                            station.setName(newName);
+                            mainBtn.setText(newName);
+                            DatabaseHandler db = new DatabaseHandler(context);
+                            db.renameStation(station);
+                            db.close();
+                        }
+                    });
+                    inputAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog, int which) {
+                            dialog.dismiss();
+                        }
+                    });
+                    AlertDialog alertDialog = inputAlert.create();
+                    alertDialog.setCancelable(false);
+                    alertDialog.show();
+                }
+            });
             editBtn.setId(3001);
 
             deleteBtn = new ImageButton(context);

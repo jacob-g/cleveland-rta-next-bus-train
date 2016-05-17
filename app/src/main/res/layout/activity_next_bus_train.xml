@@ -20,19 +20,15 @@
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:gravity="right">
 
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/select_favorite"
-                android:id="@+id/pickFavoriteButton" />
-
-            <Button
+            <ImageButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/add_favorite"
-                android:id="@+id/addFavoriteBtn" />
+                android:id="@+id/addFavoriteBtn"
+                android:src="@android:drawable/ic_input_add" />
         </LinearLayout>
 
         <TextView
