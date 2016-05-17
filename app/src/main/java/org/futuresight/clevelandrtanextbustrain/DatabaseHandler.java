@@ -86,6 +86,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.close(); // Closing database connection
     }
 
+    public boolean deleteFavoriteStation(Station st) { //delete a station from the favorites
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.execSQL("DELETE FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId());
+        System.out.println("DELETE FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId());
+        db.close(); // Closing database connection
+        return true;
+    }
+
     public List<Station> getFavoriteLocations() {
         List<Station> stations = new ArrayList<Station>();
         String selectQuery = "SELECT " + FIELD_NAME + "," + FIELD_STATION_NAME + "," + FIELD_STATION_ID + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LINE_NAME + "," + FIELD_LINE_ID + " FROM " + FAVORITE_LOCATIONS_TABLE + " ORDER BY " + FIELD_STATION_NAME + " ASC";

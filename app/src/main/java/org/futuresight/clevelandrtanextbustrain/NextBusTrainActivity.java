@@ -174,6 +174,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         //get the original list of routes
         try {
+            //see if a pre-selected location was sent in
             if (getIntent().hasExtra("lineId")) {
                 preSelectedLineId = getIntent().getExtras().getInt("lineId");
             }
