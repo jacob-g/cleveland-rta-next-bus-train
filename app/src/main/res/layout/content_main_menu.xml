@@ -44,7 +44,7 @@
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/manage_locations"
+            android:text="@string/favorite_locations"
             android:id="@+id/manageLocationsBtn"
             android:clickable="true"
             android:onClick="openManageLocationsPage"/>

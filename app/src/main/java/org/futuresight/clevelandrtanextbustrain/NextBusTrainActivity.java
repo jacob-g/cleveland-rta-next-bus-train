@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -74,8 +75,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onClick(View view) {
             //use a dialog box to ask the user for the name of the station
             final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
-            inputAlert.setTitle("Add Favorite");
-            inputAlert.setMessage("Please enter the name you want to save");
+            inputAlert.setTitle(R.string.add_favorite);
+            inputAlert.setMessage(R.string.favorite_save_name_prompt);
 
             //get the current station information
             final String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
@@ -87,7 +88,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             userInput.setText(stationName + " (" + dirName + ")");
             inputAlert.setView(userInput);
 
-            inputAlert.setPositiveButton("Submit", new DialogInterface.OnClickListener() {
+            inputAlert.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     String name = userInput.getText().toString();
@@ -102,7 +103,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     db.close();
                 }
             });
-            inputAlert.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            inputAlert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.dismiss();
@@ -111,6 +112,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
             AlertDialog alertDialog = inputAlert.create();
             alertDialog.setCancelable(false);
             alertDialog.show();
+        }
+    };
+
+    //listener that runs when the "select favorite" button is clicked
+    private Button.OnClickListener selectFavoriteClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View view) {
+            Intent intent = new Intent(view.getContext(), ManageLocationsActivity.class);
+            intent.putExtra("return", true);
+            startActivityForResult(intent, 1);
         }
     };
 
@@ -138,7 +148,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
-                System.out.println("Updating stop times!");
                 new GetTimesTask(view.getContext()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -164,6 +173,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         stationSpinner.setOnItemSelectedListener(stopSelectedSpinner);
         ImageButton addFavoriteBtn = (ImageButton) findViewById(R.id.addFavoriteBtn); //this is for when the "add favorite" button is clicked
         addFavoriteBtn.setOnClickListener(addFavoriteClickedListener);
+        ImageButton selectFavoriteBtn = (ImageButton) findViewById(R.id.selectFavoriteBtn); //this is for when the "add favorite" button is clicked
+        selectFavoriteBtn.setOnClickListener(selectFavoriteClickedListener);
 
         //cut off some destinations by replacing them with shorter names
         destMappings.put("Blue Line - Van Aken / Warrensville", "Blue - Warrensville");
@@ -172,12 +183,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         destMappings.put("Green Line - Waterfront", "Waterfront");
         destMappings.put("Red Line - Stokes / Windermere", "Windermere");
         destMappings.put("Red Line - Airport", "Airport");
-
-        DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-        //db.fry();
-        List<Station> stl = db.getFavoriteLocations();
-        System.out.println(stl);
-        db.close();
+        destMappings.put("Blue Line - E. 79th Street", "E. 79th Street");
+        destMappings.put("Green Line - E. 79th Street", "E. 79th Street");
+        destMappings.put("Red Line - E. 79th Street", "E. 79th Street");
+        destMappings.put("Red Line - Tower City / Public Square", "Tower City");
 
         //get the original list of routes
         try {
@@ -292,6 +301,16 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        System.out.println("Part 2");
+        preSelectedStopId = data.getExtras().getInt("stationId");
+        preSelectedDirId = data.getExtras().getInt("dirId");
+        preSelectedLineId = data.getExtras().getInt("lineId");
+        new GetLinesTask(this).execute();
     }
 
     private class GetDirectionsTask extends AsyncTask<String, Void, String> {
@@ -423,21 +442,20 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     for (int i = 0; i < stopsListJson.length(); i++) {
                         JSONObject curStopJson = stopsListJson.getJSONObject(i);
                         String time = "", period = "";
-                        if (curStopJson.getString("predTime").equals("null")) {
-                            time = curStopJson.getString("schedTime");
-                            period = curStopJson.getString("schedPeriod");
-                        } else {
-                            time = curStopJson.getString("predTime");
-                            period = curStopJson.getString("predPeriod");
+                        if (!curStopJson.getBoolean("cancelled")) { //make sure the train isn't cancelled
+                            if (curStopJson.getString("predTime").equals("null")) { //if we don't have an actual time (i.e. for trains that haven't left yet), use the scheduled time
+                                time = curStopJson.getString("schedTime");
+                                period = curStopJson.getString("schedPeriod");
+                            } else {
+                                time = curStopJson.getString("predTime");
+                                period = curStopJson.getString("predPeriod");
+                            }
+                            int timeLeft = getTimeLeft(time, period); //get the time left
+                            String dest = curStopJson.getString("destination");
+                            dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest; //use the desti
+                            String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s")};
+                            stopList.add(stopInfo);
                         }
-                        int timeLeft = getTimeLeft(time, period);
-                        String dest = curStopJson.getString("destination");
-                        dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest;
-                        String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s")};
-                        //convert to usable time, this should be put into a function
-
-
-                        stopList.add(stopInfo);
                     }
 
                     //populate the text fields with the stop data
@@ -493,8 +511,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     public int getTimeLeft(String time, String period) { //get the amount of time until a specified arrival
         String[] timeParts = time.split(":");
-        int minOfDay = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]) + (period.equals("pm") && !timeParts[0].equals("12") ? 720 : 0);
+        int minOfDay = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]) + (period.equals("pm") && !timeParts[0].equals("12") ? 720 : 0) - (period.equals("am") && timeParts[0].equals("12") ? 720 : 0);
         int curTime = Calendar.getInstance().getTime().getHours() * 60 + Calendar.getInstance().getTime().getMinutes();
+        if (minOfDay < curTime) {
+            minOfDay += 1440;
+        }
         int timeLeft = minOfDay - curTime;
         return timeLeft;
     }

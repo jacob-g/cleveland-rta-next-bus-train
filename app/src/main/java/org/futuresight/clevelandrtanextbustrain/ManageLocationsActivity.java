@@ -22,33 +22,51 @@ import android.widget.TextView;
 import java.util.List;
 
 public class ManageLocationsActivity extends AppCompatActivity {
+    boolean returnToParent = false;
     private class FavoriteStationListItemActivity extends RelativeLayout {
         Button mainBtn;
         ImageButton editBtn, deleteBtn;
         Station station;
         Context context;
         LinearLayout parent;
-        public FavoriteStationListItemActivity(Context c, Station s, LinearLayout p) {
+        ManageLocationsActivity activity;
+        boolean returnToParent;
+        public FavoriteStationListItemActivity(Context c, Station s, LinearLayout p, boolean rtp, ManageLocationsActivity a) {
             super(c);
 
             station = s;
             context = c;
             parent = p;
+            returnToParent = rtp;
+            activity = a;
 
             mainBtn = new Button(context);
             mainBtn.setText(station.getName());
             mainBtn.setOnClickListener(new AdapterView.OnClickListener() {
                 public void onClick(View view) {
-                    Intent intent = new Intent(context, NextBusTrainActivity.class);
-                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    intent.putExtra("lineId", station.getLineId());
-                    intent.putExtra("lineName", station.getLineName());
-                    intent.putExtra("dirId", station.getDirId());
-                    intent.putExtra("dirName", station.getDirName());
-                    intent.putExtra("stopId", station.getStationId());
-                    intent.putExtra("stopName", station.getStationName());
-                    startActivity(intent);
-                    finish();
+                    if (returnToParent) {
+                        //find the parent activity and use loadStation()
+                        System.out.println("Part 1");
+                        Intent intent = new Intent();
+                        intent.putExtra("stationId",station.getStationId());
+                        intent.putExtra("lineId",station.getLineId());
+                        intent.putExtra("dirId",station.getDirId());
+                        activity.setResult(RESULT_OK, intent);
+                        System.out.println("Part 1.5");
+                        finish();
+                        //nbta.loadStation(station.getStationId(), station.getDirId(), station.getLineId());
+                    } else {
+                        Intent intent = new Intent(context, NextBusTrainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.putExtra("lineId", station.getLineId());
+                        intent.putExtra("lineName", station.getLineName());
+                        intent.putExtra("dirId", station.getDirId());
+                        intent.putExtra("dirName", station.getDirName());
+                        intent.putExtra("stopId", station.getStationId());
+                        intent.putExtra("stopName", station.getStationName());
+                        startActivity(intent);
+                        finish();
+                    }
                 }
             });
             mainBtn.setId(3000);
@@ -155,8 +173,11 @@ public class ManageLocationsActivity extends AppCompatActivity {
         LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
         DatabaseHandler db = new DatabaseHandler(this);
         List<Station> stl = db.getFavoriteLocations();
+        if (getIntent().hasExtra("return")) {
+            returnToParent = true;
+        }
         for (Station s : stl) {
-            FavoriteStationListItemActivity t = new FavoriteStationListItemActivity(this, s, favoriteListLayout);
+            FavoriteStationListItemActivity t = new FavoriteStationListItemActivity(this, s, favoriteListLayout, returnToParent, this);
             favoriteListLayout.addView(t);
         }
         db.close();
