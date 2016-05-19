@@ -22,7 +22,7 @@
         </activity>
         <activity android:name=".NextBusTrainActivity" />
         <activity android:name=".ManageLocationsActivity" />
-
+        <activity android:name=".ServiceAlertsActivity"></activity>
     </application>
 
 </manifest>

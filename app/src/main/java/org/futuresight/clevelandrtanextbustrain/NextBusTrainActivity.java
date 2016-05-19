@@ -306,11 +306,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        System.out.println("Part 2");
-        preSelectedStopId = data.getExtras().getInt("stationId");
-        preSelectedDirId = data.getExtras().getInt("dirId");
-        preSelectedLineId = data.getExtras().getInt("lineId");
-        new GetLinesTask(this).execute();
+        if (resultCode == RESULT_OK) {
+            preSelectedStopId = data.getExtras().getInt("stationId");
+            preSelectedDirId = data.getExtras().getInt("dirId");
+            preSelectedLineId = data.getExtras().getInt("lineId");
+            new GetLinesTask(this).execute();
+        }
     }
 
     private class GetDirectionsTask extends AsyncTask<String, Void, String> {
@@ -394,7 +395,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
                         selectPos = i;
                         preSelectedStopId = -1;
-                    } else if (stops[i].equals(curSelection)) { //otherwise, if changing direction and it's the same station that was selected before, select it
+                    } else if (stops[i].equals(curSelection) && selectPos == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
                         selectPos = i;
                     }
                 }

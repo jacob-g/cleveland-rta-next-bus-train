@@ -36,6 +36,11 @@ public class MainMenu extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void openServiceAlertsPage(View v) {
+        Intent intent = new Intent(this, ManageLocationsActivity.class);
+        startActivity(intent);
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
