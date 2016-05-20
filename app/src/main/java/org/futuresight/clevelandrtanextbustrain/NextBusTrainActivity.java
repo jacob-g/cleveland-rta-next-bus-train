@@ -129,6 +129,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onClick(View view) {
             Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
             intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
+            intent.putExtra("routeId", PersistentDataController.getLineIdMap().get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
             startActivity(intent);
         }
     };

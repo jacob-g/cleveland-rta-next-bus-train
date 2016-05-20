@@ -9,38 +9,85 @@ import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.Spinner;
 import android.widget.TextView;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.StringReader;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 public class ServiceAlertsActivity extends AppCompatActivity {
+    int selectedRouteId;
+
+    private Spinner.OnItemSelectedListener lineSelectedListener = new AdapterView.OnItemSelectedListener() {
+        public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
+            try {
+                String selectedRouteStr = ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).getSelectedItem().toString();
+                if (selectedRouteStr == "Favorites") {
+                    DatabaseHandler db = new DatabaseHandler(ServiceAlertsActivity.this);
+                    List<Station> favoriteStations = db.getFavoriteLocations();
+                    Set<String> lines = new HashSet<>();
+                    for (Station st : favoriteStations) {
+                        lines.add(st.getLineName());
+                    }
+                    db.close();
+                    System.out.println(lines);
+                    String[] arr = new String[lines.size()];
+                    int i = 0;
+                    for (String s : lines) {
+                        arr[i] = s;
+                        i++;
+                    }
+                    new GetServiceAlertsTask(view.getContext()).execute(arr);
+                } else {
+                    new GetServiceAlertsTask(view.getContext()).execute(new String[]{selectedRouteStr});
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+
+        public void onNothingSelected(AdapterView<?> parent) {
+
+        }
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         String[] selectedRoutes = new String[1];
-        if (getIntent().hasExtra("route")) {
+        if (getIntent().hasExtra("route") && getIntent().hasExtra("routeId")) {
             selectedRoutes = new String[]{getIntent().getExtras().getString("route")};
+            selectedRouteId = getIntent().getExtras().getInt("routeId");
         } else {
             selectedRoutes = new String[]{"1", "2"};
         }
 
-        new GetServiceAlertsTask(this).execute(selectedRoutes);
-
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_service_alerts);
+
+        ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
+        new GetLinesTask(this).execute();
+        new GetServiceAlertsTask(this).execute(selectedRoutes);
     }
 
     //task to get the times of the bus/train
@@ -51,16 +98,21 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(String[]... params) {
-            routes = params[0]; //save the route for later in case we want to color the results
-            String returnData;
-            StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?");
-            for (String s : routes) {
-                urlString.append("routes[]=");
-                urlString.append(s);
-                urlString.append("&");
+            String returnData = "";
+            try {
+                routes = params[0]; //save the route for later in case we want to color the results
+                StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?");
+                for (String s : routes) {
+                    urlString.append("routes[]=");
+                    urlString.append(URLEncoder.encode(s, "UTF-8"));
+                    urlString.append("&");
+                }
+                urlString.deleteCharAt(urlString.length() - 1);
+                System.out.println("URL: " + urlString.toString());
+                returnData = NetworkController.basicHTTPRequest(urlString.toString());
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            urlString.deleteCharAt(urlString.length() - 1);
-            returnData = NetworkController.basicHTTPRequest(urlString.toString());
             return returnData;
         }
 
@@ -95,7 +147,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     }
                     LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
                     serviceAlertsLayout.removeAllViews();
-                    System.out.println(alertList);
                     for (Map<String, String> alertInfo : alertList) {
                         TextView titleView = new TextView(myContext);
                         titleView.setText(alertInfo.get("title"));
@@ -120,6 +171,68 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             } catch (Exception e) {
                 System.err.println("Error in parsing XML");
                 e.printStackTrace();
+            }
+        }
+    }
+
+    private class GetLinesTask extends AsyncTask<Void, Void, String> {
+        private Context myContext;
+        public GetLinesTask(Context context) {
+            myContext = context;
+        }
+        protected String doInBackground(Void... params) {
+            if (PersistentDataController.linesStored()) {
+                return "";
+            } else {
+                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
+            }
+        }
+
+        protected void onPostExecute(String result) {
+            //parse the result as JSON
+            int selectPos = -1;
+            String[] lineNames = new String[1];
+            if (result != "" && !PersistentDataController.linesStored()) {
+                try {
+                    JSONObject json = new JSONObject(result);
+                    JSONArray arr = json.getJSONArray("d");
+                    lineNames = new String[arr.length()];
+
+
+                    for (int i = 0; i < arr.length(); i++) {
+                        JSONObject lineObj = arr.getJSONObject(i);
+                        lineNames[i] = lineObj.getString("name");
+                        int id = lineObj.getInt("id");
+                        PersistentDataController.getLineIdMap().put(lineNames[i], id);
+                        if (selectedRouteId == id) {
+                            selectPos = i;
+                            selectedRouteId = -1;
+                        }
+                    }
+
+                    PersistentDataController.setLines(lineNames);
+                } catch(JSONException e){
+                    e.printStackTrace();
+                }
+            } else {
+                lineNames = PersistentDataController.getLines();
+                for (int i = 0; i < lineNames.length; i++) {
+                    String line = lineNames[i];
+                    int id = PersistentDataController.getLineIdMap().get(line);
+                    if (selectedRouteId == id) {
+                        selectPos = i;
+                        selectedRouteId = -1;
+                    }
+                }
+            }
+            //put that into the spinner
+            Spinner lineSpinner = (Spinner) findViewById(R.id.serviceAlertsLineSpinner);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item);
+            adapter.add("Favorites");
+            adapter.addAll(lineNames);
+            lineSpinner.setAdapter(adapter);
+            if (selectPos != -1) {
+                lineSpinner.setSelection(selectPos + 1);
             }
         }
     }
