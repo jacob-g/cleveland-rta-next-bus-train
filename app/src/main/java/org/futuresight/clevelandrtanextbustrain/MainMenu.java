@@ -37,7 +37,7 @@ public class MainMenu extends AppCompatActivity {
     }
 
     public void openServiceAlertsPage(View v) {
-        Intent intent = new Intent(this, ManageLocationsActivity.class);
+        Intent intent = new Intent(this, ServiceAlertsActivity.class);
         startActivity(intent);
     }
 

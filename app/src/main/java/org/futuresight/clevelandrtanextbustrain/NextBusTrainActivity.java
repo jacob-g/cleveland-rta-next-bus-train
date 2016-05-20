@@ -5,12 +5,18 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.Typeface;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
 import org.json.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
@@ -19,17 +25,20 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
+import java.io.StringReader;
 import java.net.*;
 import java.util.*;
 
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 public class NextBusTrainActivity extends AppCompatActivity {
-    String[] lineNames = new String[1];
-    Map<String, Integer> lineIds = new HashMap<>();
     String[] directions = new String[1];
     Map<String, Integer> dirIds = new HashMap<>();
     String[] stops = new String[1];
     Map<String, Integer> stopIds = new HashMap<>();
     Map<String, String> destMappings = new HashMap<>();
+    Map<String,Integer> alertCounts = new HashMap<>(); //lines for we have already checked service alerts
 
     private int preSelectedLineId = -1, preSelectedDirId = -1, preSelectedStopId = -1;
 
@@ -94,7 +103,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     String name = userInput.getText().toString();
                     DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
 
-                    int lineId = lineIds.get(lineName);
+                    int lineId = PersistentDataController.getLineIdMap().get(lineName);
                     int dirId = dirIds.get(dirName);
                     int stationId = stopIds.get(stationName);
 
@@ -112,6 +121,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
             AlertDialog alertDialog = inputAlert.create();
             alertDialog.setCancelable(false);
             alertDialog.show();
+        }
+    };
+
+    //listener that runs when the "select favorite" button is clicked
+    private Button.OnClickListener serviceAlertsClickedClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View view) {
+            Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
+            intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
+            startActivity(intent);
         }
     };
 
@@ -175,6 +193,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         addFavoriteBtn.setOnClickListener(addFavoriteClickedListener);
         ImageButton selectFavoriteBtn = (ImageButton) findViewById(R.id.selectFavoriteBtn); //this is for when the "add favorite" button is clicked
         selectFavoriteBtn.setOnClickListener(selectFavoriteClickedListener);
+        Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
+        serviceAlertsBtn.setOnClickListener(serviceAlertsClickedClickedListener);
 
         //cut off some destinations by replacing them with shorter names
         destMappings.put("Blue Line - Van Aken / Warrensville", "Blue - Warrensville");
@@ -213,92 +233,61 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     }
 
-
-
-
-    //perform a POST request to a given URL with given data, and request JSON data
-    public String  performPostCall(String requestURL, String postData) {
-
-        URL url;
-        String response = "";
-        try {
-            url = new URL(requestURL);
-
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-            conn.setReadTimeout(15000);
-            conn.setConnectTimeout(15000);
-            conn.setRequestMethod("POST");
-            conn.setDoInput(true);
-            conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json;\tcharset=utf-8");
-
-
-            OutputStream os = conn.getOutputStream();
-            BufferedWriter writer = new BufferedWriter(
-                    new OutputStreamWriter(os, "UTF-8"));
-            writer.write(postData);
-
-            writer.flush();
-            writer.close();
-            os.close();
-            int responseCode=conn.getResponseCode();
-
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                String line;
-                BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                while ((line=br.readLine()) != null) {
-                    response+=line;
-                }
-            }
-            else {
-                response="";
-
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return response;
-    }
-
     private class GetLinesTask extends AsyncTask<Void, Void, String> {
         private Context myContext;
         public GetLinesTask(Context context) {
             myContext = context;
         }
         protected String doInBackground(Void... params) {
-            String resp = performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
-            return resp;
+            if (PersistentDataController.linesStored()) {
+                return "";
+            } else {
+                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
+            }
         }
 
         protected void onPostExecute(String result) {
             //parse the result as JSON
-            try {
-                JSONObject json = new JSONObject(result);
-                JSONArray arr = json.getJSONArray("d");
-                lineNames = new String[arr.length()];
-                lineIds = new HashMap<>();
-                int selectPos = -1;
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject lineObj = arr.getJSONObject(i);
-                    lineNames[i] = lineObj.getString("name");
-                    int id = lineObj.getInt("id");
-                    lineIds.put(lineNames[i], id);
+            int selectPos = -1;
+            String[] lineNames = new String[1];
+            if (result != "" && !PersistentDataController.linesStored()) {
+                try {
+                    JSONObject json = new JSONObject(result);
+                    JSONArray arr = json.getJSONArray("d");
+                    lineNames = new String[arr.length()];
+
+                    for (int i = 0; i < arr.length(); i++) {
+                        JSONObject lineObj = arr.getJSONObject(i);
+                        lineNames[i] = lineObj.getString("name");
+                        int id = lineObj.getInt("id");
+                        PersistentDataController.getLineIdMap().put(lineNames[i], id);
+                        if (preSelectedLineId == id) {
+                            selectPos = i;
+                            preSelectedLineId = -1;
+                        }
+                    }
+
+                    PersistentDataController.setLines(lineNames);
+                } catch(JSONException e){
+                    e.printStackTrace();
+                }
+            } else {
+                lineNames = PersistentDataController.getLines();
+                for (int i = 0; i < lineNames.length; i++) {
+                    String line = lineNames[i];
+                    int id = PersistentDataController.getLineIdMap().get(line);
                     if (preSelectedLineId == id) {
                         selectPos = i;
                         preSelectedLineId = -1;
                     }
                 }
-
-                //put that into the spinner
-                Spinner lineSpinner = (Spinner)findViewById(R.id.lineSpinner);
-                ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
-                lineSpinner.setAdapter(adapter);
-                if (selectPos != -1) {
-                    lineSpinner.setSelection(selectPos);
-                }
-            } catch (JSONException e) {
-                e.printStackTrace();
+            }
+            //put that into the spinner
+            Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
+            lineSpinner.setAdapter(adapter);
+            if (selectPos != -1) {
+                lineSpinner.setSelection(selectPos);
             }
         }
     }
@@ -320,8 +309,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(String... params) {
-            int routeId = lineIds.get(params[0]);
-            String resp = performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + routeId + "}");
+            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
+            String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + routeId + "}");
             return resp;
         }
 
@@ -364,9 +353,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(String... params) {
-            int routeId = lineIds.get(params[0]);
+            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
             int dirId = dirIds.get(params[1]);
-            String resp = performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + routeId + ", directionID: " + dirId + "}");
+            String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + routeId + ", directionID: " + dirId + "}");
             return resp;
         }
 
@@ -420,12 +409,13 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(String... params) {
-            int routeId = lineIds.get(params[0]);
+            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
             int dirId = dirIds.get(params[1]);
             int stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results
-            String resp = performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
-            return resp;
+            //returns an array of {stop JSON, alerts XML}
+            String returnData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
+            return returnData;
         }
 
         protected void onPostExecute(String result) {
@@ -490,9 +480,93 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 } else {
                     blankAll();
                 }
-            } catch (JSONException e) {
+
+                new GetServiceAlertsTask(myContext).execute(route);
+            } catch (Exception e) {
                 blankAll();
-                System.err.println("Error in parsing JSON");
+                System.err.println("Error in parsing JSON or XML");
+                e.printStackTrace();
+            }
+        }
+    }
+
+    //task to get the times of the bus/train
+    private class GetServiceAlertsTask extends AsyncTask<String, Void, String> {
+        private Context myContext;
+        private String route;
+        public GetServiceAlertsTask(Context context) {
+            myContext = context;
+        }
+        protected String doInBackground(String... params) {
+            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
+            route = params[0]; //save the route for later in case we want to color the results
+            //returns an array of {stop JSON, alerts XML}
+            String returnData;
+            if (alertCounts.containsKey(params[0])) {
+                returnData = "";
+            } else {
+                returnData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/alerts?routes[]=" + params[0]);
+            }
+            return returnData;
+        }
+
+        protected void onPostExecute(String result) {
+            //parse the result as JSON
+            try {
+                if (!result.equals("") && !result.equals("Error")) {
+                    //get the service alert count
+                    int count = 0;
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document doc = dBuilder.parse(new InputSource(new StringReader(result)));
+                    Node rootNode = doc.getDocumentElement();
+                    List<Map<String, String>> alertList = new ArrayList<>();
+                    if (doc.hasChildNodes()) {
+                        NodeList nl = rootNode.getChildNodes();
+                        for (int i = 0; i < nl.getLength(); i++) {
+                            Node curNode = nl.item(i); //<alert> node
+                            if (!curNode.getNodeName().equals("#text")) {
+                                /*Map<String, String> nodeInfo = new HashMap<>();
+                                NodeList children = curNode.getChildNodes();
+                                for (int j = 0; j < children.getLength(); j++) {
+                                    String key = children.item(j).getNodeName();
+                                    if (!key.equals("#text")) {
+                                        String val = children.item(j).getTextContent();
+                                        nodeInfo.put(key, val);
+                                    }
+                                }
+                                alertList.add(nodeInfo);*/
+                                count++;
+                            }
+                        }
+                    }
+                    /*LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertsVerticalLayout);
+                    serviceAlertsLayout.removeAllViews();
+                    System.out.println(alertList);
+                    for (Map<String, String> alertInfo : alertList) {
+                        TextView titleView = new TextView(myContext);
+                        titleView.setText(alertInfo.get("title"));
+                        titleView.setTypeface(null, Typeface.BOLD);
+                        titleView.setTextColor(Color.BLUE);
+                        serviceAlertsLayout.addView(titleView);
+                        TextView contentView = new TextView(myContext);
+                        contentView.setText(alertInfo.get("info"));
+                        serviceAlertsLayout.addView(contentView);
+                    }*/
+                    alertCounts.put(route, count);
+                } else {
+
+                }
+                int alertCount = alertCounts.get(route);
+                Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
+                if (alertCount > 0) {
+                    serviceAlertsBtn.setVisibility(View.VISIBLE);
+                    serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
+                } else {
+                    serviceAlertsBtn.setVisibility(View.INVISIBLE);
+                }
+            } catch (Exception e) {
+                blankAll();
+                System.err.println("Error in parsing JSON or XML");
                 e.printStackTrace();
             }
         }
