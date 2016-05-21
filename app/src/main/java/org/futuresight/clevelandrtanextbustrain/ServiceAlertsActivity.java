@@ -181,7 +181,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(Void... params) {
-            if (PersistentDataController.linesStored()) {
+            if (PersistentDataController.linesStored(myContext)) {
                 return "";
             } else {
                 return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
@@ -192,7 +192,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             //parse the result as JSON
             int selectPos = -1;
             String[] lineNames = new String[1];
-            if (result != "" && !PersistentDataController.linesStored()) {
+            if (result != "" && !PersistentDataController.linesStored(myContext)) {
                 try {
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
@@ -209,6 +209,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                             selectedRouteId = -1;
                         }
                     }
+                    PersistentDataController.saveLineIdMap(myContext);
 
                     PersistentDataController.setLines(lineNames);
                 } catch(JSONException e){

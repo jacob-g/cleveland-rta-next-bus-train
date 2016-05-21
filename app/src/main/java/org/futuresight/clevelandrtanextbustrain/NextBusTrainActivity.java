@@ -240,7 +240,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(Void... params) {
-            if (PersistentDataController.linesStored()) {
+            if (PersistentDataController.linesStored(myContext)) {
                 return "";
             } else {
                 return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
@@ -251,7 +251,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             //parse the result as JSON
             int selectPos = -1;
             String[] lineNames = new String[1];
-            if (result != "" && !PersistentDataController.linesStored()) {
+            if (result != "" && !PersistentDataController.linesStored(myContext)) {
                 try {
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
@@ -267,6 +267,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                             preSelectedLineId = -1;
                         }
                     }
+                    PersistentDataController.saveLineIdMap(myContext);
 
                     PersistentDataController.setLines(lineNames);
                 } catch(JSONException e){
@@ -501,7 +502,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected String doInBackground(String... params) {
             int routeId = PersistentDataController.getLineIdMap().get(params[0]);
             route = params[0]; //save the route for later in case we want to color the results
-            //returns an array of {stop JSON, alerts XML}
             String returnData;
             if (alertCounts.containsKey(params[0])) {
                 returnData = "";
@@ -526,33 +526,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         for (int i = 0; i < nl.getLength(); i++) {
                             Node curNode = nl.item(i); //<alert> node
                             if (!curNode.getNodeName().equals("#text")) {
-                                /*Map<String, String> nodeInfo = new HashMap<>();
-                                NodeList children = curNode.getChildNodes();
-                                for (int j = 0; j < children.getLength(); j++) {
-                                    String key = children.item(j).getNodeName();
-                                    if (!key.equals("#text")) {
-                                        String val = children.item(j).getTextContent();
-                                        nodeInfo.put(key, val);
-                                    }
-                                }
-                                alertList.add(nodeInfo);*/
                                 count++;
                             }
                         }
                     }
-                    /*LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertsVerticalLayout);
-                    serviceAlertsLayout.removeAllViews();
-                    System.out.println(alertList);
-                    for (Map<String, String> alertInfo : alertList) {
-                        TextView titleView = new TextView(myContext);
-                        titleView.setText(alertInfo.get("title"));
-                        titleView.setTypeface(null, Typeface.BOLD);
-                        titleView.setTextColor(Color.BLUE);
-                        serviceAlertsLayout.addView(titleView);
-                        TextView contentView = new TextView(myContext);
-                        contentView.setText(alertInfo.get("info"));
-                        serviceAlertsLayout.addView(contentView);
-                    }*/
                     alertCounts.put(route, count);
                 } else {
 
@@ -566,7 +543,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     serviceAlertsBtn.setVisibility(View.INVISIBLE);
                 }
             } catch (Exception e) {
-                blankAll();
                 System.err.println("Error in parsing JSON or XML");
                 e.printStackTrace();
             }

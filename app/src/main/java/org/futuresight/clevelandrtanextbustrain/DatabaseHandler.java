@@ -7,7 +7,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Created by jacob on 5/15/16.
@@ -27,8 +29,18 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_STATION_NAME = "station_name";
         private static final String FIELD_STATION_ID = "station_id";
 
+    private static final String LINES_TABLE = "lines";
+
+    private static final String CONFIG_TABLE = "config";
+        private static final String FIELD_VALUE = "value";
+
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
+    private static final String NAME = "name";
+    private static final String FIELD_EXPIRES = "expires";
+
+    //config values
+    private static final String CONFIG_LAST_SAVED_LINES = "last_saved_lines";
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -37,7 +49,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     // Creating Tables
     @Override
     public void onCreate(SQLiteDatabase db) {
-        String CREATE_FAVORITE_LOCATIONS_TABLE = "CREATE TABLE " + FAVORITE_LOCATIONS_TABLE + "("
+        String CREATE_FAVORITE_LOCATIONS_TABLE = "CREATE TABLE IF NOT EXISTS " + FAVORITE_LOCATIONS_TABLE + "("
                 + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                 + FIELD_NAME + " TEXT,"
                 + FIELD_LINE_NAME + " TEXT,"
@@ -48,16 +60,60 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_STATION_ID + " INT"
                 + ")";
         db.execSQL(CREATE_FAVORITE_LOCATIONS_TABLE);
+
+        String CREATE_LINES_TABLE = "CREATE TABLE IF NOT EXISTS " + LINES_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY,"
+                + NAME + " TEXT"
+                + ")";
+        db.execSQL(CREATE_LINES_TABLE);
+
+        String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
+                + FIELD_NAME + " TEXT PRIMARY KEY,"
+                + FIELD_VALUE + " TEXT"
+                + ")";
+        db.execSQL(CREATE_CONFIG_TABLE);
+        setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+    }
+
+    private void setConfig(SQLiteDatabase db, String key, String val) {
+        String selectQuery = "SELECT 1 FROM " + CONFIG_TABLE + " WHERE " + FIELD_NAME + "=?";
+        Cursor cursor = db.rawQuery(selectQuery, new String[]{key});
+        if (cursor.moveToFirst()) {
+            //insert
+            ContentValues values = new ContentValues();
+            values.put(FIELD_VALUE, val);
+            db.update(CONFIG_TABLE, values, FIELD_NAME + "=?", new String[]{key});
+        } else {
+            ContentValues values = new ContentValues();
+            values.put(FIELD_NAME, key);
+            values.put(FIELD_VALUE, val);
+            db.insert(CONFIG_TABLE, null, values);
+        }
+        cursor.close();
+    }
+
+    private String getConfig(SQLiteDatabase db, String key) {
+        String selectQuery = "SELECT " + FIELD_VALUE + " FROM " + CONFIG_TABLE + " WHERE " + FIELD_NAME + "=?";
+        Cursor cursor = db.rawQuery(selectQuery, new String[]{key});
+        if (cursor.moveToFirst()) {
+            System.out.println("It is there.");
+            return cursor.getString(0);
+        } else {
+            return "";
+        }
     }
 
     // Upgrading database
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // Drop older table if existed
-        db.execSQL("DROP TABLE IF EXISTS " + FAVORITE_LOCATIONS_TABLE);
-
         // Create tables again
         onCreate(db);
+    }
+
+    public void recreateTablesWithoutErasing() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        onCreate(db);
+        db.close();
     }
 
     public void fry() { //erase everything, hopefully not needed
@@ -65,6 +121,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + FAVORITE_LOCATIONS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
 
         // Create tables again
         onCreate(db);
@@ -105,6 +163,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 stations.add(st);
             } while (cursor.moveToNext());
         }
+        db.close();
         return stations;
     }
 
@@ -114,5 +173,51 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put(FIELD_NAME, st.getName());
         db.update(FAVORITE_LOCATIONS_TABLE, values, FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId(), null);
         db.close(); // Closing database connection
+    }
+
+    public Map<String, Integer> getStoredLines() {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Map<String, Integer> outMap = new HashMap<>();
+
+        //make sure it's recent
+        String lastSavedStr = getConfig(db, CONFIG_LAST_SAVED_LINES);
+        int lastSavedInt = 0;
+        if (lastSavedStr != "") {
+            lastSavedInt = Integer.parseInt(lastSavedStr);
+        }
+        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry()) {
+            System.out.println("Lines too old! " + lastSavedInt);
+            db.execSQL("DELETE FROM " + LINES_TABLE);
+            db.close(); // Closing database connection
+            return outMap;
+        }
+
+        String selectQuery = "SELECT " + ID + "," + FIELD_NAME + " FROM " + LINES_TABLE + " ORDER BY " + FIELD_NAME + " ASC";
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                outMap.put(name, id);
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return outMap;
+    }
+
+    public void saveLines(Map<String, Integer> lines) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        for (String l : lines.keySet()) {
+            ContentValues values = new ContentValues();
+            values.put(ID, lines.get(l));
+            values.put(NAME, l); //station name
+            db.insert(LINES_TABLE, null, values);
+        }
+        //save config entry
+        setConfig(db, CONFIG_LAST_SAVED_LINES, String.valueOf(PersistentDataController.getCurTime()));
+        System.out.println("Last saved: " + getConfig(db, CONFIG_LAST_SAVED_LINES));
+        db.close();
     }
 }
