@@ -251,6 +251,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             //parse the result as JSON
             int selectPos = -1;
             String[] lineNames = new String[1];
+            boolean needToCache = false;
             if (result != "" && !PersistentDataController.linesStored(myContext)) {
                 try {
                     JSONObject json = new JSONObject(result);
@@ -267,12 +268,13 @@ public class NextBusTrainActivity extends AppCompatActivity {
                             preSelectedLineId = -1;
                         }
                     }
-                    PersistentDataController.saveLineIdMap(myContext);
 
                     PersistentDataController.setLines(lineNames);
+                    needToCache = true;
                 } catch(JSONException e){
                     e.printStackTrace();
                 }
+                PersistentDataController.saveLineIdMap(myContext); //cache if necessary (this is after the rest since it can take a bit to do so) TODO: put this in an AsyncTask
             } else {
                 lineNames = PersistentDataController.getLines();
                 for (int i = 0; i < lineNames.length; i++) {
@@ -307,37 +309,61 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetDirectionsTask extends AsyncTask<String, Void, String> {
         private Context myContext;
+        private Map<String, Integer> dirs;
+        private int route;
         public GetDirectionsTask(Context context) {
             myContext = context;
         }
         protected String doInBackground(String... params) {
-            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
-            String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + routeId + "}");
-            return resp;
+            route = PersistentDataController.getLineIdMap().get(params[0]);
+            dirs = PersistentDataController.getDirIds(myContext, route);
+            if (dirs.isEmpty()) {
+                String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
+                return resp;
+            } else {
+                return "";
+            }
         }
 
         protected void onPostExecute(String result) {
             //parse the result as JSON
             try {
-                JSONObject json = new JSONObject(result);
-                JSONArray arr = json.getJSONArray("d");
-
                 int selectPos = -1;
-                dirIds = new HashMap<>();
-                directions = new String[arr.length()];
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject dirObj = arr.getJSONObject(i);
-                    directions[i] = dirObj.getString("name");
-                    int id = dirObj.getInt("id");
-                    dirIds.put(directions[i], id);
-                    if (preSelectedDirId == id) {
-                        selectPos = i;
-                        preSelectedDirId = -1;
+                if (dirs.isEmpty()) {
+                    JSONObject json = new JSONObject(result);
+                    JSONArray arr = json.getJSONArray("d");
+
+                    dirIds = new HashMap<>();
+                    directions = new String[arr.length()];
+                    for (int i = 0; i < arr.length(); i++) {
+                        JSONObject dirObj = arr.getJSONObject(i);
+                        directions[i] = dirObj.getString("name");
+                        int id = dirObj.getInt("id");
+                        dirIds.put(directions[i], id);
+                        if (preSelectedDirId == id) {
+                            selectPos = i;
+                            preSelectedDirId = -1;
+                        }
+                    }
+                    PersistentDataController.saveDirIds(myContext, route, dirIds);
+                } else {
+                    dirIds = dirs;
+                    directions = new String[dirs.size()];
+                    int i = 0;
+                    for (String key : dirs.keySet()) {
+                        directions[i] = key;
+                        i++;
+                    }
+                    Arrays.sort(directions);
+                    for (i = 0; i < directions.length; i++) {
+                        if (preSelectedDirId == dirs.get(directions[i])) {
+                            selectPos = i;
+                            preSelectedDirId = -1;
+                        }
                     }
                 }
-
                 //put that into the spinner
-                Spinner dirSpinner = (Spinner)findViewById(R.id.dirSpinner);
+                Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
                 if (selectPos != -1) {

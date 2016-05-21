@@ -15,6 +15,7 @@ import java.util.regex.Pattern;
 public abstract class PersistentDataController {
     static String[] lines;
     static Map<String, Integer> lineIds = new HashMap<>();
+    static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
     static final int lineExpiry = 60 * 60 * 24 * 14;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
@@ -49,6 +50,7 @@ public abstract class PersistentDataController {
             return true;
         }
         DatabaseHandler db = new DatabaseHandler(context);
+        db.fry(); //TODO: remove this line
         lineIds = db.getStoredLines();
         db.close();
         if (lineIds.size() == 0) {
@@ -93,5 +95,18 @@ public abstract class PersistentDataController {
 
     public static int getLineExpiry() {
         return lineExpiry;
+    }
+
+    public static Map<String, Integer> getDirIds(Context context, int lineId) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        Map<String, Integer> out = db.getDirs(lineId);
+        db.close();
+        return out;
+    }
+
+    public static void saveDirIds(Context context, int lineId, Map<String, Integer> directions) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.saveDirs(lineId, directions);
+        db.close();
     }
 }

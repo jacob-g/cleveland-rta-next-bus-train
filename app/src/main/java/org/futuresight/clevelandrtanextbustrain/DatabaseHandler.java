@@ -31,6 +31,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     private static final String LINES_TABLE = "lines";
 
+    private static final String DIRS_TABLE = "directions";
+
     private static final String CONFIG_TABLE = "config";
         private static final String FIELD_VALUE = "value";
 
@@ -67,6 +69,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + ")";
         db.execSQL(CREATE_LINES_TABLE);
 
+        String CREATE_DIRS_TABLE = "CREATE TABLE IF NOT EXISTS " + DIRS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_DIR_ID + " INTEGER,"
+                + NAME + " TEXT,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_DIRS_TABLE);
+
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
                 + FIELD_NAME + " TEXT PRIMARY KEY,"
                 + FIELD_VALUE + " TEXT"
@@ -96,7 +107,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         String selectQuery = "SELECT " + FIELD_VALUE + " FROM " + CONFIG_TABLE + " WHERE " + FIELD_NAME + "=?";
         Cursor cursor = db.rawQuery(selectQuery, new String[]{key});
         if (cursor.moveToFirst()) {
-            System.out.println("It is there.");
             return cursor.getString(0);
         } else {
             return "";
@@ -122,6 +132,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + FAVORITE_LOCATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
 
         // Create tables again
@@ -147,7 +158,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public boolean deleteFavoriteStation(Station st) { //delete a station from the favorites
         SQLiteDatabase db = this.getWritableDatabase();
         db.execSQL("DELETE FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId());
-        System.out.println("DELETE FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId());
         db.close(); // Closing database connection
         return true;
     }
@@ -187,7 +197,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             lastSavedInt = Integer.parseInt(lastSavedStr);
         }
         if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry()) {
-            System.out.println("Lines too old! " + lastSavedInt);
             db.execSQL("DELETE FROM " + LINES_TABLE);
             db.close(); // Closing database connection
             return outMap;
@@ -209,15 +218,48 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     public void saveLines(Map<String, Integer> lines) {
         SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
         for (String l : lines.keySet()) {
             ContentValues values = new ContentValues();
             values.put(ID, lines.get(l));
             values.put(NAME, l); //station name
             db.insert(LINES_TABLE, null, values);
         }
+        db.endTransaction();
         //save config entry
         setConfig(db, CONFIG_LAST_SAVED_LINES, String.valueOf(PersistentDataController.getCurTime()));
-        System.out.println("Last saved: " + getConfig(db, CONFIG_LAST_SAVED_LINES));
+        db.close();
+    }
+
+    public Map<String, Integer> getDirs(int lineId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Map<String, Integer> outMap = new HashMap<>();
+
+        String selectQuery = "SELECT " + FIELD_DIR_ID + "," + FIELD_NAME + " FROM " + DIRS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                outMap.put(name, id);
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return outMap;
+    }
+
+    public void saveDirs(int lineId, Map<String, Integer> directions) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        for (String dirName : directions.keySet()) {
+            ContentValues values = new ContentValues();
+            values.put(FIELD_DIR_ID, directions.get(dirName));
+            values.put(NAME, dirName);
+            values.put(FIELD_LINE_ID, lineId);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
+            db.insert(DIRS_TABLE, null, values);
+        }
         db.close();
     }
 }
