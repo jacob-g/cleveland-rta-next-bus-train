@@ -197,6 +197,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return stations;
     }
 
+    public boolean hasFavoriteLocation(int lineId, int dirId, int stationId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT 1 FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_DIR_ID + "=" + dirId + " AND " + FIELD_STATION_ID + "=" + stationId, null);
+        boolean out = cursor.moveToFirst();
+        db.close();
+        return out;
+    }
+
     public void renameStation(Station st) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();

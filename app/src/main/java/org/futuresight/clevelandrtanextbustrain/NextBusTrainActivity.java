@@ -79,18 +79,42 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
+    private void alertDialog(String title, String msg) {
+        AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+        alertDialog.setTitle(title);
+        alertDialog.setMessage(msg);
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        alertDialog.show();
+    }
+
     //listener that runs when the "add favorite" button is clicked
     private Button.OnClickListener addFavoriteClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
-            //use a dialog box to ask the user for the name of the station
-            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
-            inputAlert.setTitle(R.string.add_favorite);
-            inputAlert.setMessage(R.string.favorite_save_name_prompt);
-
             //get the current station information
             final String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             final String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
             final String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+            final int stationId = stopIds.get(stationName);
+            final int lineId = PersistentDataController.getLineIdMap().get(lineName);
+            final int dirId = dirIds.get(dirName);
+
+            //check if there's already a station
+            DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
+            if (db.hasFavoriteLocation(lineId, dirId, stationId)) {
+                alertDialog("Error", "You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.");
+                return;
+            }
+            db.close();
+
+            //use a dialog box to ask the user for the name of the station
+            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+            inputAlert.setTitle(R.string.add_favorite);
+            inputAlert.setMessage(R.string.favorite_save_name_prompt);
 
             //create the text box and automatically populate it with the current station name
             final EditText userInput = new EditText(view.getContext());
@@ -102,10 +126,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 public void onClick(DialogInterface dialog, int which) {
                     String name = userInput.getText().toString();
                     DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-
-                    int lineId = PersistentDataController.getLineIdMap().get(lineName);
-                    int dirId = dirIds.get(dirName);
-                    int stationId = stopIds.get(stationName);
 
                     Station st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name); //create the station object
                     db.addFavoriteLocation(st);
@@ -274,6 +294,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 }
                 new SaveLinesTask(myContext).execute();
             } else {
+                if (!PersistentDataController.linesStored(myContext)) {
+                    alertDialog("Network", "You need a working network connection for this app to function.");
+                    return;
+                }
                 lineNames = PersistentDataController.getLines();
                 for (int i = 0; i < lineNames.length; i++) {
                     String line = lineNames[i];
@@ -486,6 +510,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             //parse the result as JSON
             try {
+                if (result == "") {
+                    alertDialog("Network", "You need a working network connection for this app to function.");
+                    return;
+                }
                 //it's d->stops->0->crossings, then an array with the stop information
                 JSONObject json = new JSONObject(result);
                 JSONObject root = json.getJSONObject("d");
