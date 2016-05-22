@@ -274,7 +274,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 } catch(JSONException e){
                     e.printStackTrace();
                 }
-                PersistentDataController.saveLineIdMap(myContext); //cache if necessary (this is after the rest since it can take a bit to do so) TODO: put this in an AsyncTask
+                new SaveLinesTask(myContext).execute();
             } else {
                 lineNames = PersistentDataController.getLines();
                 for (int i = 0; i < lineNames.length; i++) {
@@ -293,6 +293,21 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectPos != -1) {
                 lineSpinner.setSelection(selectPos);
             }
+        }
+    }
+
+    private class SaveLinesTask extends AsyncTask<Void, Void, Void> {
+        private Context myContext;
+        public SaveLinesTask(Context context) {
+            myContext = context;
+        }
+        protected Void doInBackground(Void... params) {
+            PersistentDataController.saveLineIdMap(myContext);
+            return null;
+        }
+
+        protected void onPostExecute(String result) {
+
         }
     }
 

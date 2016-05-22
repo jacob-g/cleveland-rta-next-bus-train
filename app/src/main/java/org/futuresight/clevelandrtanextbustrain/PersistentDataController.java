@@ -9,9 +9,6 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-/**
- * Created by jacob on 5/20/16.
- */
 public abstract class PersistentDataController {
     static String[] lines;
     static Map<String, Integer> lineIds = new HashMap<>();
@@ -50,7 +47,6 @@ public abstract class PersistentDataController {
             return true;
         }
         DatabaseHandler db = new DatabaseHandler(context);
-        db.fry(); //TODO: remove this line
         lineIds = db.getStoredLines();
         db.close();
         if (lineIds.size() == 0) {
