@@ -14,6 +14,7 @@ public abstract class PersistentDataController {
     static Map<String, Integer> lineIds = new HashMap<>();
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
     static final int lineExpiry = 60 * 60 * 24 * 14;
+    static final int stationExpiry = 60 * 60 * 24 * 2;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -92,6 +93,9 @@ public abstract class PersistentDataController {
     public static int getLineExpiry() {
         return lineExpiry;
     }
+    public static int getStationExpiry() {
+        return stationExpiry;
+    }
 
     public static Map<String, Integer> getDirIds(Context context, int lineId) {
         DatabaseHandler db = new DatabaseHandler(context);
@@ -103,6 +107,19 @@ public abstract class PersistentDataController {
     public static void saveDirIds(Context context, int lineId, Map<String, Integer> directions) {
         DatabaseHandler db = new DatabaseHandler(context);
         db.saveDirs(lineId, directions);
+        db.close();
+    }
+
+    public static Map<String, Integer> getStationIds(Context context, int lineId, int dirId) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        Map<String, Integer> out = db.getStations(lineId, dirId);
+        db.close();
+        return out;
+    }
+
+    public static void saveStationIds(Context context, int lineId, int dirId, Map<String, Integer> stations) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.saveStations(lineId, dirId, stations);
         db.close();
     }
 }

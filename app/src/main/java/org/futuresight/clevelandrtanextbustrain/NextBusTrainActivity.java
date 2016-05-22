@@ -251,8 +251,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             //parse the result as JSON
             int selectPos = -1;
             String[] lineNames = new String[1];
-            boolean needToCache = false;
-            if (result != "" && !PersistentDataController.linesStored(myContext)) {
+            if (!result.equals("") && !PersistentDataController.linesStored(myContext)) {
                 try {
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
@@ -270,7 +269,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
 
                     PersistentDataController.setLines(lineNames);
-                    needToCache = true;
                 } catch(JSONException e){
                     e.printStackTrace();
                 }
@@ -333,8 +331,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             route = PersistentDataController.getLineIdMap().get(params[0]);
             dirs = PersistentDataController.getDirIds(myContext, route);
             if (dirs.isEmpty()) {
-                String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
-                return resp;
+                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
             } else {
                 return "";
             }
@@ -379,7 +376,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 }
                 //put that into the spinner
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
-                ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, directions);
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
                 if (selectPos != -1) {
                     dirSpinner.setSelection(selectPos);
@@ -392,25 +389,26 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetStopsTask extends AsyncTask<String, Void, String> {
         private Context myContext;
+        private Map<String, Integer> stations;
+        private int myRouteId, myDirId;
         public GetStopsTask(Context context) {
             myContext = context;
         }
         protected String doInBackground(String... params) {
-            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
-            int dirId = dirIds.get(params[1]);
-            String resp = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + routeId + ", directionID: " + dirId + "}");
-            return resp;
+            myRouteId = PersistentDataController.getLineIdMap().get(params[0]);
+            myDirId = dirIds.get(params[1]);
+            stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
+            if (stations.isEmpty()) {
+                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + myRouteId + ", directionID: " + myDirId + "}");
+            } else {
+                return "";
+            }
         }
 
         protected void onPostExecute(String result) {
             //parse the result as JSON
             try {
-                JSONObject json = new JSONObject(result);
-                JSONArray arr = json.getJSONArray("d");
-
-                stops = new String[arr.length()];
-                Spinner stationSpinner = (Spinner)findViewById(R.id.stationSpinner);
-
+                Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 int selectPos = -1;
 
                 //get the current selection in case the direction is changing
@@ -419,16 +417,41 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     curSelection = stationSpinner.getSelectedItem().toString();
                 }
 
-                for (int i = 0; i < arr.length(); i++) {
-                    JSONObject stopObj = arr.getJSONObject(i);
-                    stops[i] = stopObj.getString("name");
-                    int id = stopObj.getInt("id");
-                    stopIds.put(stops[i], id);
-                    if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
-                        selectPos = i;
-                        preSelectedStopId = -1;
-                    } else if (stops[i].equals(curSelection) && selectPos == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
-                        selectPos = i;
+                if (stations.isEmpty()) {
+                    JSONObject json = new JSONObject(result);
+                    JSONArray arr = json.getJSONArray("d");
+
+                    stops = new String[arr.length()];
+
+                    for (int i = 0; i < arr.length(); i++) {
+                        JSONObject stopObj = arr.getJSONObject(i);
+                        stops[i] = stopObj.getString("name");
+                        int id = stopObj.getInt("id");
+                        stopIds.put(stops[i], id);
+                        if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
+                            selectPos = i;
+                            preSelectedStopId = -1;
+                        } else if (stops[i].equals(curSelection) && selectPos == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
+                            selectPos = i;
+                        }
+                    }
+                    PersistentDataController.saveStationIds(myContext, myRouteId, myDirId, stopIds);
+                } else {
+                    stopIds = stations;
+                    stops = new String[stations.size()];
+                    int i = 0;
+                    for (String key : stations.keySet()) {
+                        stops[i] = key;
+                        i++;
+                    }
+                    Arrays.sort(stops);
+                    for (i = 0; i < stops.length; i++) {
+                        if (preSelectedStopId == stations.get(stops[i])) {
+                            selectPos = i;
+                            preSelectedStopId = -1;
+                        } else if (stops[i].equals(curSelection) && selectPos != -1) {
+                            selectPos = i;
+                        }
                     }
                 }
 
@@ -457,8 +480,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             int stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results
             //returns an array of {stop JSON, alerts XML}
-            String returnData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
-            return returnData;
+            return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
         }
 
         protected void onPostExecute(String result) {
@@ -475,7 +497,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     List<String[]> stopList = new ArrayList<>();
                     for (int i = 0; i < stopsListJson.length(); i++) {
                         JSONObject curStopJson = stopsListJson.getJSONObject(i);
-                        String time = "", period = "";
+                        String time, period;
                         if (!curStopJson.getBoolean("cancelled")) { //make sure the train isn't cancelled
                             if (curStopJson.getString("predTime").equals("null")) { //if we don't have an actual time (i.e. for trains that haven't left yet), use the scheduled time
                                 time = curStopJson.getString("schedTime");
@@ -572,8 +594,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         }
                     }
                     alertCounts.put(route, count);
-                } else {
-
                 }
                 int alertCount = alertCounts.get(route);
                 Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
@@ -609,8 +629,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         if (minOfDay < curTime) {
             minOfDay += 1440;
         }
-        int timeLeft = minOfDay - curTime;
-        return timeLeft;
+        return minOfDay - curTime;
     }
 
 }

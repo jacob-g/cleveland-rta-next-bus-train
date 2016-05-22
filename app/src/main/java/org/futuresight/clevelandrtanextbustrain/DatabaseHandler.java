@@ -33,6 +33,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     private static final String DIRS_TABLE = "directions";
 
+    private static final String STATIONS_TABLE = "stations";
+
     private static final String CONFIG_TABLE = "config";
         private static final String FIELD_VALUE = "value";
 
@@ -44,8 +46,16 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     //config values
     private static final String CONFIG_LAST_SAVED_LINES = "last_saved_lines";
 
+    private static boolean initialized = false;
+
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
+        if (!initialized) {
+            SQLiteDatabase db = this.getWritableDatabase();
+            onCreate(db);
+            db.close();
+            initialized = true;
+        }
     }
 
     // Creating Tables
@@ -77,6 +87,16 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_EXPIRES + " INTEGER"
                 + ")";
         db.execSQL(CREATE_DIRS_TABLE);
+
+        String CREATE_STATIONS_TABLE = "CREATE TABLE IF NOT EXISTS " + STATIONS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_STATION_ID + " INTEGER,"
+                + FIELD_DIR_ID + " INTEGER,"
+                + NAME + " TEXT,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_STATIONS_TABLE);
 
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
                 + FIELD_NAME + " TEXT PRIMARY KEY,"
@@ -260,6 +280,41 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
             db.insert(DIRS_TABLE, null, values);
         }
+        db.close();
+    }
+
+    public Map<String, Integer> getStations(int lineId, int dirId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        Map<String, Integer> outMap = new HashMap<>();
+
+        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + " FROM " + STATIONS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_DIR_ID + "=" + dirId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(0);
+                String name = cursor.getString(1);
+                outMap.put(name, id);
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return outMap;
+    }
+
+    public void saveStations(int lineId, int dirId, Map<String, Integer> stations) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        for (String name : stations.keySet()) {
+            ContentValues values = new ContentValues();
+            values.put(FIELD_DIR_ID, dirId);
+            values.put(NAME, name);
+            values.put(FIELD_LINE_ID, lineId);
+            values.put(FIELD_STATION_ID, stations.get(name));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
+            db.insert(STATIONS_TABLE, null, values);
+        }
+        db.endTransaction();
         db.close();
     }
 }
