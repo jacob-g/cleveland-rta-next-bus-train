@@ -2,6 +2,7 @@ package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -58,7 +59,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectedRouteStr.equals("") || selectedDirStr.equals("") || selectedStopStr.equals("")) {
                 //nothing is selected, so try again later
             } else {
-                new GetTimesTask(view.getContext()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
             }
         }
     }
@@ -68,7 +69,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-                new GetDirectionsTask(view.getContext()).execute(selectedRouteStr);
+                new GetDirectionsTask(view.getContext(), createDialog()).execute(selectedRouteStr);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -169,7 +170,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-                new GetStopsTask(view.getContext()).execute(selectedRouteStr, selectedDirStr);
+                new GetStopsTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -180,6 +181,14 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
+    private ProgressDialog createDialog() {
+        ProgressDialog dlg = new ProgressDialog(NextBusTrainActivity.this);
+        dlg.setTitle("Loading");
+        dlg.setMessage("Please wait...");
+        dlg.show();
+        return dlg;
+    }
+
     //listener that runs when a direction is selected (loads the appropriate stops)
     private Spinner.OnItemSelectedListener stopSelectedSpinner = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
@@ -187,7 +196,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
-                new GetTimesTask(view.getContext()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+
+                new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -241,7 +251,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (getIntent().hasExtra("stopId")) {
                 preSelectedStopId = getIntent().getExtras().getInt("stopId");
             }
-            new GetLinesTask(this).execute();
+            new GetLinesTask(this, createDialog()).execute();
 
             //create a timer to get the list of stops as appropriate
             //TODO: make it so that the event only runs when there is a station selected and all that (i.e. not when loading/caching, etc.)
@@ -257,8 +267,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetLinesTask extends AsyncTask<Void, Void, String> {
         private Context myContext;
-        public GetLinesTask(Context context) {
+        private ProgressDialog myProgressDialog;
+        public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDialog = pdlg;
         }
         protected String doInBackground(Void... params) {
             if (PersistentDataController.linesStored(myContext)) {
@@ -316,6 +328,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectPos != -1) {
                 lineSpinner.setSelection(selectPos);
             }
+            myProgressDialog.dismiss();
         }
     }
 
@@ -341,16 +354,18 @@ public class NextBusTrainActivity extends AppCompatActivity {
             preSelectedStopId = data.getExtras().getInt("stationId");
             preSelectedDirId = data.getExtras().getInt("dirId");
             preSelectedLineId = data.getExtras().getInt("lineId");
-            new GetLinesTask(this).execute();
+            new GetLinesTask(this, createDialog()).execute();
         }
     }
 
     private class GetDirectionsTask extends AsyncTask<String, Void, String> {
         private Context myContext;
+        private ProgressDialog myProgressDialog;
         private Map<String, Integer> dirs;
         private int route;
-        public GetDirectionsTask(Context context) {
+        public GetDirectionsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDialog = pdlg;
         }
         protected String doInBackground(String... params) {
             route = PersistentDataController.getLineIdMap().get(params[0]);
@@ -400,7 +415,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
                 }
                 //put that into the spinner
-                //TODO: fix the red line (the red line for some reason doesn't maintain the station when changing directions)
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
@@ -410,6 +424,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+            myProgressDialog.dismiss();
         }
     }
 
@@ -417,8 +432,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Context myContext;
         private Map<String, Integer> stations;
         private int myRouteId, myDirId;
-        public GetStopsTask(Context context) {
+        private ProgressDialog myProgressDialog;
+        public GetStopsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDialog = pdlg;
         }
         protected String doInBackground(String... params) {
             myRouteId = PersistentDataController.getLineIdMap().get(params[0]);
@@ -491,6 +508,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             } catch (JSONException e) {
                 e.printStackTrace();
             }
+            myProgressDialog.dismiss();
         }
     }
 
@@ -498,8 +516,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
     private class GetTimesTask extends AsyncTask<String, Void, String> {
         private Context myContext;
         private String route;
-        public GetTimesTask(Context context) {
+        private ProgressDialog myProgressDlg;
+        public GetTimesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDlg = pdlg;
         }
         protected String doInBackground(String... params) {
             if (params[0] == null || params[1] == null || params[2] == null) {
@@ -509,6 +529,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             int dirId = dirIds.get(params[1]);
             int stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results
+
             //returns an array of {stop JSON, alerts XML}
             return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
         }
@@ -579,9 +600,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 } else {
                     blankAll();
                 }
+                myProgressDlg.dismiss();
 
-                new GetServiceAlertsTask(myContext).execute(route);
+                //new GetServiceAlertsTask(myContext).execute(route); TODO: make the service alerts not prevent everything else from working
             } catch (Exception e) {
+                myProgressDlg.dismiss();
                 blankAll();
                 System.err.println("Error in parsing JSON or XML");
                 e.printStackTrace();

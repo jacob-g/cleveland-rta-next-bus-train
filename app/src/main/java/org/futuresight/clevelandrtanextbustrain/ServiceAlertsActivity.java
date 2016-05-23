@@ -1,5 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -58,9 +59,9 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                         arr[i] = s;
                         i++;
                     }
-                    new GetServiceAlertsTask(view.getContext()).execute(arr);
+                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(arr);
                 } else {
-                    new GetServiceAlertsTask(view.getContext()).execute(new String[]{selectedRouteStr});
+                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(new String[]{selectedRouteStr});
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -71,6 +72,14 @@ public class ServiceAlertsActivity extends AppCompatActivity {
 
         }
     };
+
+    private ProgressDialog createDialog() {
+        ProgressDialog dlg = new ProgressDialog(this);
+        dlg.setTitle("Loading");
+        dlg.setMessage("Please wait...");
+        dlg.show();
+        return dlg;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -86,16 +95,18 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         }
 
         ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
-        new GetLinesTask(this).execute();
-        new GetServiceAlertsTask(this).execute(selectedRoutes);
+        new GetLinesTask(this, createDialog()).execute();
+        new GetServiceAlertsTask(this, createDialog()).execute(selectedRoutes);
     }
 
     //task to get the times of the bus/train
     private class GetServiceAlertsTask extends AsyncTask<String[], Void, String> {
         private Context myContext;
         private String[] routes;
-        public GetServiceAlertsTask(Context context) {
+        private ProgressDialog myProgressDialog;
+        public GetServiceAlertsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDialog = pdlg;
         }
         protected String doInBackground(String[]... params) {
             String returnData = "";
@@ -172,13 +183,16 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 System.err.println("Error in parsing XML");
                 e.printStackTrace();
             }
+            myProgressDialog.dismiss();
         }
     }
 
     private class GetLinesTask extends AsyncTask<Void, Void, String> {
         private Context myContext;
-        public GetLinesTask(Context context) {
+        private ProgressDialog myProgressDialog;
+        public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
+            myProgressDialog = pdlg;
         }
         protected String doInBackground(Void... params) {
             if (PersistentDataController.linesStored(myContext)) {
@@ -235,6 +249,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             if (selectPos != -1) {
                 lineSpinner.setSelection(selectPos + 1);
             }
+            myProgressDialog.dismiss();
         }
     }
 }
