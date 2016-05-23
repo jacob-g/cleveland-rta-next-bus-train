@@ -41,6 +41,12 @@ public class MainMenu extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void fryDb(View v) {
+        DatabaseHandler db = new DatabaseHandler(this);
+        db.fry();
+        db.close();
+    }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will

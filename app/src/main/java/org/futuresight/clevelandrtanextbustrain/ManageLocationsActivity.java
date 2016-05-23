@@ -46,13 +46,11 @@ public class ManageLocationsActivity extends AppCompatActivity {
                 public void onClick(View view) {
                     if (returnToParent) {
                         //find the parent activity and use loadStation()
-                        System.out.println("Part 1");
                         Intent intent = new Intent();
                         intent.putExtra("stationId",station.getStationId());
                         intent.putExtra("lineId",station.getLineId());
                         intent.putExtra("dirId",station.getDirId());
                         activity.setResult(RESULT_OK, intent);
-                        System.out.println("Part 1.5");
                         finish();
                         //nbta.loadStation(station.getStationId(), station.getDirId(), station.getLineId());
                     } else {

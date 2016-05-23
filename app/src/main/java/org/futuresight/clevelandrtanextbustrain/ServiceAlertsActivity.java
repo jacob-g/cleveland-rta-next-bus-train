@@ -74,6 +74,9 @@ public class ServiceAlertsActivity extends AppCompatActivity {
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_service_alerts);
+        
         String[] selectedRoutes = new String[1];
         if (getIntent().hasExtra("route") && getIntent().hasExtra("routeId")) {
             selectedRoutes = new String[]{getIntent().getExtras().getString("route")};
@@ -81,9 +84,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         } else {
             selectedRoutes = new String[]{"1", "2"};
         }
-
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_service_alerts);
 
         ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
         new GetLinesTask(this).execute();

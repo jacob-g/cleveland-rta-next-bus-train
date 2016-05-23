@@ -14,7 +14,7 @@ public abstract class PersistentDataController {
     static Map<String, Integer> lineIds = new HashMap<>();
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
     static final int lineExpiry = 60 * 60 * 24 * 14;
-    static final int stationExpiry = 60 * 60 * 24 * 2;
+    static final int stationExpiry = 60 * 60 * 24 * 7;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;

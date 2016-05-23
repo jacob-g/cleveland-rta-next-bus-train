@@ -244,9 +244,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
             new GetLinesTask(this).execute();
 
             //create a timer to get the list of stops as appropriate
-            Timer timer = new Timer();
+            //TODO: make it so that the event only runs when there is a station selected and all that (i.e. not when loading/caching, etc.)
+            /*Timer timer = new Timer();
             TimerTask updateTimes = new UpdateTimesTask(this.findViewById(android.R.id.content));
-            timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);
+            timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);*/
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -399,6 +400,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
                 }
                 //put that into the spinner
+                //TODO: fix the red line (the red line for some reason doesn't maintain the station when changing directions)
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
@@ -446,6 +448,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     JSONArray arr = json.getJSONArray("d");
 
                     stops = new String[arr.length()];
+                    stopIds = new HashMap<>();
 
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject stopObj = arr.getJSONObject(i);
@@ -455,7 +458,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
                             selectPos = i;
                             preSelectedStopId = -1;
-                        } else if (stops[i].equals(curSelection) && selectPos == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
+                        } else if (stops[i].equals(curSelection) && selectPos == -1 && preSelectedStopId == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
                             selectPos = i;
                         }
                     }
@@ -473,7 +476,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         if (preSelectedStopId == stations.get(stops[i])) {
                             selectPos = i;
                             preSelectedStopId = -1;
-                        } else if (stops[i].equals(curSelection) && selectPos != -1) {
+                        } else if (stops[i].equals(curSelection) && selectPos == -1 && preSelectedStopId == -1) {
                             selectPos = i;
                         }
                     }
@@ -499,6 +502,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected String doInBackground(String... params) {
+            if (params[0] == null || params[1] == null || params[2] == null) {
+                blankAll();
+            }
             int routeId = PersistentDataController.getLineIdMap().get(params[0]);
             int dirId = dirIds.get(params[1]);
             int stopId = stopIds.get(params[2]);
@@ -611,7 +617,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = dBuilder.parse(new InputSource(new StringReader(result)));
                     Node rootNode = doc.getDocumentElement();
-                    List<Map<String, String>> alertList = new ArrayList<>();
                     if (doc.hasChildNodes()) {
                         NodeList nl = rootNode.getChildNodes();
                         for (int i = 0; i < nl.getLength(); i++) {
@@ -623,13 +628,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
                     alertCounts.put(route, count);
                 }
-                int alertCount = alertCounts.get(route);
-                Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
-                if (alertCount > 0) {
-                    serviceAlertsBtn.setVisibility(View.VISIBLE);
-                    serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
-                } else {
-                    serviceAlertsBtn.setVisibility(View.INVISIBLE);
+                if (!result.equals("Error") && alertCounts.containsKey(route)) {
+                    int alertCount = alertCounts.get(route);
+                    Button serviceAlertsBtn = (Button) findViewById(R.id.serviceAlertsBtn);
+                    if (alertCount > 0) {
+                        serviceAlertsBtn.setVisibility(View.VISIBLE);
+                        serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
+                    } else {
+                        serviceAlertsBtn.setVisibility(View.INVISIBLE);
+                    }
                 }
             } catch (Exception e) {
                 System.err.println("Error in parsing JSON or XML");

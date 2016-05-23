@@ -39,17 +39,18 @@
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/map"
-            android:id="@+id/button"
-            android:layout_gravity="center_horizontal" />
-
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
             android:text="@string/favorite_locations"
             android:id="@+id/manageLocationsBtn"
             android:clickable="true"
             android:onClick="openManageLocationsPage"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Erase Database"
+            android:id="@+id/button"
+            android:onClick="fryDb"
+            android:background="#AA3333" />
 
         <ImageView
             android:layout_width="161dp"

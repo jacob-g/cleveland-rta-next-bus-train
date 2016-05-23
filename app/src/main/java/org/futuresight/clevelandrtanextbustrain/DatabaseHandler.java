@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.database.sqlite.SQLiteStatement;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -153,6 +154,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + FAVORITE_LOCATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
 
         // Create tables again
@@ -246,14 +248,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     public void saveLines(Map<String, Integer> lines) {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.beginTransaction();
+        //db.beginTransaction();
         for (String l : lines.keySet()) {
             ContentValues values = new ContentValues();
             values.put(ID, lines.get(l));
             values.put(NAME, l); //station name
             db.insert(LINES_TABLE, null, values);
         }
-        db.endTransaction();
+        //db.endTransaction();
         //save config entry
         setConfig(db, CONFIG_LAST_SAVED_LINES, String.valueOf(PersistentDataController.getCurTime()));
         db.close();
@@ -313,15 +315,25 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void saveStations(int lineId, int dirId, Map<String, Integer> stations) {
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
+        String sql = "INSERT INTO " + STATIONS_TABLE + "(" + FIELD_DIR_ID + "," + NAME + "," + FIELD_LINE_ID + "," + FIELD_STATION_ID + "," + FIELD_EXPIRES + ") VALUES(?,?,?,?,?)";
+        SQLiteStatement statement = db.compileStatement(sql);
         for (String name : stations.keySet()) {
-            ContentValues values = new ContentValues();
+            /*ContentValues values = new ContentValues();
             values.put(FIELD_DIR_ID, dirId);
             values.put(NAME, name);
             values.put(FIELD_LINE_ID, lineId);
             values.put(FIELD_STATION_ID, stations.get(name));
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
-            db.insert(STATIONS_TABLE, null, values);
+            db.insert(STATIONS_TABLE, null, values);*/
+            statement.clearBindings();
+            statement.bindLong(1, dirId);
+            statement.bindString(2, name);
+            statement.bindLong(3, lineId);
+            statement.bindLong(4, stations.get(name));
+            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
+            statement.execute();
         }
+        db.setTransactionSuccessful();
         db.endTransaction();
         db.close();
     }
