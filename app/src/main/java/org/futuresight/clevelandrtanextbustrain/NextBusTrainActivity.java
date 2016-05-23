@@ -59,7 +59,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectedRouteStr.equals("") || selectedDirStr.equals("") || selectedStopStr.equals("")) {
                 //nothing is selected, so try again later
             } else {
-                new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                new GetTimesTask(view.getContext(), null).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
             }
         }
     }
@@ -255,9 +255,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
             //create a timer to get the list of stops as appropriate
             //TODO: make it so that the event only runs when there is a station selected and all that (i.e. not when loading/caching, etc.)
-            /*Timer timer = new Timer();
+            Timer timer = new Timer();
             TimerTask updateTimes = new UpdateTimesTask(this.findViewById(android.R.id.content));
-            timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);*/
+            timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -600,8 +600,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 } else {
                     blankAll();
                 }
-                myProgressDlg.dismiss();
-
+                if (myProgressDlg != null) {
+                    myProgressDlg.dismiss();
+                }
                 //new GetServiceAlertsTask(myContext).execute(route); TODO: make the service alerts not prevent everything else from working
             } catch (Exception e) {
                 myProgressDlg.dismiss();

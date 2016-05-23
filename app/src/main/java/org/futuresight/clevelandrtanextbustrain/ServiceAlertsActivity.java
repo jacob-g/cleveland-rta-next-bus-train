@@ -94,9 +94,17 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             selectedRoutes = new String[]{"1", "2"};
         }
 
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
         ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
         new GetLinesTask(this, createDialog()).execute();
         new GetServiceAlertsTask(this, createDialog()).execute(selectedRoutes);
+    }
+
+    @Override
+    public boolean onSupportNavigateUp(){
+        finish();
+        return true;
     }
 
     //task to get the times of the bus/train

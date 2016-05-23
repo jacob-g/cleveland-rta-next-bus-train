@@ -166,6 +166,7 @@ public class ManageLocationsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manage_locations);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         //populate the layout with the items
         LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
@@ -179,5 +180,11 @@ public class ManageLocationsActivity extends AppCompatActivity {
             favoriteListLayout.addView(t);
         }
         db.close();
+    }
+
+    @Override
+    public boolean onSupportNavigateUp(){
+        finish();
+        return true;
     }
 }
