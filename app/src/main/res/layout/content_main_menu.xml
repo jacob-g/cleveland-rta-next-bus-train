@@ -47,8 +47,15 @@
         <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/map"
+            android:id="@+id/mapBtn"
+            android:onClick="openMap"/>
+
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:text="Erase Database"
-            android:id="@+id/button"
+            android:id="@+id/eraseDatabaseBtn"
             android:onClick="fryDb"
             android:background="#AA3333" />
 

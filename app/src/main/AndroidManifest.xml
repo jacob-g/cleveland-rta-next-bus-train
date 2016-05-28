@@ -14,21 +14,42 @@
         <activity
             android:name=".MainMenu"
             android:label="Cleveland Transit"
-            android:theme="@style/Theme.AppCompat.Light"
-            android:screenOrientation="portrait">
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.AppCompat.Light">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name=".NextBusTrainActivity"
+        <activity
+            android:name=".NextBusTrainActivity"
+            android:label="@string/next_bus_train"
+            android:parentActivityName=".MainMenu" />
+        <activity
+            android:name=".ManageLocationsActivity"
+            android:label="@string/favorite_locations" />
+        <activity
+            android:name=".ServiceAlertsActivity"
+            android:label="@string/service_alerts" />
+        <activity
+            android:name=".MapTypeListActivity"
+            android:label="@string/title_maptype_list"
             android:parentActivityName=".MainMenu"
-            android:label="@string/next_bus_train"/>
-        <activity android:name=".ManageLocationsActivity"
-            android:label="@string/favorite_locations"/>
-        <activity android:name=".ServiceAlertsActivity"
-            android:label="@string/service_alerts"></activity>
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.futuresight.clevelandrtanextbustrain.MainMenu" />
+        </activity>
+        <activity
+            android:name=".MapTypeDetailActivity"
+            android:label="@string/title_maptype_detail"
+            android:parentActivityName=".MapTypeListActivity"
+            android:theme="@style/AppTheme.NoActionBar">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.futuresight.clevelandrtanextbustrain.MapTypeListActivity" />
+        </activity>
     </application>
 
 </manifest>

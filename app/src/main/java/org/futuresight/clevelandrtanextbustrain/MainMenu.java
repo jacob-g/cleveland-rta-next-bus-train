@@ -62,6 +62,11 @@ public class MainMenu extends AppCompatActivity {
         startActivity(intent);
     }
 
+    public void openMap(View v) {
+        Intent intent = new Intent(this, MapTypeListActivity.class);
+        startActivity(intent);
+    }
+
     public void fryDb(View v) {
         DatabaseHandler db = new DatabaseHandler(this);
         db.fry();
