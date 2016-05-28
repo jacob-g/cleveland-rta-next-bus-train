@@ -14,7 +14,8 @@ public class MapType {
 
     static {
         // Add some sample items.
-        addItem(new Item("rail", "Rail", "This is the rail map", R.drawable.railmap));
+        addItem(new Item("rail", "Rail", "Red, Blue, Green, and Waterfront lines", "railmap"));
+        addItem(new Item("health", "HealthLine", "HealthLine", "healthline"));
     }
 
     private static void addItem(Item item) {
@@ -26,10 +27,10 @@ public class MapType {
         public final String id;
         public final String content;
         public final String details;
-        public final int imageId;
+        public final String imageId;
 
 
-        public Item(String id, String content, String details, int imageId) {
+        public Item(String id, String content, String details, String imageId) {
             this.id = id;
             this.content = content;
             this.details = details;

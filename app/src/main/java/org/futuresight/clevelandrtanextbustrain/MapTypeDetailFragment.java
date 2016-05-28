@@ -6,8 +6,10 @@ import android.support.design.widget.CollapsingToolbarLayout;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.WebView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -63,11 +65,19 @@ public class MapTypeDetailFragment extends Fragment {
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
             ((TextView) rootView.findViewById(R.id.maptype_detail)).setText(mItem.details);
-        }
+            ((WebView) rootView.findViewById(R.id.maptype_image)).loadDataWithBaseURL("file:///android_asset/", "<img src=\"" + mItem.imageId + ".svg\" />", "text/html", "utf-8", null);
 
-        // Show the dummy content as text in a TextView.
-        if (mItem != null) {
-            //((ImageView) rootView.findViewById(R.id.maptype_image)).setImageDrawable(getResources().getDrawable(mItem.imageId));
+            /*((ImageView) rootView.findViewById(R.id.maptype_image)).setOnTouchListener(new View.OnTouchListener() {
+                @Override
+                public boolean onTouch(View v, MotionEvent event) {
+                    if (event.getAction() == MotionEvent.ACTION_DOWN) {
+                        int x = (int)(event.getX() - v.getX());
+                        int y = (int)(event.getY() - v.getY());
+                        System.out.println("X: " + x + " Y:" + y);
+                    }
+                    return true;
+                }
+            });*/
         }
 
         return rootView;
