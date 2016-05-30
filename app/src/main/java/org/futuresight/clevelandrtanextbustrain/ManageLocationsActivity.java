@@ -47,7 +47,7 @@ public class ManageLocationsActivity extends AppCompatActivity {
                     if (returnToParent) {
                         //find the parent activity and use loadStation()
                         Intent intent = new Intent();
-                        intent.putExtra("stationId",station.getStationId());
+                        intent.putExtra("stopId",station.getStationId());
                         intent.putExtra("lineId",station.getLineId());
                         intent.putExtra("dirId",station.getDirId());
                         activity.setResult(RESULT_OK, intent);

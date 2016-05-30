@@ -351,7 +351,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (resultCode == RESULT_OK) {
-            preSelectedStopId = data.getExtras().getInt("stationId");
+            preSelectedStopId = data.getExtras().getInt("stopId");
             preSelectedDirId = data.getExtras().getInt("dirId");
             preSelectedLineId = data.getExtras().getInt("lineId");
             new GetLinesTask(this, createDialog()).execute();
