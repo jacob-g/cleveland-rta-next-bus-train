@@ -24,4 +24,9 @@
     <string name="there_are_n_service_alerts">%d service alert(s) </string>
     <string name="title_maptype_list">Maps</string>
     <string name="title_maptype_detail">Map</string>
+    <string name="whichdir">Which direction?</string>
+    <string name="deletefavorite">Delete Favorite</string>
+    <string name="deletefavoritemsg">Are you sure you want to delete the station "%s"?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
 </resources>

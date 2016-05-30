@@ -71,18 +71,11 @@ public class MapTypeDetailFragment extends Fragment {
         // Show the dummy content as text in a TextView.
         if (mItem != null) {
             ((TextView) rootView.findViewById(R.id.maptype_detail)).setText(mItem.details);
-            //((WebView) rootView.findViewById(R.id.maptype_image)).loadDataWithBaseURL("file:///android_asset/", "<img src=\"" + mItem.imageId + ".svg\" />", "text/html", "utf-8", null);
             final WebView wv = ((WebView) rootView.findViewById(R.id.maptype_image));
-            //TODO: make the webview react appropriately when an item is clicked
-            /*wv.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    System.out.println(wv.getUrl());
-                }
-            });*/
-
+            //enable JS and allow the JS to communicate with this file
             wv.getSettings().setJavaScriptEnabled(true);
             wv.getSettings().setDomStorageEnabled(true);
+            wv.getSettings().setBuiltInZoomControls(true); //allow zooming
             wv.addJavascriptInterface(new WebAppInterface(this.getContext(), this), "appInterface");
             wv.loadUrl("file:///android_asset/" + mItem.imageId + ".html");
 
@@ -106,17 +99,27 @@ public class MapTypeDetailFragment extends Fragment {
 
         @JavascriptInterface
         public void goToStation(String name, String[] directions, int[] dirIds, int stationId, int lineId) {
-            listChooseDialog(directions, dirIds, lineId, stationId, name);
+            listChooseDialog(directions, dirIds, new int[]{lineId, lineId}, new int[]{stationId, stationId}, name);
         }
 
-        private void listChooseDialog(String[] options, final int[] dirIds, final int lineId, final int stationId, String station) {
+        @JavascriptInterface
+        public void goToStationMultipleDirs(String name, String[] directions, int[] dirIds, int[] stationIds, int lineId) {
+            listChooseDialog(directions, dirIds, new int[]{lineId, lineId}, stationIds, name);
+        }
+
+        @JavascriptInterface
+        public void goToStationMultipleLines(String name, String[] directions, int[] dirIds, int[] stationIds, int[] lineIds) {
+            listChooseDialog(directions, dirIds, lineIds, stationIds, name);
+        }
+
+        private void listChooseDialog(String[] options, final int[] dirIds, final int[] lineIds, final int[] stationIds, String station) {
             AlertDialog.Builder builder = new AlertDialog.Builder(fragment.getActivity());
-            builder.setTitle(station + "\nWhich direction?").setItems(options, new DialogInterface.OnClickListener() {
+            builder.setTitle(station + "\n" + getResources().getText(R.string.whichdir)).setItems(options, new DialogInterface.OnClickListener() {
                @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                    Intent intent = new Intent(context, NextBusTrainActivity.class);
-                   intent.putExtra("stopId",stationId);
-                   intent.putExtra("lineId",lineId);
+                   intent.putExtra("stopId",stationIds[i]);
+                   intent.putExtra("lineId",lineIds[i]);
                    intent.putExtra("dirId",dirIds[i]);
                    startActivity(intent);
                }

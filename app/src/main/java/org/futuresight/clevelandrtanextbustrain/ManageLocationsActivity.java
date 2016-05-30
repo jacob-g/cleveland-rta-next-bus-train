@@ -113,9 +113,9 @@ public class ManageLocationsActivity extends AppCompatActivity {
             deleteBtn.setOnClickListener(new AdapterView.OnClickListener() {
                 public void onClick(View view) {
                     final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
-                    inputAlert.setTitle("Delete Favorite");
-                    inputAlert.setMessage("Are you sure you want to delete the station \"" + station.getName() + "\"?");
-                    inputAlert.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
+                    inputAlert.setTitle(getResources().getText(R.string.deletefavorite));
+                    inputAlert.setMessage(String.format(getResources().getText(R.string.deletefavoritemsg).toString(), station.getName()));
+                    inputAlert.setPositiveButton(getResources().getText(R.string.yes), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             DatabaseHandler db = new DatabaseHandler(context);
@@ -125,7 +125,7 @@ public class ManageLocationsActivity extends AppCompatActivity {
                             dialog.dismiss();
                         }
                     });
-                    inputAlert.setNegativeButton("No", new DialogInterface.OnClickListener() {
+                    inputAlert.setNegativeButton(getResources().getText(R.string.no), new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialog, int which) {
                             dialog.dismiss();
