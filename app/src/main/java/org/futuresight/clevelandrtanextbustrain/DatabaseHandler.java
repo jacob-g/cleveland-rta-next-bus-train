@@ -99,12 +99,28 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + ")";
         db.execSQL(CREATE_STATIONS_TABLE);
 
+        boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
                 + FIELD_NAME + " TEXT PRIMARY KEY,"
                 + FIELD_VALUE + " TEXT"
                 + ")";
         db.execSQL(CREATE_CONFIG_TABLE);
-        setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+        if (shouldPopulateConfig) {
+            setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+        }
+    }
+
+    private boolean hasTable(SQLiteDatabase db, String table) {
+        Cursor cursor = db.rawQuery("SELECT DISTINCT tbl_name FROM sqlite_master WHERE tbl_name = '" + table + "'", null);
+
+        if (cursor != null) {
+            if (cursor.getCount() > 0) {
+                cursor.close();
+                return true;
+            }
+            cursor.close();
+        }
+        return false;
     }
 
     private void setConfig(SQLiteDatabase db, String key, String val) {
@@ -144,6 +160,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void recreateTablesWithoutErasing() {
         SQLiteDatabase db = this.getWritableDatabase();
         onCreate(db);
+        db.close();
+    }
+
+    public void fryCache() { //erase everything, hopefully not needed
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        // Drop older table if existed
+        db.execSQL("DELETE FROM " + LINES_TABLE);
+        db.execSQL("DELETE FROM " + DIRS_TABLE);
+        db.execSQL("DELETE FROM " + STATIONS_TABLE);
+        setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+
+        // Create tables again
         db.close();
     }
 
@@ -249,13 +278,24 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void saveLines(Map<String, Integer> lines) {
         SQLiteDatabase db = this.getWritableDatabase();
         //db.beginTransaction();
-        for (String l : lines.keySet()) {
+        /*for (String l : lines.keySet()) {
             ContentValues values = new ContentValues();
             values.put(ID, lines.get(l));
             values.put(NAME, l); //station name
             db.insert(LINES_TABLE, null, values);
-        }
+        }*/
         //db.endTransaction();
+        db.beginTransaction();
+        String sql = "INSERT INTO " + LINES_TABLE + "(" + ID + "," + NAME + ") VALUES(?,?)";
+        SQLiteStatement statement = db.compileStatement(sql);
+        for (String l : lines.keySet()) {
+            statement.clearBindings();
+            statement.bindLong(1, lines.get(l));
+            statement.bindString(2, l);
+            statement.execute();
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
         //save config entry
         setConfig(db, CONFIG_LAST_SAVED_LINES, String.valueOf(PersistentDataController.getCurTime()));
         db.close();
@@ -290,6 +330,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
             db.insert(DIRS_TABLE, null, values);
         }
+        //delete old ones
+        db.execSQL("DELETE FROM " + DIRS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
         db.close();
     }
 
@@ -318,13 +360,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         String sql = "INSERT INTO " + STATIONS_TABLE + "(" + FIELD_DIR_ID + "," + NAME + "," + FIELD_LINE_ID + "," + FIELD_STATION_ID + "," + FIELD_EXPIRES + ") VALUES(?,?,?,?,?)";
         SQLiteStatement statement = db.compileStatement(sql);
         for (String name : stations.keySet()) {
-            /*ContentValues values = new ContentValues();
-            values.put(FIELD_DIR_ID, dirId);
-            values.put(NAME, name);
-            values.put(FIELD_LINE_ID, lineId);
-            values.put(FIELD_STATION_ID, stations.get(name));
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
-            db.insert(STATIONS_TABLE, null, values);*/
             statement.clearBindings();
             statement.bindLong(1, dirId);
             statement.bindString(2, name);
@@ -335,6 +370,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         db.setTransactionSuccessful();
         db.endTransaction();
+        //delete old ones
+        db.execSQL("DELETE FROM " + STATIONS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
         db.close();
     }
 }

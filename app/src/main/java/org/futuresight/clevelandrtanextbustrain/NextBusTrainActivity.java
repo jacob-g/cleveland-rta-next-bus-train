@@ -212,6 +212,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_next_bus_train);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true); //TODO: fix this up button
 
         //give listeners to the appropriate actions
         Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner); //this is for finding directions after a line is selected
@@ -238,6 +239,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         destMappings.put("Green Line - E. 79th Street", "E. 79th Street");
         destMappings.put("Red Line - E. 79th Street", "E. 79th Street");
         destMappings.put("Red Line - Tower City / Public Square", "Tower City");
+        destMappings.put("Blue Line - Tower City / Public Square", "Tower City");
+        destMappings.put("Green Line - Tower City / Public Square", "Tower City");
 
         //get the original list of routes
         try {
@@ -261,8 +264,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
     }
 
     private class GetLinesTask extends AsyncTask<Void, Void, String> {

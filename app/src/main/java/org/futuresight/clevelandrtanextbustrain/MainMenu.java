@@ -33,9 +33,10 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        getSupportActionBar().setTitle(R.string.main_menu_label);
         setContentView(R.layout.activity_main_menu);
         if (!NetworkController.connected(this)) {
-            alertDialog("Network", "You need to be connected to the internet for this app to work. Please re-open this app when you are connected to the internet.", true);
+            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
         }
 
     }
@@ -71,6 +72,13 @@ public class MainMenu extends AppCompatActivity {
         DatabaseHandler db = new DatabaseHandler(this);
         db.fry();
         db.close();
+    }
+
+    public void clearCache(View v) {
+        DatabaseHandler db = new DatabaseHandler(this);
+        db.fryCache();
+        db.close();
+        System.out.println("Cache cleared!");
     }
 
     @Override

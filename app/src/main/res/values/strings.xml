@@ -29,4 +29,7 @@
     <string name="deletefavoritemsg">Are you sure you want to delete the station "%s"?</string>
     <string name="yes">Yes</string>
     <string name="no">No</string>
+    <string name="main_menu_label">Cleveland Transit</string>
+    <string name="network">Network</string>
+    <string name="nonetworkmsg">You need to be connected to the internet for this app to work. Please re-open this app when you are connected to the internet.</string>
 </resources>

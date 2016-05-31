@@ -51,6 +51,7 @@ public abstract class PersistentDataController {
         lineIds = db.getStoredLines();
         db.close();
         if (lineIds.size() == 0) {
+            System.out.println("Lines not stored.");
             return false;
         }
         Set<String> lineList = lineIds.keySet();
@@ -77,6 +78,7 @@ public abstract class PersistentDataController {
     }
 
     public static void saveLineIdMap(Context context) {
+        System.out.println("Saving line IDs");
         DatabaseHandler db = new DatabaseHandler(context);
         db.saveLines(lineIds);
         db.close();

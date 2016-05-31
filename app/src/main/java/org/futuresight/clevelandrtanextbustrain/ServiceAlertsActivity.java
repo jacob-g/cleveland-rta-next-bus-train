@@ -52,7 +52,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                         lines.add(st.getLineName());
                     }
                     db.close();
-                    System.out.println(lines);
                     String[] arr = new String[lines.size()];
                     int i = 0;
                     for (String s : lines) {
@@ -88,10 +87,24 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         
         String[] selectedRoutes = new String[1];
         if (getIntent().hasExtra("route") && getIntent().hasExtra("routeId")) {
+            //if a route is passed, open it
             selectedRoutes = new String[]{getIntent().getExtras().getString("route")};
             selectedRouteId = getIntent().getExtras().getInt("routeId");
         } else {
-            selectedRoutes = new String[]{"1", "2"};
+            //otherwise open the favorite routes
+            DatabaseHandler db = new DatabaseHandler(ServiceAlertsActivity.this);
+            List<Station> favoriteStations = db.getFavoriteLocations();
+            Set<String> lines = new HashSet<>();
+            for (Station st : favoriteStations) {
+                lines.add(st.getLineName());
+            }
+            db.close();
+            selectedRoutes = new String[lines.size()];
+            int i = 0;
+            for (String s : lines) {
+                selectedRoutes[i] = s;
+                i++;
+            }
         }
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);

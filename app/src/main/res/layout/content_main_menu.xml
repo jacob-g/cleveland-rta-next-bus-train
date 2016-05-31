@@ -51,13 +51,30 @@
             android:id="@+id/mapBtn"
             android:onClick="openMap"/>
 
-        <Button
+        <LinearLayout
+            android:orientation="horizontal"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="Erase Database"
-            android:id="@+id/eraseDatabaseBtn"
-            android:onClick="fryDb"
-            android:background="#AA3333" />
+            android:layout_height="wrap_content">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Erase Database"
+                android:id="@+id/eraseDatabaseBtn"
+                android:onClick="fryDb"
+                android:background="#DD3333"
+                android:layout_weight="0.5" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Clear Cache"
+                android:id="@+id/clearCacheBtn"
+                android:onClick="clearCache"
+                android:background="#33CC33"
+                android:layout_gravity="right"
+                android:layout_weight="0.5" />
+        </LinearLayout>
 
         <ImageView
             android:layout_width="161dp"
