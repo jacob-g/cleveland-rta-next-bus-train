@@ -194,7 +194,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                         });
                         serviceAlertsLayout.addView(titleView);
                         TextView contentView = new TextView(myContext);
-                        contentView.setText(alertInfo.get("info"));
+                        contentView.setText(alertInfo.get("info").replace("\n", "<br />"));
                         serviceAlertsLayout.addView(contentView);
                     }
                 } else {
