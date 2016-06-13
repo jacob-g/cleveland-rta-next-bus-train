@@ -72,6 +72,7 @@ public class MainMenu extends AppCompatActivity {
         DatabaseHandler db = new DatabaseHandler(this);
         db.fry();
         db.close();
+        System.out.println("Database erased!");
     }
 
     public void clearCache(View v) {

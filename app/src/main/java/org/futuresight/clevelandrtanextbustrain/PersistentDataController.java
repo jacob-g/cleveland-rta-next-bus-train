@@ -4,6 +4,7 @@ import android.content.Context;
 
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
@@ -13,8 +14,9 @@ public abstract class PersistentDataController {
     static String[] lines;
     static Map<String, Integer> lineIds = new HashMap<>();
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
-    static final int lineExpiry = 60 * 60 * 24 * 14;
-    static final int stationExpiry = 60 * 60 * 24 * 7;
+    public static final int lineExpiry = 60 * 60 * 24 * 14;
+    public static final int stationExpiry = 60 * 60 * 24 * 7;
+    public static final int alertExpiry = 60 * 60 * 24 * 1;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -96,6 +98,9 @@ public abstract class PersistentDataController {
     public static int getStationExpiry() {
         return stationExpiry;
     }
+    public static int getAlertExpiry() {
+        return alertExpiry;
+    }
 
     public static Map<String, Integer> getDirIds(Context context, int lineId) {
         DatabaseHandler db = new DatabaseHandler(context);
@@ -120,6 +125,24 @@ public abstract class PersistentDataController {
     public static void saveStationIds(Context context, int lineId, int dirId, Map<String, Integer> stations) {
         DatabaseHandler db = new DatabaseHandler(context);
         db.saveStations(lineId, dirId, stations);
+        db.close();
+    }
+    public static List<Map<String, String>> getAlerts(Context context, int lineId) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        List<Map<String, String>> out = db.getAlerts(lineId);
+        db.close();
+        return out;
+    }
+
+    public static void cacheAlert(Context context, int lineId, String title, String url, String text) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.saveAlert(lineId, title, url, text);
+        db.close();
+    }
+
+    public static void markAsSavedForLineAlerts(Context context, List<Integer> lineIds) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.markAsSavedForLineAlerts(lineIds);
         db.close();
     }
 }

@@ -39,6 +39,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String CONFIG_TABLE = "config";
         private static final String FIELD_VALUE = "value";
 
+    private static final String ALERTS_TABLE = "alerts";
+        private static final String FIELD_TITLE = "title";
+        private static final String FIELD_DESCRIPTION = "description";
+        private static final String FIELD_URL = "url";
+
+    private static final String CACHED_LINE_ALERTS_TABLE = "cached_line_alerts";
+
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
     private static final String NAME = "name";
@@ -98,6 +105,23 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_EXPIRES + " INTEGER"
                 + ")";
         db.execSQL(CREATE_STATIONS_TABLE);
+
+        String CREATE_ALERTS_TABLE = "CREATE TABLE IF NOT EXISTS " + ALERTS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_TITLE + " TEXT,"
+                + FIELD_URL + " TEXT,"
+                + FIELD_DESCRIPTION + " TEXT,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_ALERTS_TABLE);
+
+        String CREATE_CACHED_LINE_ALERTS_TABLE = "CREATE TABLE IF NOT EXISTS " + CACHED_LINE_ALERTS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_CACHED_LINE_ALERTS_TABLE);
 
         boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
@@ -170,6 +194,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + LINES_TABLE);
         db.execSQL("DELETE FROM " + DIRS_TABLE);
         db.execSQL("DELETE FROM " + STATIONS_TABLE);
+        db.execSQL("DELETE FROM " + ALERTS_TABLE);
+        db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
 
         // Create tables again
@@ -185,6 +211,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
 
         // Create tables again
         onCreate(db);
@@ -373,5 +401,63 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         //delete old ones
         db.execSQL("DELETE FROM " + STATIONS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
         db.close();
+    }
+
+    public void saveAlert(int lineId, String title, String url, String text) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        //insert the alert
+        ContentValues values = new ContentValues();
+        values.put(FIELD_LINE_ID, lineId);
+        values.put(FIELD_TITLE, title);
+        values.put(FIELD_URL, url);
+        values.put(FIELD_DESCRIPTION, text);
+        values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+        db.insert(ALERTS_TABLE, null, values);
+
+        //delete old ones
+        db.execSQL("DELETE FROM " + ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+        db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+        db.close();
+    }
+
+    public void markAsSavedForLineAlerts(List<Integer> lineIds) {
+        //mark the line as cached
+        SQLiteDatabase db = this.getWritableDatabase();
+        for (int lineId : lineIds) {
+            ContentValues values = new ContentValues();
+            values.put(FIELD_LINE_ID, lineId);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+            db.insert(CACHED_LINE_ALERTS_TABLE, null, values);
+        }
+        db.close();
+    }
+
+    public List<Map<String, String>> getAlerts(int lineId) {
+        List<Map<String, String>> out = new ArrayList<>();
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        //first see if the data is cached at all
+        String selectQuery = "SELECT 1 FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime());
+        if (db.rawQuery(selectQuery, null).getCount() == 0) { //no results
+            return null;
+        }
+
+        //otherwise get the results
+        List<Map<String, String>> outList = new ArrayList<>();
+
+        selectQuery = "SELECT " + FIELD_URL + "," + FIELD_TITLE + "," + FIELD_DESCRIPTION + " FROM " + ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                Map<String, String> alertInfo = new HashMap<>();
+                alertInfo.put("url", cursor.getString(0));
+                alertInfo.put("title", cursor.getString(1));
+                alertInfo.put("info", cursor.getString(2));
+                outList.add(alertInfo);
+            } while (cursor.moveToNext());
+        }
+        db.close();
+        return outList;
     }
 }
