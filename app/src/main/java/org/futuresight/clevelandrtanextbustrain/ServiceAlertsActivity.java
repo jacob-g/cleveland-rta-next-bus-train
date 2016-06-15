@@ -7,39 +7,19 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.PersistableBundle;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-import org.w3c.dom.Document;
-import org.w3c.dom.Node;
-import org.w3c.dom.NodeList;
-import org.xml.sax.InputSource;
-
-import java.io.StringReader;
-import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.TreeSet;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
-
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
 
 public class ServiceAlertsActivity extends AppCompatActivity {
     int selectedRouteId;
@@ -61,12 +41,12 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     for (String s : lines) {
                         arr[i][0] = s;
                         System.out.println("ID: " + s);
-                        arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap().get(s));
+                        arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(s));
                         i++;
                     }
                     new GetServiceAlertsTask(view.getContext(), createDialog()).execute(arr);
                 } else {
-                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(new String[][]{{selectedRouteStr, Integer.toString(PersistentDataController.getLineIdMap().get(selectedRouteStr))}});
+                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(new String[][]{{selectedRouteStr, Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(selectedRouteStr))}});
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -151,25 +131,19 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         }
     }
 
-    private class GetLinesTask extends AsyncTask<Void, Void, String> {
+    private class GetLinesTask extends AsyncTask<Void, Void, String[]> {
         private Context myContext;
         private ProgressDialog myProgressDialog;
         public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
         }
-        protected String doInBackground(Void... params) {
-            if (PersistentDataController.linesStored(myContext)) {
-                return "";
-            } else {
-                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
-            }
+        protected String[] doInBackground(Void... params) {
+            return PersistentDataController.getLines(myContext);
         }
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(String[] lineNames) {
             //parse the result as JSON
-            int selectPos = -1;
-            String[] lineNames = new String[1];
             //if a line is passed in, load it; otherwise load the favorites
             String[] selectedRoutes = new String[1];
             if (getIntent().hasExtra("route") && getIntent().hasExtra("routeId")) {
@@ -192,54 +166,26 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     i++;
                 }
             }
-            if (result != "" && !PersistentDataController.linesStored(myContext)) {
-                try {
-                    JSONObject json = new JSONObject(result);
-                    JSONArray arr = json.getJSONArray("d");
-                    lineNames = new String[arr.length()];
-
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject lineObj = arr.getJSONObject(i);
-                        lineNames[i] = lineObj.getString("name");
-                        int id = lineObj.getInt("id");
-                        PersistentDataController.getLineIdMap().put(lineNames[i], id);
-                        if (selectedRouteId == id) {
-                            selectPos = i;
-                            selectedRouteId = -1;
-                        }
-                    }
-                    PersistentDataController.saveLineIdMap(myContext);
-                    PersistentDataController.setLines(lineNames);
-                } catch(JSONException e){
-                    e.printStackTrace();
-                }
-            } else {
-                lineNames = PersistentDataController.getLines();
-                for (int i = 0; i < lineNames.length; i++) {
-                    String line = lineNames[i];
-                    int id = PersistentDataController.getLineIdMap().get(line);
-                    if (selectedRouteId == id) {
-                        selectPos = i;
-                        selectedRouteId = -1;
-                    }
-                }
-            }
             //put that into the spinner
             Spinner lineSpinner = (Spinner) findViewById(R.id.serviceAlertsLineSpinner);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item);
             adapter.add("Favorites");
             adapter.addAll(lineNames);
             lineSpinner.setAdapter(adapter);
-            System.out.println("Select position: " + selectPos);
-            if (selectPos != -1) {
-                lineSpinner.setSelection(selectPos + 1);
+            if (selectedRouteId != -1) {
+                for (int i = 1; i < lineNames.length; i++) {
+                    if (selectedRouteId == PersistentDataController.getLineIdMap(myContext).get(adapter.getItem(i))) {
+                        lineSpinner.setSelection(i);
+                        break;
+                    }
+                }
             }
             myProgressDialog.dismiss();
 
             String[][] routeList = new String[selectedRoutes.length][2];
             int i = 0;
             for (String s : selectedRoutes) {
-                routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap().get(s))}; //TODO: make this not crash when the route list isn't ready
+                routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap(myContext).get(s))}; //TODO: make this not crash when the route list isn't ready
                 i++;
             }
             ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);

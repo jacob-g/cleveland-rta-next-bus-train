@@ -2,11 +2,14 @@ package org.futuresight.clevelandrtanextbustrain;
 
 import android.content.Context;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -26,7 +29,7 @@ public abstract class PersistentDataController {
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
         String name;
-        final Pattern p = Pattern.compile("^(\\d+)[a-z]? ");
+        final static Pattern p = Pattern.compile("^(\\d+)[a-zA-Z]? ");
         public LineForSorting(String l) {
             Matcher m = p.matcher(l);
             if (m.find()) {
@@ -50,32 +53,65 @@ public abstract class PersistentDataController {
         }
     }
 
-    public static boolean linesStored(Context context) {
-        if (lines != null) {
-            return true;
-        }
+    private static boolean linesStored(Context context) {
         DatabaseHandler db = new DatabaseHandler(context);
-        lineIds = db.getStoredLines();
+        boolean out = db.hasStoredLines();
         db.close();
-        if (lineIds.size() == 0) {
-            return false;
-        }
-        Set<String> lineList = lineIds.keySet();
-        LineForSorting[] tempLines = new LineForSorting[lineList.size()];
-        int i = 0;
-        for (String s : lineList) {
-            tempLines[i] = new LineForSorting(s);
-            i++;
-        }
-        Arrays.sort(tempLines);
-        lines = new String[tempLines.length];
-        for (i = 0; i < tempLines.length; i++) {
-            lines[i] = tempLines[i].toString();
-        }
-        return true;
+        return out;
     }
 
-    public static String[] getLines() {
+    private static void loadLines(Context context) {
+        String[] lineNames = new String[0];
+        Map<String, Integer> ids = new HashMap<>();
+        if (linesStored(context)) {
+            //cached
+            DatabaseHandler db = new DatabaseHandler(context);
+            ids = db.getStoredLines();
+            db.close();
+            lineNames = ids.keySet().toArray(new String[ids.size()]);
+            LineForSorting[] lineNamesForSorting = new LineForSorting[lineNames.length];
+            int i = 0;
+            for (String s : lineNames) {
+                lineNamesForSorting[i] = new LineForSorting(s);
+                i++;
+            }
+            Arrays.sort(lineNamesForSorting);
+            i = 0;
+            for (LineForSorting l : lineNamesForSorting) {
+                lineNames[i] = l.toString();
+                i++;
+            }
+        } else {
+            //not cached
+            try {
+                String result = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
+                JSONObject json = new JSONObject(result);
+                JSONArray arr = json.getJSONArray("d");
+                lineNames = new String[arr.length()];
+
+                for (int i = 0; i < arr.length(); i++) {
+                    JSONObject lineObj = arr.getJSONObject(i);
+                    lineNames[i] = lineObj.getString("name");
+                    int id = lineObj.getInt("id");
+                    ids.put(lineNames[i], id);
+                }
+
+                PersistentDataController.setLines(lineNames);
+                DatabaseHandler db = new DatabaseHandler(context);
+                db.saveLines(ids);
+                db.close();
+            } catch(JSONException e){
+                e.printStackTrace();
+            }
+        }
+        lines = lineNames;
+        lineIds = ids;
+    }
+
+    public static String[] getLines(Context context) {
+        if (lines == null) {
+            loadLines(context);
+        }
         return lines;
     }
 
@@ -83,13 +119,10 @@ public abstract class PersistentDataController {
         lines = l;
     }
 
-    public static void saveLineIdMap(Context context) {
-        DatabaseHandler db = new DatabaseHandler(context);
-        db.saveLines(lineIds);
-        db.close();
-    }
-
-    public static Map<String,Integer> getLineIdMap() {
+    public static Map<String,Integer> getLineIdMap(Context context) {
+        if (lineIds.isEmpty()) {
+            loadLines(context);
+        }
         return lineIds;
     }
 

@@ -98,7 +98,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             final String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
             final String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
             final int stationId = stopIds.get(stationName);
-            final int lineId = PersistentDataController.getLineIdMap().get(lineName);
+            final int lineId = PersistentDataController.getLineIdMap(view.getContext()).get(lineName);
             final int dirId = dirIds.get(dirName);
 
             //check if there's already a station
@@ -147,7 +147,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onClick(View view) {
             Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
             intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
-            intent.putExtra("routeId", PersistentDataController.getLineIdMap().get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
+            intent.putExtra("routeId", PersistentDataController.getLineIdMap(view.getContext()).get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
             startActivity(intent);
         }
     };
@@ -271,85 +271,32 @@ public class NextBusTrainActivity extends AppCompatActivity {
         return true;
     }
 
-    private class GetLinesTask extends AsyncTask<Void, Void, String> {
+    private class GetLinesTask extends AsyncTask<Void, Void, String[]> {
         private Context myContext;
         private ProgressDialog myProgressDialog;
         public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
         }
-        protected String doInBackground(Void... params) {
-            if (PersistentDataController.linesStored(myContext)) {
-                return "";
-            } else {
-                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
-            }
+        protected String[] doInBackground(Void... params) {
+            return PersistentDataController.getLines(myContext);
         }
 
-        protected void onPostExecute(String result) {
-            //parse the result as JSON
-            int selectPos = -1;
-            String[] lineNames = new String[1];
-            if (!result.equals("") && !PersistentDataController.linesStored(myContext)) {
-                try {
-                    JSONObject json = new JSONObject(result);
-                    JSONArray arr = json.getJSONArray("d");
-                    lineNames = new String[arr.length()];
-
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject lineObj = arr.getJSONObject(i);
-                        lineNames[i] = lineObj.getString("name");
-                        int id = lineObj.getInt("id");
-                        PersistentDataController.getLineIdMap().put(lineNames[i], id);
-                        if (preSelectedLineId == id) {
-                            selectPos = i;
-                            preSelectedLineId = -1;
-                        }
-                    }
-
-                    PersistentDataController.setLines(lineNames);
-                } catch(JSONException e){
-                    e.printStackTrace();
-                }
-                new SaveLinesTask(myContext).execute();
-            } else {
-                if (!PersistentDataController.linesStored(myContext)) {
-                    alertDialog("Network", "You need a working network connection for this app to function.");
-                    return;
-                }
-                lineNames = PersistentDataController.getLines();
-                for (int i = 0; i < lineNames.length; i++) {
-                    String line = lineNames[i];
-                    int id = PersistentDataController.getLineIdMap().get(line);
-                    if (preSelectedLineId == id) {
-                        selectPos = i;
-                        preSelectedLineId = -1;
-                    }
-                }
-            }
+        protected void onPostExecute(String[] lineNames) {
             //put that into the spinner
+            System.out.println("Number of lines: " + lineNames.length);
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
             lineSpinner.setAdapter(adapter);
-            if (selectPos != -1) {
-                lineSpinner.setSelection(selectPos);
+            if (preSelectedLineId != -1) {
+                for (int i = 0; i < lineNames.length; i++) {
+                    if (preSelectedLineId == PersistentDataController.getLineIdMap(myContext).get(adapter.getItem(i))) {
+                        lineSpinner.setSelection(i);
+                        break;
+                    }
+                }
             }
             myProgressDialog.dismiss();
-        }
-    }
-
-    private class SaveLinesTask extends AsyncTask<Void, Void, Void> {
-        private Context myContext;
-        public SaveLinesTask(Context context) {
-            myContext = context;
-        }
-        protected Void doInBackground(Void... params) {
-            PersistentDataController.saveLineIdMap(myContext);
-            return null;
-        }
-
-        protected void onPostExecute(String result) {
-
         }
     }
 
@@ -374,7 +321,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected String doInBackground(String... params) {
-            route = PersistentDataController.getLineIdMap().get(params[0]);
+            route = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             dirs = PersistentDataController.getDirIds(myContext, route);
             if (dirs.isEmpty()) {
                 return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
@@ -444,7 +391,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected String doInBackground(String... params) {
-            myRouteId = PersistentDataController.getLineIdMap().get(params[0]);
+            myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             myDirId = dirIds.get(params[1]);
             stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
             if (stations.isEmpty()) {
@@ -531,7 +478,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (params[0] == null || params[1] == null || params[2] == null) {
                 blankAll();
             }
-            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
+            int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             int dirId = dirIds.get(params[1]);
             int stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results
@@ -627,7 +574,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
         }
         protected Integer doInBackground(String... params) {
-            int routeId = PersistentDataController.getLineIdMap().get(params[0]);
+            int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             route = params[0]; //save the route for later in case we want to color the results
             return ServiceAlertsController.getAlertsByLine(myContext, new String[]{route}, new int[]{routeId}).size();
         }

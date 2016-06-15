@@ -30,10 +30,10 @@ public abstract class ServiceAlertsController {
             List<Integer> needToCache = new ArrayList<>();
             //see if each route is cached
             for (String s : routes) {
-                if (PersistentDataController.getAlerts(context, PersistentDataController.getLineIdMap().get(s)) == null) {
-                    System.out.println("Not cached: " + s + " (" + PersistentDataController.getLineIdMap().get(s) + ")");
+                if (PersistentDataController.getAlerts(context, PersistentDataController.getLineIdMap(context).get(s)) == null) {
+                    System.out.println("Not cached: " + s + " (" + PersistentDataController.getLineIdMap(context).get(s) + ")");
                     alreadyCached = false;
-                    needToCache.add(PersistentDataController.getLineIdMap().get(s));
+                    needToCache.add(PersistentDataController.getLineIdMap(context).get(s));
                 }
             }
             if (alreadyCached) {
@@ -55,7 +55,7 @@ public abstract class ServiceAlertsController {
                     urlString.append(URLEncoder.encode(s, "UTF-8"));
                     urlString.append("&");
                     urlString.append("ids[]=");
-                    urlString.append(URLEncoder.encode(Integer.toString(PersistentDataController.getLineIdMap().get(s)), "UTF-8"));
+                    urlString.append(URLEncoder.encode(Integer.toString(PersistentDataController.getLineIdMap(context).get(s)), "UTF-8"));
                     urlString.append("&");
                 }
                 urlString.deleteCharAt(urlString.length() - 1);

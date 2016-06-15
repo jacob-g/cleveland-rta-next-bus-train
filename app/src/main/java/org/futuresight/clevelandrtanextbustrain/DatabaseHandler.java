@@ -308,6 +308,27 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         return outMap;
     }
 
+    public boolean hasStoredLines() {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        //make sure it's recent
+        String lastSavedStr = getConfig(db, CONFIG_LAST_SAVED_LINES);
+        int lastSavedInt = 0;
+        if (lastSavedStr != "") {
+            lastSavedInt = Integer.parseInt(lastSavedStr);
+        }
+        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry()) {
+            db.execSQL("DELETE FROM " + LINES_TABLE);
+            db.close(); // Closing database connection
+            return false;
+        }
+
+        String selectQuery = "SELECT " + ID + "," + FIELD_NAME + " FROM " + LINES_TABLE + " ORDER BY " + FIELD_NAME + " ASC";
+
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        return cursor.getCount() > 0;
+    }
+
     public void saveLines(Map<String, Integer> lines) {
         SQLiteDatabase db = this.getWritableDatabase();
         //db.beginTransaction();
