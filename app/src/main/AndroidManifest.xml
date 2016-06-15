@@ -25,13 +25,15 @@
         <activity
             android:name=".NextBusTrainActivity"
             android:label="@string/next_bus_train"
-            android:parentActivityName=".MainMenu"/>
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".ManageLocationsActivity"
-            android:label="@string/favorite_locations" />
+            android:label="@string/favorite_locations"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".ServiceAlertsActivity"
-            android:label="@string/service_alerts" />
+            android:label="@string/service_alerts"
+            android:screenOrientation="portrait"/>
         <activity
             android:name=".MapTypeListActivity"
             android:label="@string/title_maptype_list"
