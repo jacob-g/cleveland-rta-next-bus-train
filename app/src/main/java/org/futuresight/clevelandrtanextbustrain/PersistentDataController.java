@@ -10,6 +10,11 @@ import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/*
+Persistent Data Controller
+The purpose of this class is to act as intermediary between the interface and the database. Basically a class accesses functions in this class to read/write the database.
+ */
+
 public abstract class PersistentDataController {
     static String[] lines;
     static Map<String, Integer> lineIds = new HashMap<>();

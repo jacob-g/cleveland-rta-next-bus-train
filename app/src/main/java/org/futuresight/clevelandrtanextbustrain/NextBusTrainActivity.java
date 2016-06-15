@@ -604,7 +604,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (myProgressDlg != null) {
                     myProgressDlg.dismiss();
                 }
-                //new GetServiceAlertsTask(myContext).execute(route); TODO: make the service alerts not prevent everything else from working
+                new GetServiceAlertsTask(myContext).execute(route);
             } catch (Exception e) {
                 myProgressDlg.dismiss();
                 blankAll();
@@ -615,57 +615,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //task to get the times of the bus/train
-    private class GetServiceAlertsTask extends AsyncTask<String, Void, String> {
+    private class GetServiceAlertsTask extends AsyncTask<String, Void, Integer> {
         private Context myContext;
         private String route;
         public GetServiceAlertsTask(Context context) {
             myContext = context;
         }
-        protected String doInBackground(String... params) {
+        protected Integer doInBackground(String... params) {
             int routeId = PersistentDataController.getLineIdMap().get(params[0]);
             route = params[0]; //save the route for later in case we want to color the results
-            String returnData;
-            if (alertCounts.containsKey(params[0])) {
-                returnData = "";
-            } else {
-                returnData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/alerts?routes[]=" + params[0]);
-            }
-            return returnData;
+            return ServiceAlertsController.getAlertsByLine(myContext, new String[]{route}, new int[]{routeId}).size();
         }
 
-        protected void onPostExecute(String result) {
-            //parse the result as JSON
-            try {
-                if (!result.equals("") && !result.equals("Error")) {
-                    //get the service alert count
-                    int count = 0;
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = dBuilder.parse(new InputSource(new StringReader(result)));
-                    Node rootNode = doc.getDocumentElement();
-                    if (doc.hasChildNodes()) {
-                        NodeList nl = rootNode.getChildNodes();
-                        for (int i = 0; i < nl.getLength(); i++) {
-                            Node curNode = nl.item(i); //<alert> node
-                            if (!curNode.getNodeName().equals("#text")) {
-                                count++;
-                            }
-                        }
-                    }
-                    alertCounts.put(route, count);
-                }
-                if (!result.equals("Error") && alertCounts.containsKey(route)) {
-                    int alertCount = alertCounts.get(route);
-                    Button serviceAlertsBtn = (Button) findViewById(R.id.serviceAlertsBtn);
-                    if (alertCount > 0) {
-                        serviceAlertsBtn.setVisibility(View.VISIBLE);
-                        serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
-                    } else {
-                        serviceAlertsBtn.setVisibility(View.INVISIBLE);
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("Error in parsing JSON or XML");
-                e.printStackTrace();
+        protected void onPostExecute(Integer alertCount) {
+            Button serviceAlertsBtn = (Button) findViewById(R.id.serviceAlertsBtn);
+            if (alertCount > 0) {
+                serviceAlertsBtn.setVisibility(View.VISIBLE);
+                serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
+            } else {
+                serviceAlertsBtn.setVisibility(View.INVISIBLE);
             }
         }
     }

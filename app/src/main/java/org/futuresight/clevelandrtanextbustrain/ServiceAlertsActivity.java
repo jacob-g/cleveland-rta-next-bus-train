@@ -7,6 +7,7 @@ import android.graphics.Color;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.PersistableBundle;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -59,6 +60,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     int i = 0;
                     for (String s : lines) {
                         arr[i][0] = s;
+                        System.out.println("ID: " + s);
                         arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap().get(s));
                         i++;
                     }
@@ -91,7 +93,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
-        ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
         new GetLinesTask(this, createDialog()).execute();
     }
 
@@ -102,142 +103,49 @@ public class ServiceAlertsActivity extends AppCompatActivity {
     }
 
     //task to get the times of the bus/train
-    private class GetServiceAlertsTask extends AsyncTask<String[][], Void, String> {
+    private class GetServiceAlertsTask extends AsyncTask<String[][], Void, List<Map<String, String>>> {
         private Context myContext;
         private String[] routes;
         private int[] routeIds;
         private ProgressDialog myProgressDialog;
-        private boolean alreadyCached = true;
-        private List<Integer> needToCache = new ArrayList<>();
         public GetServiceAlertsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
         }
-        protected String doInBackground(String[][]... params) {
+        protected List<Map<String, String>> doInBackground(String[][]... params) {
             String returnData = "";
-            try {
-                routes = new String[params[0].length];
-                routeIds = new int[params[0].length];
-                int i = 0;
-                for (String[] s : params[0]) {
-                    routes[i] = s[0]; //save the route for later in case we want to color the results
-                    routeIds[i] = Integer.parseInt(s[1]);
-                    i++;
-                }
-                //see if each route is cached
-                for (String s : routes) {
-                    if (PersistentDataController.getAlerts(myContext, PersistentDataController.getLineIdMap().get(s)) == null) {
-                        System.out.println("Not cached: " + s + " (" + PersistentDataController.getLineIdMap().get(s) + ")");
-                        alreadyCached = false;
-                        needToCache.add(PersistentDataController.getLineIdMap().get(s));
-                    }
-                }
-                if (!alreadyCached) {
-                    StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?");
-                    for (String s : routes) {
-                        urlString.append("routes[]=");
-                        urlString.append(URLEncoder.encode(s, "UTF-8"));
-                        urlString.append("&");
-                        urlString.append("ids[]=");
-                        urlString.append(URLEncoder.encode(Integer.toString(PersistentDataController.getLineIdMap().get(s)), "UTF-8"));
-                        urlString.append("&");
-                    }
-                    urlString.deleteCharAt(urlString.length() - 1);
-                    System.out.println(urlString);
-                    returnData = NetworkController.basicHTTPRequest(urlString.toString());
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+            routes = new String[params[0].length];
+            routeIds = new int[params[0].length];
+            int i = 0;
+            for (String[] s : params[0]) {
+                routes[i] = s[0]; //save the route for later in case we want to color the results
+                routeIds[i] = Integer.parseInt(s[1]);
+                i++;
             }
-            return returnData;
+            return ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
         }
 
-        protected void onPostExecute(String result) {
-            //parse the result as JSON
-            try {
-                List<Map<String, String>> alertList = new ArrayList<>();
-                if (alreadyCached) {
-                    //data is already cached
-                    Set<String> alreadyUsedUrls = new TreeSet<>();
-                    for (int id : routeIds) {
-                        List<Map<String, String>> tempAlertList = PersistentDataController.getAlerts(myContext, id);
-                        for (Map<String, String> curAlert : tempAlertList) {
-                            if (alreadyUsedUrls.add(curAlert.get("url"))) {
-                                alertList.add(curAlert);
-                            }
-                        }
+        protected void onPostExecute(List<Map<String, String>> alertList) {
+            //put the data into the layout
+            LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
+            serviceAlertsLayout.removeAllViews();
+            for (Map<String, String> alertInfo : alertList) {
+                TextView titleView = new TextView(myContext);
+                titleView.setText(alertInfo.get("title"));
+                titleView.setTypeface(null, Typeface.BOLD);
+                titleView.setTextColor(Color.BLUE);
+                final String url = alertInfo.get("url");
+                titleView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                        startActivity(browserIntent);
                     }
-                } else if (!result.equals("") && !result.equals("Error")) {
-                    //get the service alert count
-                    int count = 0;
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = dBuilder.parse(new InputSource(new StringReader(result)));
-                    Node rootNode = doc.getDocumentElement();
-
-                    if (doc.hasChildNodes()) {
-                        NodeList nl = rootNode.getChildNodes();
-                        for (int i = 0; i < nl.getLength(); i++) {
-                            Node curNode = nl.item(i); //<alert> node
-                            if (!curNode.getNodeName().equals("#text")) {
-                                Map<String, String> nodeInfo = new HashMap<>();
-                                List<Integer> routeIds = new ArrayList<>();
-                                NodeList children = curNode.getChildNodes();
-                                for (int j = 0; j < children.getLength(); j++) {
-                                    String key = children.item(j).getNodeName();
-                                    if (!key.equals("#text")) {
-                                        if (key.equals("routeset")) {
-                                            NodeList routeChildren = children.item(j).getChildNodes();
-                                            for (int k = 0; k < routeChildren.getLength(); k++) {
-                                                if (routeChildren.item(k).getNodeName().equals("route")) {
-                                                    routeIds.add(Integer.parseInt(routeChildren.item(k).getTextContent()));
-                                                }
-                                            }
-                                        } else {
-                                            String val = children.item(j).getTextContent();
-                                            nodeInfo.put(key, val);
-                                        }
-                                    }
-                                }
-                                alertList.add(nodeInfo);
-                                //cache the alert for each line
-                                for (int route : routeIds) {
-                                    if (needToCache.contains(route)) {
-                                        System.out.println("Caching alert" + nodeInfo + " for line " + route);
-                                        PersistentDataController.cacheAlert(myContext, route, nodeInfo.get("title"), nodeInfo.get("url"), nodeInfo.get("info"));
-                                    }
-                                }
-                                count++;
-                            }
-                        }
-                    }
-                    PersistentDataController.markAsSavedForLineAlerts(myContext, needToCache);
-                } else {
-                    //HTTP request failed or something like that
-                }
-                //put the data into the layout
-                LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
-                serviceAlertsLayout.removeAllViews();
-                for (Map<String, String> alertInfo : alertList) {
-                    TextView titleView = new TextView(myContext);
-                    titleView.setText(alertInfo.get("title"));
-                    titleView.setTypeface(null, Typeface.BOLD);
-                    titleView.setTextColor(Color.BLUE);
-                    final String url = alertInfo.get("url");
-                    titleView.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View v) {
-                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                            startActivity(browserIntent);
-                        }
-                    });
-                    serviceAlertsLayout.addView(titleView);
-                    TextView contentView = new TextView(myContext);
-                    contentView.setText(alertInfo.get("info").replace("\n", System.getProperty("line.separator")));
-                    serviceAlertsLayout.addView(contentView);
-                }
-            } catch (Exception e) {
-                System.err.println("Error in parsing XML");
-                e.printStackTrace();
+                });
+                serviceAlertsLayout.addView(titleView);
+                TextView contentView = new TextView(myContext);
+                contentView.setText(alertInfo.get("info").replace("\n", System.getProperty("line.separator")));
+                serviceAlertsLayout.addView(contentView);
             }
             myProgressDialog.dismiss();
         }
@@ -268,7 +176,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     JSONArray arr = json.getJSONArray("d");
                     lineNames = new String[arr.length()];
 
-
                     for (int i = 0; i < arr.length(); i++) {
                         JSONObject lineObj = arr.getJSONObject(i);
                         lineNames[i] = lineObj.getString("name");
@@ -292,6 +199,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     int id = PersistentDataController.getLineIdMap().get(line);
                     if (selectedRouteId == id) {
                         selectPos = i;
+                        System.out.println("SELECT POSITION: " + selectPos);
                         selectedRouteId = -1;
                     }
                 }
@@ -332,9 +240,12 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             String[][] routeList = new String[selectedRoutes.length][2];
             int i = 0;
             for (String s : selectedRoutes) {
+                System.out.println(s);
+                System.out.println(PersistentDataController.getLineIdMap());
                 routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap().get(s))}; //TODO: make this not crash when the route list isn't ready
                 i++;
             }
+            ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
             new GetServiceAlertsTask(myContext, createDialog()).execute(routeList);
         }
     }

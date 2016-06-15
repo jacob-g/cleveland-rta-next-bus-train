@@ -243,14 +243,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     public List<Station> getFavoriteLocations() {
         List<Station> stations = new ArrayList<Station>();
-        String selectQuery = "SELECT " + FIELD_NAME + "," + FIELD_STATION_NAME + "," + FIELD_STATION_ID + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LINE_NAME + "," + FIELD_LINE_ID + " FROM " + FAVORITE_LOCATIONS_TABLE + " ORDER BY " + FIELD_STATION_NAME + " ASC";
+        String selectQuery = "SELECT f." + FIELD_NAME + ",f." + FIELD_STATION_NAME + ",f." + FIELD_STATION_ID + ",f." + FIELD_DIR_NAME + ",f." + FIELD_DIR_ID + ",l." + NAME + ",f." + FIELD_LINE_ID + " FROM " + FAVORITE_LOCATIONS_TABLE + " AS f LEFT JOIN " + LINES_TABLE + " AS l ON l." + ID + "=f." + FIELD_LINE_ID + " ORDER BY f." + FIELD_STATION_NAME + " ASC";
         SQLiteDatabase db = this.getWritableDatabase();
-        Cursor cursor = db.rawQuery(selectQuery, null);
-        if (cursor.moveToFirst()) {
-            do {
-                Station st = new Station(cursor.getString(1), Integer.parseInt(cursor.getString(2)), cursor.getString(3), Integer.parseInt(cursor.getString(4)), cursor.getString(5), Integer.parseInt(cursor.getString(6)), cursor.getString(0));
-                stations.add(st);
-            } while (cursor.moveToNext());
+        try {
+            Cursor cursor = db.rawQuery(selectQuery, null);
+            if (cursor.moveToFirst()) {
+                do {
+                    Station st = new Station(cursor.getString(1), Integer.parseInt(cursor.getString(2)), cursor.getString(3), Integer.parseInt(cursor.getString(4)), cursor.getString(5), Integer.parseInt(cursor.getString(6)), cursor.getString(0));
+                    stations.add(st);
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return stations;
         }
         db.close();
         return stations;
