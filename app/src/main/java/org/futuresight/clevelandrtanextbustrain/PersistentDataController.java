@@ -19,7 +19,7 @@ The purpose of this class is to act as intermediary between the interface and th
  */
 
 public abstract class PersistentDataController {
-    static String[] lines;
+    static String[] lines = new String[0];
     static Map<String, Integer> lineIds = new HashMap<>();
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
     public static final int lineExpiry = 60 * 60 * 24 * 14;
@@ -58,6 +58,12 @@ public abstract class PersistentDataController {
         boolean out = db.hasStoredLines();
         db.close();
         return out;
+    }
+
+    public static void removeCachedStuff() {
+        lines = new String[0];
+        lineIds = new HashMap<>();
+        directions = new HashMap<>();
     }
 
     private static void loadLines(Context context) {
@@ -100,7 +106,7 @@ public abstract class PersistentDataController {
                 DatabaseHandler db = new DatabaseHandler(context);
                 db.saveLines(ids);
                 db.close();
-            } catch(JSONException e){
+            } catch(JSONException e) {
                 e.printStackTrace();
             }
         }
@@ -109,7 +115,7 @@ public abstract class PersistentDataController {
     }
 
     public static String[] getLines(Context context) {
-        if (lines == null) {
+        if (lines.length == 0) {
             loadLines(context);
         }
         return lines;

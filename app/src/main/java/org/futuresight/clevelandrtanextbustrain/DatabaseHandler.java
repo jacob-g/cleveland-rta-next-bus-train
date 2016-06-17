@@ -55,6 +55,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String CONFIG_LAST_SAVED_LINES = "last_saved_lines";
 
     private static boolean initialized = false;
+    private static Context context;
 
     public DatabaseHandler(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -64,6 +65,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             db.close();
             initialized = true;
         }
+        this.context = context;
     }
 
     // Creating Tables
@@ -198,6 +200,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
 
+        PersistentDataController.removeCachedStuff();
+
         // Create tables again
         db.close();
     }
@@ -213,6 +217,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
+
+        PersistentDataController.removeCachedStuff();
 
         // Create tables again
         onCreate(db);
@@ -242,7 +248,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<Station> getFavoriteLocations() {
-        List<Station> stations = new ArrayList<Station>();
+        List<Station> stations = new ArrayList<>();
         String selectQuery = "SELECT f." + FIELD_NAME + ",f." + FIELD_STATION_NAME + ",f." + FIELD_STATION_ID + ",f." + FIELD_DIR_NAME + ",f." + FIELD_DIR_ID + ",l." + NAME + ",f." + FIELD_LINE_ID + " FROM " + FAVORITE_LOCATIONS_TABLE + " AS f LEFT JOIN " + LINES_TABLE + " AS l ON l." + ID + "=f." + FIELD_LINE_ID + " ORDER BY f." + FIELD_STATION_NAME + " ASC";
         SQLiteDatabase db = this.getWritableDatabase();
         try {

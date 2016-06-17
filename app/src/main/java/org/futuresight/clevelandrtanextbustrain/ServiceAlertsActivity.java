@@ -40,7 +40,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     int i = 0;
                     for (String s : lines) {
                         arr[i][0] = s;
-                        System.out.println("ID: " + s);
                         arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(s));
                         i++;
                     }
@@ -124,7 +123,8 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 });
                 serviceAlertsLayout.addView(titleView);
                 TextView contentView = new TextView(myContext);
-                contentView.setText(alertInfo.get("info").replace("\n", System.getProperty("line.separator")));
+                contentView.setMaxLines(10);
+                contentView.setText(alertInfo.get("info").replace("!br!", System.getProperty("line.separator")));
                 serviceAlertsLayout.addView(contentView);
             }
             myProgressDialog.dismiss();
@@ -154,15 +154,32 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 //otherwise open the favorite routes
                 DatabaseHandler db = new DatabaseHandler(ServiceAlertsActivity.this);
                 List<Station> favoriteStations = db.getFavoriteLocations();
-                Set<String> lines = new HashSet<>();
+                class Line {
+                    private String name;
+                    private int id;
+                    public Line(String name, int id) {
+                        this.name = name;
+                        this.id = id;
+                    }
+                    public String getName() {
+                        return name;
+                    }
+                    public int getId() {
+                        return id;
+                    }
+                    public boolean equals(Line other) {
+                        return this.id == other.id;
+                    }
+                }
+                Set<Line> lines = new HashSet<>();
                 for (Station st : favoriteStations) {
-                    lines.add(st.getLineName());
+                    lines.add(new Line(st.getLineName(), st.getLineId()));
                 }
                 db.close();
                 selectedRoutes = new String[lines.size()];
                 int i = 0;
-                for (String s : lines) {
-                    selectedRoutes[i] = s;
+                for (Line s : lines) {
+                    selectedRoutes[i] = s.getName();
                     i++;
                 }
             }
@@ -173,7 +190,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             adapter.addAll(lineNames);
             lineSpinner.setAdapter(adapter);
             if (selectedRouteId != -1) {
-                for (int i = 1; i < lineNames.length; i++) {
+                for (int i = 1; i < adapter.getCount(); i++) {
                     if (selectedRouteId == PersistentDataController.getLineIdMap(myContext).get(adapter.getItem(i))) {
                         lineSpinner.setSelection(i);
                         break;
@@ -182,14 +199,19 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             }
             myProgressDialog.dismiss();
 
-            String[][] routeList = new String[selectedRoutes.length][2];
-            int i = 0;
-            for (String s : selectedRoutes) {
-                routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap(myContext).get(s))}; //TODO: make this not crash when the route list isn't ready
-                i++;
+            try {
+                String[][] routeList = new String[selectedRoutes.length][2];
+                int i = 0;
+                for (String s : selectedRoutes) {
+                    routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap(myContext).get(s))}; //TODO: make this not crash when the route list isn't ready
+                    i++;
+                }
+                ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
+                new GetServiceAlertsTask(myContext, createDialog()).execute(routeList);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
-            new GetServiceAlertsTask(myContext, createDialog()).execute(routeList);
+
         }
     }
 }

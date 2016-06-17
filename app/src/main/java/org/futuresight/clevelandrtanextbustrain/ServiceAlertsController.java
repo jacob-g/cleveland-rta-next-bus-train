@@ -31,7 +31,6 @@ public abstract class ServiceAlertsController {
             //see if each route is cached
             for (String s : routes) {
                 if (PersistentDataController.getAlerts(context, PersistentDataController.getLineIdMap(context).get(s)) == null) {
-                    System.out.println("Not cached: " + s + " (" + PersistentDataController.getLineIdMap(context).get(s) + ")");
                     alreadyCached = false;
                     needToCache.add(PersistentDataController.getLineIdMap(context).get(s));
                 }
@@ -59,7 +58,6 @@ public abstract class ServiceAlertsController {
                     urlString.append("&");
                 }
                 urlString.deleteCharAt(urlString.length() - 1);
-                System.out.println(urlString);
                 String result = NetworkController.basicHTTPRequest(urlString.toString());
                 if (!result.equals("") && !result.equals("Error")) {
                     //get the service alert count
@@ -96,7 +94,6 @@ public abstract class ServiceAlertsController {
                                 //cache the alert for each line
                                 for (int route : routeIdsForThisAlert) {
                                     if (needToCache.contains(route)) {
-                                        System.out.println("Caching alert" + nodeInfo + " for line " + route);
                                         PersistentDataController.cacheAlert(context, route, nodeInfo.get("title"), nodeInfo.get("url"), nodeInfo.get("info"));
                                     }
                                 }

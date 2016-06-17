@@ -284,7 +284,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         protected void onPostExecute(String[] lineNames) {
             //put that into the spinner
-            System.out.println("Number of lines: " + lineNames.length);
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
             lineSpinner.setAdapter(adapter);
