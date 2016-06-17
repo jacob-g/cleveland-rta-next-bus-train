@@ -17,6 +17,7 @@ import java.net.URL;
  */
 public abstract class NetworkController {
     //perform a POST request to a given URL with given data, and request JSON data
+    static boolean ableToConnect = true;
     public static String  performPostCall(String requestURL, String postData) {
 
         URL url;
@@ -55,6 +56,10 @@ public abstract class NetworkController {
 
             }
         } catch (Exception e) {
+            if (e.getMessage().contains("Unable to resolve host")) {
+                //connection failed
+                ableToConnect = false;
+            }
             e.printStackTrace();
         }
 
@@ -83,12 +88,14 @@ public abstract class NetworkController {
                 while ((line=br.readLine()) != null) {
                     response+=line;
                 }
-            }
-            else {
+            } else {
                 response="";
-
             }
         } catch (Exception e) {
+            if (e.getMessage().contains("Unable to resolve host")) {
+                //connection failed
+                ableToConnect = false;
+            }
             e.printStackTrace();
         }
 
@@ -99,6 +106,6 @@ public abstract class NetworkController {
         ConnectivityManager connMgr = (ConnectivityManager)
                 context.getSystemService(Context.CONNECTIVITY_SERVICE);
         NetworkInfo networkInfo = connMgr.getActiveNetworkInfo();
-        return networkInfo != null && networkInfo.isConnected();
+        return networkInfo != null && networkInfo.isConnected() && ableToConnect;
     }
 }

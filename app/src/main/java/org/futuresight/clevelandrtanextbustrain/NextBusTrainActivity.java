@@ -93,52 +93,56 @@ public class NextBusTrainActivity extends AppCompatActivity {
     //listener that runs when the "add favorite" button is clicked
     private Button.OnClickListener addFavoriteClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
-            //get the current station information
-            final String stationName = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
-            final String dirName = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-            final String lineName = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-            final int stationId = stopIds.get(stationName);
-            final int lineId = PersistentDataController.getLineIdMap(view.getContext()).get(lineName);
-            final int dirId = dirIds.get(dirName);
+            try {
+                //get the current station information
+                final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+                final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+                final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+                final int stationId = stopIds.get(stationName);
+                final int lineId = PersistentDataController.getLineIdMap(view.getContext()).get(lineName);
+                final int dirId = dirIds.get(dirName);
 
-            //check if there's already a station
-            DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-            if (db.hasFavoriteLocation(lineId, dirId, stationId)) {
-                alertDialog("Error", "You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.");
-                return;
+                //check if there's already a station
+                DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
+                if (db.hasFavoriteLocation(lineId, dirId, stationId)) {
+                    alertDialog("Error", "You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.");
+                    return;
+                }
+                db.close();
+
+                //use a dialog box to ask the user for the name of the station
+                final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+                inputAlert.setTitle(R.string.add_favorite);
+                inputAlert.setMessage(R.string.favorite_save_name_prompt);
+
+                //create the text box and automatically populate it with the current station name
+                final EditText userInput = new EditText(view.getContext());
+                userInput.setText(stationName + " (" + dirName + ")");
+                inputAlert.setView(userInput);
+
+                inputAlert.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        String name = userInput.getText().toString();
+                        DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
+
+                        Station st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name); //create the station object
+                        db.addFavoriteLocation(st);
+                        db.close();
+                    }
+                });
+                inputAlert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+                AlertDialog alertDialog = inputAlert.create();
+                alertDialog.setCancelable(false);
+                alertDialog.show();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            db.close();
-
-            //use a dialog box to ask the user for the name of the station
-            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
-            inputAlert.setTitle(R.string.add_favorite);
-            inputAlert.setMessage(R.string.favorite_save_name_prompt);
-
-            //create the text box and automatically populate it with the current station name
-            final EditText userInput = new EditText(view.getContext());
-            userInput.setText(stationName + " (" + dirName + ")");
-            inputAlert.setView(userInput);
-
-            inputAlert.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    String name = userInput.getText().toString();
-                    DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-
-                    Station st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name); //create the station object
-                    db.addFavoriteLocation(st);
-                    db.close();
-                }
-            });
-            inputAlert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
-                @Override
-                public void onClick(DialogInterface dialog, int which) {
-                    dialog.dismiss();
-                }
-            });
-            AlertDialog alertDialog = inputAlert.create();
-            alertDialog.setCancelable(false);
-            alertDialog.show();
         }
     };
 
