@@ -1,18 +1,13 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.Toolbar;
-import android.view.View;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.view.*;
-import android.content.*;
+import android.view.View;
 
 public class MainMenu extends AppCompatActivity {
     private void alertDialog(String title, String msg, final boolean die) {
@@ -36,7 +31,7 @@ public class MainMenu extends AppCompatActivity {
         getSupportActionBar().setTitle(R.string.main_menu_label);
         setContentView(R.layout.activity_main_menu);
         if (!NetworkController.connected(this)) {
-            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
+            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
 
     }

@@ -77,7 +77,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
-    private void alertDialog(String title, String msg) {
+    private void alertDialog(String title, String msg, final boolean die) {
         AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
         alertDialog.setTitle(title);
         alertDialog.setMessage(msg);
@@ -85,6 +85,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
                         dialog.dismiss();
+                        if (die) {
+                            finish();
+                        }
                     }
                 });
         alertDialog.show();
@@ -105,7 +108,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 //check if there's already a station
                 DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
                 if (db.hasFavoriteLocation(lineId, dirId, stationId)) {
-                    alertDialog("Error", "You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.");
+                    alertDialog(getResources().getString(R.string.nonetworkmsg), getResources().getString(R.string.alreadyfavorited), false);
                     return;
                 }
                 db.close();
@@ -242,6 +245,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
         destMappings.put("Red Line - Tower City / Public Square", "Tower City");
         destMappings.put("Blue Line - Tower City / Public Square", "Tower City");
         destMappings.put("Green Line - Tower City / Public Square", "Tower City");
+
+        if (!NetworkController.connected(this)) {
+            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
+            return;
+        }
 
         //get the original list of routes
         try {
@@ -493,8 +501,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             //parse the result as JSON
             try {
-                if (result == "") {
-                    alertDialog("Network", "You need a working network connection for this app to function.");
+                if (!NetworkController.connected(myContext)) {
+                    alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
                     return;
                 }
                 //it's d->stops->0->crossings, then an array with the stop information

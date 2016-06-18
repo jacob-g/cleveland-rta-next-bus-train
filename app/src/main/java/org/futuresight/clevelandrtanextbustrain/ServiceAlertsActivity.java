@@ -1,7 +1,9 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
 import android.graphics.Typeface;
@@ -65,12 +67,33 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         return dlg;
     }
 
+    private void alertDialog(String title, String msg, final boolean die) {
+        AlertDialog alertDialog = new AlertDialog.Builder(ServiceAlertsActivity.this).create();
+        alertDialog.setTitle(title);
+        alertDialog.setMessage(msg);
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        if (die) {
+                            finish();
+                        }
+                    }
+                });
+        alertDialog.show();
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_service_alerts);
 
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        if (!NetworkController.connected(this)) {
+            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
+            return;
+        }
 
         new GetLinesTask(this, createDialog()).execute();
     }

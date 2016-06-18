@@ -31,5 +31,7 @@
     <string name="no">No</string>
     <string name="main_menu_label">Cleveland Transit</string>
     <string name="network">Network</string>
-    <string name="nonetworkmsg">You need to be connected to the internet for this app to work. Please re-open this app when you are connected to the internet.</string>
+    <string name="nonetworkmsg">You need to be connected to the internet for the service alerts and next bus/train pages to work.</string>
+    <string name="error">Error</string>
+    <string name="alreadyfavorited">You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.</string>
 </resources>
