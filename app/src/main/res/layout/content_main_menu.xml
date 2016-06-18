@@ -88,14 +88,14 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="Warning!"
+            android:text="@string/warning"
             android:id="@+id/textView9"
             android:layout_gravity="center_horizontal" />
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="This app is a confidential prototype. It may only be installed on a device with written permission from FutureSight Technologies. This code is copyright (C)2016 FututreSight Technologies. All rights reserved."
+            android:text="@string/prototypewarning"
             android:id="@+id/textView10"
             android:layout_gravity="center_horizontal"
             android:gravity="center_horizontal" />

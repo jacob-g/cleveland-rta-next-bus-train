@@ -108,7 +108,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 //check if there's already a station
                 DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
                 if (db.hasFavoriteLocation(lineId, dirId, stationId)) {
-                    alertDialog(getResources().getString(R.string.nonetworkmsg), getResources().getString(R.string.alreadyfavorited), false);
+                    alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.alreadyfavorited), false);
                     return;
                 }
                 db.close();

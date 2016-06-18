@@ -34,4 +34,6 @@
     <string name="nonetworkmsg">You need to be connected to the internet for the service alerts and next bus/train pages to work.</string>
     <string name="error">Error</string>
     <string name="alreadyfavorited">You already have this saved as a favorite. If you want to rename it, hit the favorites button and then click the pencil icon by the entry.</string>
+    <string name="prototypewarning">This app is a confidential prototype. It may only be installed on a device with written permission from FutureSight Technologies. This code is copyright (C)2016 FutureSight Technologies. All rights reserved.</string>
+    <string name="warning">Warning!</string>
 </resources>
