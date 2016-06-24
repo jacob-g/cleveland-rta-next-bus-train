@@ -28,7 +28,7 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getSupportActionBar().setTitle(R.string.main_menu_label);
+        getSupportActionBar().setTitle(getResources().getString(R.string.main_menu_label));
         setContentView(R.layout.activity_main_menu);
         if (!NetworkController.connected(this)) {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
@@ -60,6 +60,11 @@ public class MainMenu extends AppCompatActivity {
 
     public void openMap(View v) {
         Intent intent = new Intent(this, MapTypeListActivity.class);
+        startActivity(intent);
+    }
+
+    public void openNearMe(View v) {
+        Intent intent = new Intent(this, NearMeActivity.class);
         startActivity(intent);
     }
 

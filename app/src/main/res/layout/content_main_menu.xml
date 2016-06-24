@@ -51,6 +51,13 @@
             android:id="@+id/mapBtn"
             android:onClick="openMap"/>
 
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/near_me"
+            android:id="@+id/nearMeBtn"
+            android:onClick="openNearMe" />
+
         <LinearLayout
             android:orientation="horizontal"
             android:layout_width="match_parent"
