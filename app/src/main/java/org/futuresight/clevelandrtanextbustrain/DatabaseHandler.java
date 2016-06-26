@@ -46,6 +46,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     private static final String CACHED_LINE_ALERTS_TABLE = "cached_line_alerts";
 
+    private static final String ESCEL_STATUSES_TABLE = "escel_statuses";
+        private static final String FIELD_STATUS = "status";
+
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
     private static final String NAME = "name";
@@ -125,6 +128,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + ")";
         db.execSQL(CREATE_CACHED_LINE_ALERTS_TABLE);
 
+        String CREATE_ESCEL_STATUSES_TABLE = "CREATE TABLE IF NOT EXISTS " + ESCEL_STATUSES_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_STATION_ID + " INTEGER,"
+                + FIELD_NAME + " TEXT,"
+                + FIELD_STATUS + " INTEGER,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_ESCEL_STATUSES_TABLE);
+
         boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
                 + FIELD_NAME + " TEXT PRIMARY KEY,"
@@ -193,12 +205,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
 
         // Drop older table if existed
-        db.execSQL("DELETE FROM " + LINES_TABLE);
-        db.execSQL("DELETE FROM " + DIRS_TABLE);
-        db.execSQL("DELETE FROM " + STATIONS_TABLE);
-        db.execSQL("DELETE FROM " + ALERTS_TABLE);
-        db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+        onCreate(db);
 
         PersistentDataController.removeCachedStuff();
 
@@ -217,6 +231,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + CONFIG_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
 
         PersistentDataController.removeCachedStuff();
 
@@ -425,7 +440,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             statement.bindString(2, name);
             statement.bindLong(3, lineId);
             statement.bindLong(4, stations.get(name));
-            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
+            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry());
             statement.execute();
         }
         db.setTransactionSuccessful();
@@ -491,5 +506,51 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         db.close();
         return outList;
+    }
+
+    //returns null if there isn't anything cached and an empty list if there aren't any alerts
+    public List<EscalatorElevatorAlert> getEscElStatusesForStation (int stationId) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String selectQuery = "SELECT " + FIELD_NAME + "," + FIELD_STATUS + " FROM " + ESCEL_STATUSES_TABLE + " WHERE " + FIELD_STATION_ID + "=" + stationId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
+
+        List<EscalatorElevatorAlert> outList = new ArrayList<>();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                if (cursor.getInt(1) == -1) { //there are no escalators or elevators at this station
+                    break;
+                }
+                outList.add(new EscalatorElevatorAlert(cursor.getString(0), cursor.getInt(1) == 1));
+            } while (cursor.moveToNext());
+        } else {
+            outList = null;
+        }
+        db.close();
+        return outList;
+    }
+
+    public void saveEscElStatuses(int stationId, List<EscalatorElevatorAlert> statuses) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        if (statuses.isEmpty()) {
+            //no escalators or elevators, but cache that too
+            ContentValues values = new ContentValues();
+            values.put(FIELD_STATION_ID, stationId);
+            values.put(FIELD_NAME, "");
+            values.put(FIELD_STATUS, -1);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry());
+            db.insert(ESCEL_STATUSES_TABLE, null, values);
+        } else {
+            for (EscalatorElevatorAlert status : statuses) {
+                ContentValues values = new ContentValues();
+                values.put(FIELD_STATION_ID, stationId);
+                values.put(FIELD_NAME, status.name);
+                values.put(FIELD_STATUS, status.working ? 1 : 0);
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+                db.insert(ESCEL_STATUSES_TABLE, null, values);
+            }
+        }
+        db.execSQL("DELETE FROM " + ESCEL_STATUSES_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+        db.close();
     }
 }

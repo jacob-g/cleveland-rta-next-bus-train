@@ -5,13 +5,22 @@ import android.content.Context;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import java.io.StringReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 /*
 Persistent Data Controller
@@ -25,6 +34,7 @@ public abstract class PersistentDataController {
     public static final int lineExpiry = 60 * 60 * 24 * 14;
     public static final int stationExpiry = 60 * 60 * 24 * 7;
     public static final int alertExpiry = 60 * 60 * 24 * 1;
+    public static final int escElExpiry = 60 * 60;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -145,6 +155,9 @@ public abstract class PersistentDataController {
     public static int getAlertExpiry() {
         return alertExpiry;
     }
+    public static int getEscElExpiry() {
+        return escElExpiry;
+    }
 
     public static Map<String, Integer> getDirIds(Context context, int lineId) {
         DatabaseHandler db = new DatabaseHandler(context);
@@ -188,5 +201,45 @@ public abstract class PersistentDataController {
         DatabaseHandler db = new DatabaseHandler(context);
         db.markAsSavedForLineAlerts(lineIds);
         db.close();
+    }
+
+    public static List<EscalatorElevatorAlert> getEscalatorAlerts(Context context, int stationId) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        List<EscalatorElevatorAlert> statuses;
+        if ((statuses = db.getEscElStatusesForStation(stationId)) != null) {
+        } else {
+            statuses = new ArrayList<>();
+            String rawXML = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/escelstatus?version=1&stationid=" + stationId);
+            try {
+                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                Document doc = dBuilder.parse(new InputSource(new StringReader(rawXML)));
+                Node rootNode = doc.getDocumentElement();
+
+
+                if (doc.hasChildNodes()) {
+                    NodeList nl = rootNode.getChildNodes();
+                    for (int i = 0; i < nl.getLength(); i++) {
+                        Node curNode = nl.item(i); //<escel> node
+                        if (!curNode.getNodeName().equals("#text")) {
+                            Map<String, String> nodeInfo = new HashMap<>();
+                            NodeList children = curNode.getChildNodes();
+                            for (int j = 0; j < children.getLength(); j++) {
+                                String key = children.item(j).getNodeName();
+                                if (!key.equals("#text")) {
+                                    String val = children.item(j).getTextContent();
+                                    nodeInfo.put(key, val);
+                                }
+                            }
+                            statuses.add(new EscalatorElevatorAlert(nodeInfo.get("name"), nodeInfo.get("status").equals("Working")));
+                        }
+                    }
+                }
+                db.saveEscElStatuses(stationId, statuses);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        db.close();
+        return statuses;
     }
 }

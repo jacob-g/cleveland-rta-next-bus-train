@@ -5,6 +5,7 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -14,6 +15,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageButton;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -67,6 +70,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 new GetDirectionsTask(view.getContext(), createDialog()).execute(selectedRouteStr);
+                new GetServiceAlertsTask(view.getContext()).execute(selectedRouteStr);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -202,6 +206,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
 
                 new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                new GetEscalatorElevatorStatus(view.getContext()).execute(stopIds.get(selectedStopStr));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -233,6 +238,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         serviceAlertsBtn.setOnClickListener(serviceAlertsClickedClickedListener);
 
         //cut off some destinations by replacing them with shorter names
+        //TODO: store the mappings online and download/cache them
         destMappings.put("Blue Line - Van Aken / Warrensville", "Blue - Warrensville");
         destMappings.put("Green Line - Green Road", "Green - Green Road");
         destMappings.put("Blue Line - Waterfront", "Waterfront");
@@ -397,11 +403,13 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Map<String, Integer> stations;
         private int myRouteId, myDirId;
         private ProgressDialog myProgressDialog;
+        private String route;
         public GetStopsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
         }
         protected String doInBackground(String... params) {
+            route = params[0];
             myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             myDirId = dirIds.get(params[1]);
             stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
@@ -481,6 +489,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Context myContext;
         private String route;
         private ProgressDialog myProgressDlg;
+        private int stopId;
         public GetTimesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDlg = pdlg;
@@ -491,7 +500,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             }
             int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             int dirId = dirIds.get(params[1]);
-            int stopId = stopIds.get(params[2]);
+            stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results
 
             //returns an array of {stop JSON, alerts XML}
@@ -567,7 +576,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (myProgressDlg != null) {
                     myProgressDlg.dismiss();
                 }
-                new GetServiceAlertsTask(myContext).execute(route);
             } catch (Exception e) {
                 myProgressDlg.dismiss();
                 blankAll();
@@ -597,6 +605,51 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
             } else {
                 serviceAlertsBtn.setVisibility(View.INVISIBLE);
+            }
+        }
+    }
+
+    private class GetEscalatorElevatorStatus extends AsyncTask<Integer, Void, List<EscalatorElevatorAlert>> {
+        private Context myContext;
+        public GetEscalatorElevatorStatus(Context context) {
+            myContext = context;
+        }
+        protected List<EscalatorElevatorAlert> doInBackground(Integer... params) {
+            int stationId = params[0];
+            return PersistentDataController.getEscalatorAlerts(myContext, stationId);
+        }
+
+        protected void onPostExecute(List<EscalatorElevatorAlert> statuses) {
+            LinearLayout escElLayout = (LinearLayout) findViewById(R.id.escalatorElevatorAlertLayout);
+            escElLayout.removeAllViews();
+            if (statuses.size() > 0) {
+                TextView title = new TextView(myContext);
+                title.setTextColor(Color.BLACK);
+                title.setTextSize(18);
+                title.setText(getResources().getString(R.string.escelstatus
+                ));
+                escElLayout.addView(title);
+                for (EscalatorElevatorAlert alert : statuses) {
+                    ImageView im = new ImageView(myContext);
+                    if (alert.working) {
+                        im.setImageDrawable(getResources().getDrawable(android.R.drawable.presence_online));
+                    } else {
+                        im.setImageDrawable(getResources().getDrawable(android.R.drawable.presence_busy));
+                    }
+
+                    TextView cap = new TextView(myContext);
+                    cap.setText(alert.name);
+                    if (!alert.working) {
+                        cap.setTextColor(Color.RED);
+                    }
+
+                    LinearLayout layout = new LinearLayout(myContext);
+                    layout.setOrientation(LinearLayout.HORIZONTAL);
+                    layout.addView(im);
+                    layout.addView(cap);
+
+                    escElLayout.addView(layout);
+                }
             }
         }
     }

@@ -72,11 +72,6 @@ public class NearMeActivity extends FragmentActivity
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         try {
-            mMap.setMyLocationEnabled(true); //make the map track the current user's location
-        } catch (SecurityException e) {
-            e.printStackTrace();
-        }
-        try {
             //placeholder to show how to mark stations
             LatLng twrCity = new LatLng(41.4975, -81.6939);
             //TODO: add all stations
@@ -108,8 +103,8 @@ public class NearMeActivity extends FragmentActivity
     private boolean firstLocation = true;
     @Override
     public void onLocationChanged(Location location) {
-        mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
         if (firstLocation) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
             mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
             firstLocation = false;
         }
@@ -118,6 +113,11 @@ public class NearMeActivity extends FragmentActivity
 
     //call this once we have permission to track the current user's location
     private void initializeMap() {
+        try {
+            mMap.setMyLocationEnabled(true);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
         startLocationUpdates();
     }
 

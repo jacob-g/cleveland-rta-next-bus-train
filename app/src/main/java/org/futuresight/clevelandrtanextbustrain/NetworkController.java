@@ -32,6 +32,8 @@ public abstract class NetworkController {
             conn.setDoInput(true);
             conn.setDoOutput(true);
             conn.setRequestProperty("Content-Type", "application/json;\tcharset=utf-8");
+            conn.setRequestProperty("Cookie", "gali=edit-facility-select&has_js=1");
+
 
 
             OutputStream os = conn.getOutputStream();
