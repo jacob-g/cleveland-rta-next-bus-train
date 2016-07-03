@@ -7,6 +7,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -303,7 +305,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             return stations;
         }
         db.close();
-        System.out.println(stations);
         return stations;
     }
 
@@ -319,6 +320,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(FIELD_NAME, st.getName());
+        db.update(FAVORITE_LOCATIONS_TABLE, values, FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId(), null);
+        db.close(); // Closing database connection
+    }
+
+    public void updateStationLocation(Station st, LatLng pos) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(FIELD_LAT, pos.latitude);
+        values.put(FIELD_LNG, pos.longitude);
         db.update(FAVORITE_LOCATIONS_TABLE, values, FIELD_STATION_ID + "=" + st.getStationId() + " AND " + FIELD_DIR_ID + "=" + st.getDirId() + " AND " + FIELD_LINE_ID + "=" + st.getLineId(), null);
         db.close(); // Closing database connection
     }
@@ -571,7 +581,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(FIELD_STATION_ID, stationId);
                 values.put(FIELD_NAME, status.name);
                 values.put(FIELD_STATUS, status.working ? 1 : 0);
-                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getEscElExpiry());
                 db.insert(ESCEL_STATUSES_TABLE, null, values);
             }
         }

@@ -70,4 +70,8 @@ public class Station {
     public String toString() {
         return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + "), LatLng: " + loc + "]";
     }
+
+    public void setLatLng(LatLng l) {
+        loc = l;
+    }
 }

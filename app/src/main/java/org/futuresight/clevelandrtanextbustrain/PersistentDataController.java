@@ -35,6 +35,8 @@ public abstract class PersistentDataController {
     public static final int stationExpiry = 60 * 60 * 24 * 7;
     public static final int alertExpiry = 60 * 60 * 24 * 1;
     public static final int escElExpiry = 60 * 60;
+    public static final int favLocationExpiry = 60 * 60 * 24 * 14;
+    public static final int noLocationRefreshPeriod = 60 * 60 * 12;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -157,6 +159,12 @@ public abstract class PersistentDataController {
     }
     public static int getEscElExpiry() {
         return escElExpiry;
+    }
+    public static int getFavLocationExpiry() {
+        return favLocationExpiry;
+    }
+    public static int getNoLocationRefreshPeriod() {
+        return noLocationRefreshPeriod;
     }
 
     public static Map<String, Integer> getDirIds(Context context, int lineId) {

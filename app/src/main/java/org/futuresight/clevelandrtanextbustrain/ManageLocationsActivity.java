@@ -6,6 +6,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -23,7 +24,9 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.maps.model.LatLng;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.PriorityQueue;
 import java.util.Queue;
@@ -201,7 +204,73 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
         if (orderSetting.equals("true")) {
             orderByClosenessBox.setChecked(true);
         }
+
+        /*PersistentDataController.setConfig(this, "lastCheckedLocationsForAll", "0");
+        db = new DatabaseHandler(this);
+        db.updateStationLocation(stations.get(0), new LatLng(0, 0));
+        stations.get(0).setLatLng(new LatLng(0, 0));
+        db.close();*/
+        new RefreshLocationsTask(this).execute();
     }
+
+    //periodically reload the locations of the stations
+    private class RefreshLocationsTask extends AsyncTask<Void, Void, Void> {
+        private Context myContext;
+        public RefreshLocationsTask(Context context) {
+            myContext = context;
+        }
+        protected Void doInBackground(Void... params) {
+            try {
+                String lastCheckedAllStr = PersistentDataController.getConfig(myContext, "lastCheckedLocationsForAll");
+                String lastCheckedNoLocStr = PersistentDataController.getConfig(myContext, "lastCheckedLocationsForNoLocations");
+                int lastCheckedLocationsForAll = lastCheckedAllStr == "" ? 0 : Integer.parseInt(lastCheckedAllStr);
+                int lastCheckedLocationsForNoLocations = lastCheckedNoLocStr == "" ? 0 : Integer.parseInt(lastCheckedNoLocStr);
+                List<Station> toRefresh = new ArrayList<>();
+                if (lastCheckedLocationsForAll == 0 || lastCheckedLocationsForAll < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry()) {
+                    //go for all stations
+                    for (Station s : stations) {
+                        toRefresh.add(s);
+                    }
+                    PersistentDataController.setConfig(myContext, "lastCheckedLocationsForAll", Integer.toString(PersistentDataController.getCurTime()));
+                } else if (lastCheckedLocationsForNoLocations == 0 || lastCheckedLocationsForNoLocations < PersistentDataController.getCurTime() - PersistentDataController.getNoLocationRefreshPeriod()) {
+                    //go for the stations with no location
+                    for (Station s : stations) {
+                        if (s.getLatLng() == null) {
+                            toRefresh.add(s);
+                        }
+                    }
+                }
+                PersistentDataController.setConfig(myContext, "lastCheckedLocationsForNoLocations", Integer.toString(PersistentDataController.getCurTime()));
+                if (!toRefresh.isEmpty()) {
+                    DatabaseHandler db = new DatabaseHandler(myContext);
+                    for (Station s : toRefresh) {
+                        LatLng loc = NetworkController.getLocationForStation(s.getStationId());
+                        if (loc != null && !loc.equals(s.getLatLng())) {
+                            s.setLatLng(loc);
+                            db.updateStationLocation(s, loc);
+                        }
+                    }
+                    db.close();
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            return null;
+        }
+
+        protected void onPostExecute(Void nul) {
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        //disconnect API client and stop using location services when closing this
+        if (apiClient != null) {
+            apiClient.disconnect();
+        }
+    }
+
 
     //listener when the "order by closeness" box is (un)checked
     private CompoundButton.OnCheckedChangeListener orderByClosenessBoxChecked = new CompoundButton.OnCheckedChangeListener() {
@@ -238,12 +307,15 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
     }
 
     protected void startLocationUpdates() {
-        System.out.println("Starting location updates...");
         try {
-            createLocationRequest();
-            LocationServices.FusedLocationApi.requestLocationUpdates(
-                    apiClient, mLocationRequest, this);
-        } catch (SecurityException e) {
+            try {
+                createLocationRequest();
+                LocationServices.FusedLocationApi.requestLocationUpdates(
+                        apiClient, mLocationRequest, this);
+            } catch (SecurityException e) {
+                e.printStackTrace();
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
     }
