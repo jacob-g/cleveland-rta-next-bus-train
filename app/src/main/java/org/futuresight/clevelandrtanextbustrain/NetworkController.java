@@ -88,17 +88,17 @@ public abstract class NetworkController {
                 String line;
                 BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 while ((line=br.readLine()) != null) {
-                    response+=line;
+                    response+=line + "\n";
                 }
             } else {
                 response="";
             }
         } catch (Exception e) {
+            e.printStackTrace();
             if (e.getMessage().contains("Unable to resolve host")) {
                 //connection failed
                 ableToConnect = false;
             }
-            e.printStackTrace();
         }
 
         return response;

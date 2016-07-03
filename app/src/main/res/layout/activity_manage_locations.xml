@@ -9,19 +9,49 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="org.futuresight.clevelandrtanextbustrain.ManageLocationsActivity">
 
-    <ScrollView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/favoriteLocationsScrollView"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true" >
+    <LinearLayout
+        android:orientation="vertical"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
 
-        <LinearLayout
-            android:orientation="vertical"
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="0dp"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="0dp"
+            android:id="@+id/checkBoxLayout">
+
+            <CheckBox
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/order_by_closeness"
+                android:id="@+id/orderByClosenessCheckBox"
+                android:layout_alignParentStart="false"
+                android:layout_alignParentEnd="true"
+                android:checked="false" />
+
+        </RelativeLayout>
+
+        <ScrollView
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:id="@+id/favoriteLocationsListView"></LinearLayout>
-    </ScrollView>
+            android:id="@+id/favoriteLocationsScrollView"
+            android:layout_alignParentLeft="true"
+            android:layout_marginLeft="0dp"
+            android:layout_alignParentTop="true"
+            android:layout_alignParentEnd="true"
+            android:layout_alignTop="@+id/checkBoxLayout"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentBottom="true">
+
+            <LinearLayout
+                android:orientation="vertical"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:id="@+id/favoriteLocationsListView"></LinearLayout>
+        </ScrollView>
+    </LinearLayout>
 
 </RelativeLayout>

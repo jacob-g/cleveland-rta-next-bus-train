@@ -39,4 +39,5 @@
     <string name="near_me">Near Me</string>
     <string name="title_activity_near_me">Near Me</string>
     <string name="escelstatus">Escalator/Elevator Status</string>
+    <string name="order_by_closeness">Order by closeness</string>
 </resources>

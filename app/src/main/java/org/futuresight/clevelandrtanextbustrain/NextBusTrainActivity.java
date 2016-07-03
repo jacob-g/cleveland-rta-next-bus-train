@@ -23,7 +23,12 @@ import android.widget.TextView;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
 
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
@@ -32,6 +37,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 public class NextBusTrainActivity extends AppCompatActivity {
     String[] directions = new String[1];
@@ -130,12 +138,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 inputAlert.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int which) {
-                        String name = userInput.getText().toString();
-                        DatabaseHandler db = new DatabaseHandler(NextBusTrainActivity.this);
-
-                        Station st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name); //create the station object
-                        db.addFavoriteLocation(st);
-                        db.close();
+                        try {
+                            String name = userInput.getText().toString();
+                            new SaveFavoriteTask(NextBusTrainActivity.this, stationName, stationId, dirName, dirId, lineName, lineId, name).execute(stationId);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
                 inputAlert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
@@ -152,6 +160,66 @@ public class NextBusTrainActivity extends AppCompatActivity {
             }
         }
     };
+
+    private class SaveFavoriteTask extends AsyncTask<Integer, Void, String> {
+        private Context myContext;
+        String stationName, dirName, lineName, name;
+        int stationId, dirId, lineId;
+        public SaveFavoriteTask(Context context, String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
+            myContext = context;
+            this.stationName = stationName;
+            this.stationId = stationId;
+            this.dirName = dirName;
+            this.dirId = dirId;
+            this.lineName = lineName;
+            this.lineId = lineId;
+            this.name = name;
+        }
+        protected String doInBackground(Integer... params) {
+            //TODO: make this an AsyncTask
+            return NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getstopinfo?version=1&id=" + params[0]);
+        }
+
+        protected void onPostExecute(String data) {
+            try {
+                double lat = 0, lng = 0;
+                boolean includeLatLng = false;
+                DatabaseHandler db = new DatabaseHandler(myContext);
+                if (data.startsWith("<?xml")) {
+                    Map<String, String> stopDataMap = new HashMap<>();
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document doc = dBuilder.parse(new InputSource(new StringReader(data)));
+                    Node rootNode = doc.getDocumentElement();
+
+                    if (doc.hasChildNodes()) {
+                        NodeList nl = rootNode.getChildNodes();
+                        for (int i = 0; i < nl.getLength(); i++) {
+                            Node curNode = nl.item(i);
+                            if (!curNode.getNodeName().equals("#text")) {
+                                stopDataMap.put(curNode.getNodeName(), curNode.getTextContent());
+                            }
+                        }
+                    }
+
+                    if (stopDataMap.containsKey("lat")) {
+                        lat = Double.parseDouble(stopDataMap.get("lat"));
+                        lng = Double.parseDouble(stopDataMap.get("lng"));
+                        includeLatLng = true;
+                    }
+                }
+                Station st;
+                if (includeLatLng) {
+                    st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name, lat, lng);
+                } else {
+                    st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name);
+                }
+                db.addFavoriteLocation(st);
+                db.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+    }
 
     //listener that runs when the "select favorite" button is clicked
     private Button.OnClickListener serviceAlertsClickedClickedListener = new AdapterView.OnClickListener() {

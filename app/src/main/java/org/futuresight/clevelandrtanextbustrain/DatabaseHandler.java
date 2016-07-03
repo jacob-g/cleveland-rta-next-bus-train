@@ -29,6 +29,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_DIR_ID = "dir_id";
         private static final String FIELD_STATION_NAME = "station_name";
         private static final String FIELD_STATION_ID = "station_id";
+        private static final String FIELD_LAT = "lat";
+        private static final String FIELD_LNG = "lng";
 
     private static final String LINES_TABLE = "lines";
 
@@ -82,7 +84,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_DIR_NAME + " TEXT,"
                 + FIELD_DIR_ID + " INT,"
                 + FIELD_STATION_NAME + " TEXT,"
-                + FIELD_STATION_ID + " INT"
+                + FIELD_STATION_ID + " INT,"
+                + FIELD_LAT + " REAL,"
+                + FIELD_LNG + " REAL"
                 + ")";
         db.execSQL(CREATE_FAVORITE_LOCATIONS_TABLE);
 
@@ -188,6 +192,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
     }
 
+    public String getConfig(String key) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        String out = getConfig(db, key);
+        db.close();
+        return out;
+    }
+
+    public void setConfig(String key, String val) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        setConfig(db, key, val);
+        db.close();
+    }
+
     // Upgrading database
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
@@ -250,6 +267,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put(FIELD_DIR_ID, st.getDirId()); //station name
         values.put(FIELD_LINE_NAME, st.getLineName()); //station name
         values.put(FIELD_LINE_ID, st.getLineId()); //station name
+        values.put(FIELD_LAT, st.getLatLng() == null ? 0 : st.getLatLng().latitude);
+        values.put(FIELD_LNG, st.getLatLng() == null ? 0 : st.getLatLng().longitude);
         // Inserting Row
         db.insert(FAVORITE_LOCATIONS_TABLE, null, values);
         db.close(); // Closing database connection
@@ -264,13 +283,18 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     public List<Station> getFavoriteLocations() {
         List<Station> stations = new ArrayList<>();
-        String selectQuery = "SELECT f." + FIELD_NAME + ",f." + FIELD_STATION_NAME + ",f." + FIELD_STATION_ID + ",f." + FIELD_DIR_NAME + ",f." + FIELD_DIR_ID + ",l." + NAME + ",f." + FIELD_LINE_ID + " FROM " + FAVORITE_LOCATIONS_TABLE + " AS f LEFT JOIN " + LINES_TABLE + " AS l ON l." + ID + "=f." + FIELD_LINE_ID + " ORDER BY f." + FIELD_STATION_NAME + " ASC";
+        String selectQuery = "SELECT f." + FIELD_NAME + ",f." + FIELD_STATION_NAME + ",f." + FIELD_STATION_ID + ",f." + FIELD_DIR_NAME + ",f." + FIELD_DIR_ID + ",l." + NAME + ",f." + FIELD_LINE_ID + ",f." + FIELD_LAT + ",f." + FIELD_LNG + " FROM " + FAVORITE_LOCATIONS_TABLE + " AS f LEFT JOIN " + LINES_TABLE + " AS l ON l." + ID + "=f." + FIELD_LINE_ID + " ORDER BY f." + FIELD_STATION_NAME + " ASC";
         SQLiteDatabase db = this.getWritableDatabase();
         try {
             Cursor cursor = db.rawQuery(selectQuery, null);
             if (cursor.moveToFirst()) {
                 do {
-                    Station st = new Station(cursor.getString(1), Integer.parseInt(cursor.getString(2)), cursor.getString(3), Integer.parseInt(cursor.getString(4)), cursor.getString(5), Integer.parseInt(cursor.getString(6)), cursor.getString(0));
+                    Station st;
+                    if (cursor.getDouble(7) == 0) {
+                        st = new Station(cursor.getString(1), Integer.parseInt(cursor.getString(2)), cursor.getString(3), Integer.parseInt(cursor.getString(4)), cursor.getString(5), Integer.parseInt(cursor.getString(6)), cursor.getString(0));
+                    } else {
+                        st = new Station(cursor.getString(1), Integer.parseInt(cursor.getString(2)), cursor.getString(3), Integer.parseInt(cursor.getString(4)), cursor.getString(5), Integer.parseInt(cursor.getString(6)), cursor.getString(0), cursor.getDouble(7), cursor.getDouble(8));
+                    }
                     stations.add(st);
                 } while (cursor.moveToNext());
             }
@@ -279,6 +303,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             return stations;
         }
         db.close();
+        System.out.println(stations);
         return stations;
     }
 

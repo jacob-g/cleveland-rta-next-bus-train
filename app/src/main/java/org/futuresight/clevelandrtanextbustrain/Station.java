@@ -1,11 +1,14 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import com.google.android.gms.maps.model.LatLng;
+
 /**
  * Created by jacob on 5/15/16.
  */
 public class Station {
     private String stationName, dirName, lineName, name; //name represents the name given by the user
     private int stationId, dirId, lineId;
+    private LatLng loc;
 
     public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
         this.stationName = stationName;
@@ -15,6 +18,17 @@ public class Station {
         this.lineName = lineName;
         this.lineId = lineId;
         this.name = name;
+    }
+
+    public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng) {
+        this.stationName = stationName;
+        this.stationId = stationId;
+        this.dirName = dirName;
+        this.dirId = dirId;
+        this.lineName = lineName;
+        this.lineId = lineId;
+        this.name = name;
+        loc = new LatLng(lat, lng);
     }
 
     public String getStationName() {
@@ -49,7 +63,11 @@ public class Station {
         this.name = n;
     }
 
+    public LatLng getLatLng() {
+        return loc;
+    }
+
     public String toString() {
-        return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + ")]";
+        return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + "), LatLng: " + loc + "]";
     }
 }

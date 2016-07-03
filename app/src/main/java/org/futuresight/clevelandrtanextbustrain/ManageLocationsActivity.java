@@ -4,25 +4,33 @@ import android.app.AlertDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.support.v7.app.AppCompatActivity;
+import android.content.pm.PackageManager;
+import android.location.Location;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
-import android.widget.Spinner;
-import android.widget.Switch;
-import android.widget.TextView;
+
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.LocationListener;
+import com.google.android.gms.location.LocationRequest;
+import com.google.android.gms.location.LocationServices;
 
 import java.util.List;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
-public class ManageLocationsActivity extends AppCompatActivity {
+public class ManageLocationsActivity extends AppCompatActivity implements LocationListener, GoogleApiClient.ConnectionCallbacks {
     boolean returnToParent = false;
+    private List<Station> stations;
     private class FavoriteStationListItemActivity extends RelativeLayout {
         Button mainBtn;
         ImageButton editBtn, deleteBtn;
@@ -51,8 +59,10 @@ public class ManageLocationsActivity extends AppCompatActivity {
                         intent.putExtra("lineId",station.getLineId());
                         intent.putExtra("dirId",station.getDirId());
                         activity.setResult(RESULT_OK, intent);
+                        if (apiClient != null) {
+                            apiClient.disconnect();
+                        }
                         finish();
-                        //nbta.loadStation(station.getStationId(), station.getDirId(), station.getLineId());
                     } else {
                         Intent intent = new Intent(context, NextBusTrainActivity.class);
                         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
@@ -63,6 +73,9 @@ public class ManageLocationsActivity extends AppCompatActivity {
                         intent.putExtra("stopId", station.getStationId());
                         intent.putExtra("stopName", station.getStationName());
                         startActivity(intent);
+                        if (apiClient != null) {
+                            apiClient.disconnect();
+                        }
                         finish();
                     }
                 }
@@ -175,16 +188,162 @@ public class ManageLocationsActivity extends AppCompatActivity {
         if (getIntent().hasExtra("return")) {
             returnToParent = true;
         }
-        for (Station s : stl) {
+        stations = stl;
+        for (Station s : stations) {
             FavoriteStationListItemActivity t = new FavoriteStationListItemActivity(this, s, favoriteListLayout, returnToParent, this);
             favoriteListLayout.addView(t);
         }
         db.close();
+
+        CheckBox orderByClosenessBox = (CheckBox)findViewById(R.id.orderByClosenessCheckBox);
+        orderByClosenessBox.setOnCheckedChangeListener(orderByClosenessBoxChecked);
+        String orderSetting = PersistentDataController.getConfig(this, "orderByClosenessBoxChecked");
+        if (orderSetting.equals("true")) {
+            orderByClosenessBox.setChecked(true);
+        }
     }
+
+    //listener when the "order by closeness" box is (un)checked
+    private CompoundButton.OnCheckedChangeListener orderByClosenessBoxChecked = new CompoundButton.OnCheckedChangeListener() {
+        @Override
+        public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+            if (isChecked) {
+                //order by closeness, so start up the location API
+                apiClient = new GoogleApiClient.Builder(ManageLocationsActivity.this).addConnectionCallbacks(ManageLocationsActivity.this)
+                        .addApi(LocationServices.API)
+                        .build();
+                apiClient.connect();
+                PersistentDataController.setConfig(ManageLocationsActivity.this, "orderByClosenessBoxChecked", "true");
+            } else {
+                //order alphabetically
+                apiClient.disconnect();
+                PersistentDataController.setConfig(ManageLocationsActivity.this, "orderByClosenessBoxChecked", "false");
+                LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
+                favoriteListLayout.removeAllViews();
+                for (Station s : stations) {
+                    FavoriteStationListItemActivity t = new FavoriteStationListItemActivity(ManageLocationsActivity.this, s, favoriteListLayout, returnToParent, ManageLocationsActivity.this);
+                    favoriteListLayout.addView(t);
+                }
+            }
+        }
+    };
+
+    //CODE TO REQUEST LOCATION
+    private LocationRequest mLocationRequest;
+    protected void createLocationRequest() {
+        mLocationRequest = new LocationRequest();
+        mLocationRequest.setInterval(30000);
+        mLocationRequest.setFastestInterval(10000);
+        mLocationRequest.setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY);
+    }
+
+    protected void startLocationUpdates() {
+        System.out.println("Starting location updates...");
+        try {
+            createLocationRequest();
+            LocationServices.FusedLocationApi.requestLocationUpdates(
+                    apiClient, mLocationRequest, this);
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private class StationComparableByLocation implements Comparable<StationComparableByLocation> {
+        final Station s;
+        final double distance;
+        public StationComparableByLocation(Station s, double lat, double lng) {
+            this.s = s;
+            if (s.getLatLng() == null) {
+                distance = Double.MAX_VALUE;
+            } else {
+                distance = Math.sqrt(Math.pow(lat - s.getLatLng().latitude, 2) + Math.pow(lng - s.getLatLng().longitude, 2));
+            }
+
+        }
+
+        public int compareTo(StationComparableByLocation other) {
+            if (this.distance > other.distance) {
+                return 1;
+            } else if (this.distance == other.distance) {
+                return 0;
+            } else {
+                return -1;
+            }
+        }
+    }
+
+    @Override
+    public void onLocationChanged(Location location) {
+        Queue<StationComparableByLocation> pq = new PriorityQueue<>();
+        for (Station s : stations) {
+            pq.add(new StationComparableByLocation(s, location.getLatitude(), location.getLongitude()));
+        }
+        LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
+        favoriteListLayout.removeAllViews();
+        while (!pq.isEmpty()) {
+            Station s = pq.remove().s;
+            FavoriteStationListItemActivity t = new FavoriteStationListItemActivity(this, s, favoriteListLayout, returnToParent, this);
+            favoriteListLayout.addView(t);
+        }
+    }
+
+    final int MY_PERMISSIONS_REQUEST_LOCATION = 99;
 
     @Override
     public boolean onSupportNavigateUp(){
         finish();
         return true;
+    }
+
+    @Override
+    public void onConnected(Bundle connectionHint) {
+        try {
+            if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+    /*here to request the missing permissions, and then overriding
+                //   public void onRequestPermissionsResult(int requestCode, String[] permissions,
+                //                                          int[] grantResults)
+                // to handle the case where the user grants the permission. See the documentation
+                // for ActivityCompat#requestPermissions for more details.
+    */
+                ActivityCompat.requestPermissions(this,
+                        new String[]{ android.Manifest.permission.ACCESS_FINE_LOCATION},
+                        MY_PERMISSIONS_REQUEST_LOCATION);
+                return;
+            }
+            startLocationUpdates();
+        } catch (SecurityException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode,
+                                           String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case MY_PERMISSIONS_REQUEST_LOCATION: {
+                // If request is cancelled, the result arrays are empty.
+                if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // permission was granted, yay! Do the
+                    // contacts-related task you need to do.
+                    startLocationUpdates();
+                } else {
+                    // permission denied, boo! Disable the
+                    // functionality that depends on this permission.
+                    CheckBox orderByClosenessBox = (CheckBox)findViewById(R.id.orderByClosenessCheckBox);
+                    orderByClosenessBox.setChecked(false);
+                }
+                return;
+            }
+            // other 'case' lines to check for other
+            // permissions this app might request
+        }
+    }
+
+    private GoogleApiClient apiClient;
+
+    @Override
+    public void onConnectionSuspended(int x) {
+        System.out.println("Connection suspended!");
     }
 }

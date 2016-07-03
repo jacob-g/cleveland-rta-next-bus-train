@@ -242,4 +242,17 @@ public abstract class PersistentDataController {
         db.close();
         return statuses;
     }
+
+    public static String getConfig(Context context, String key) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        String out = db.getConfig(key);
+        db.close();
+        return out;
+    }
+
+    public static void setConfig(Context context, String key, String val) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.setConfig(key, val);
+        db.close();
+    }
 }
