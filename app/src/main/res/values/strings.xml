@@ -40,4 +40,19 @@
     <string name="title_activity_near_me">Near Me</string>
     <string name="escelstatus">Escalator/Elevator Status</string>
     <string name="order_by_closeness">Order by closeness</string>
+    <string name="settings">Settings</string>
+    <string name="options">Options</string>
+    <string name="sort_favorites">Sort favorites</string>
+    <string name="caching">Caching durations (hours)</string>
+    <string name="lines">Lines</string>
+    <string name="stations">Stations</string>
+    <string name="escalator_elevator_alerts">Escalator/Elevator Alerts</string>
+    <string name="station_locations">Station Locations</string>
+    <string name="other">Other</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="reset_everything">Reset Everything</string>
+    <string-array name="sort_favorites_options">
+        <item>Alphabetical</item>
+        <item>Closeness</item>
+    </string-array>
 </resources>

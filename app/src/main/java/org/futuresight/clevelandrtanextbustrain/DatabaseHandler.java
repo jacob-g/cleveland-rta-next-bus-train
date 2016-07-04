@@ -344,7 +344,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         if (lastSavedStr != "") {
             lastSavedInt = Integer.parseInt(lastSavedStr);
         }
-        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry()) {
+        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry(context)) {
             db.execSQL("DELETE FROM " + LINES_TABLE);
             db.close(); // Closing database connection
             return outMap;
@@ -373,7 +373,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         if (lastSavedStr != "") {
             lastSavedInt = Integer.parseInt(lastSavedStr);
         }
-        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry()) {
+        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry(context)) {
             db.execSQL("DELETE FROM " + LINES_TABLE);
             db.close(); // Closing database connection
             return false;
@@ -437,7 +437,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_DIR_ID, directions.get(dirName));
             values.put(NAME, dirName);
             values.put(FIELD_LINE_ID, lineId);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry());
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry(context));
             db.insert(DIRS_TABLE, null, values);
         }
         //delete old ones
@@ -475,7 +475,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             statement.bindString(2, name);
             statement.bindLong(3, lineId);
             statement.bindLong(4, stations.get(name));
-            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry());
+            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry(context));
             statement.execute();
         }
         db.setTransactionSuccessful();
@@ -493,7 +493,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         values.put(FIELD_TITLE, title);
         values.put(FIELD_URL, url);
         values.put(FIELD_DESCRIPTION, text);
-        values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+        values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
         db.insert(ALERTS_TABLE, null, values);
 
         //delete old ones
@@ -508,7 +508,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         for (int lineId : lineIds) {
             ContentValues values = new ContentValues();
             values.put(FIELD_LINE_ID, lineId);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry());
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
             db.insert(CACHED_LINE_ALERTS_TABLE, null, values);
         }
         db.close();
@@ -573,7 +573,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_STATION_ID, stationId);
             values.put(FIELD_NAME, "");
             values.put(FIELD_STATUS, -1);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry());
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry(context));
             db.insert(ESCEL_STATUSES_TABLE, null, values);
         } else {
             for (EscalatorElevatorAlert status : statuses) {
@@ -581,7 +581,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(FIELD_STATION_ID, stationId);
                 values.put(FIELD_NAME, status.name);
                 values.put(FIELD_STATUS, status.working ? 1 : 0);
-                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getEscElExpiry());
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getEscElExpiry(context));
                 db.insert(ESCEL_STATUSES_TABLE, null, values);
             }
         }

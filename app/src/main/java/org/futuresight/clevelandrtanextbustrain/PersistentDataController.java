@@ -148,20 +148,29 @@ public abstract class PersistentDataController {
         return (int) (System.currentTimeMillis() / 1000L);
     }
 
-    public static int getLineExpiry() {
-        return lineExpiry;
+    private static int getFromDatabase(Context context, String key, int other) {
+        String out = getConfig(context, key);
+        if (out.equals("")) {
+            return other;
+        } else {
+            return Integer.parseInt(out);
+        }
     }
-    public static int getStationExpiry() {
-        return stationExpiry;
+
+    public static int getLineExpiry(Context context) {
+        return getFromDatabase(context, "lineExpiry", lineExpiry);
     }
-    public static int getAlertExpiry() {
-        return alertExpiry;
+    public static int getStationExpiry(Context context) {
+        return getFromDatabase(context, "stationExpiry", stationExpiry);
     }
-    public static int getEscElExpiry() {
-        return escElExpiry;
+    public static int getAlertExpiry(Context context) {
+        return getFromDatabase(context, "alertExpiry", alertExpiry);
     }
-    public static int getFavLocationExpiry() {
-        return favLocationExpiry;
+    public static int getEscElExpiry(Context context) {
+        return getFromDatabase(context, "escElExpiry", escElExpiry);
+    }
+    public static int getFavLocationExpiry(Context context) {
+        return getFromDatabase(context, "favLocationExpiry", favLocationExpiry);
     }
     public static int getNoLocationRefreshPeriod() {
         return noLocationRefreshPeriod;

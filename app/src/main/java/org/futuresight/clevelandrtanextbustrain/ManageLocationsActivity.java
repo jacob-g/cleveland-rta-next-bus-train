@@ -226,7 +226,7 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
                 int lastCheckedLocationsForAll = lastCheckedAllStr == "" ? 0 : Integer.parseInt(lastCheckedAllStr);
                 int lastCheckedLocationsForNoLocations = lastCheckedNoLocStr == "" ? 0 : Integer.parseInt(lastCheckedNoLocStr);
                 List<Station> toRefresh = new ArrayList<>();
-                if (lastCheckedLocationsForAll == 0 || lastCheckedLocationsForAll < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry()) {
+                if (lastCheckedLocationsForAll == 0 || lastCheckedLocationsForAll < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(myContext)) {
                     //go for all stations
                     for (Station s : stations) {
                         toRefresh.add(s);

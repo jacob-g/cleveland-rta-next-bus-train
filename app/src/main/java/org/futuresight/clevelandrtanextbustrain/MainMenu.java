@@ -68,18 +68,9 @@ public class MainMenu extends AppCompatActivity {
         startActivity(intent);
     }
 
-    public void fryDb(View v) {
-        DatabaseHandler db = new DatabaseHandler(this);
-        db.fry();
-        db.close();
-        System.out.println("Database erased!");
-    }
-
-    public void clearCache(View v) {
-        DatabaseHandler db = new DatabaseHandler(this);
-        db.fryCache();
-        db.close();
-        System.out.println("Cache cleared!");
+    public void openSettings(View v) {
+        Intent intent = new Intent(this, SettingsActivity.class);
+        startActivity(intent);
     }
 
     @Override

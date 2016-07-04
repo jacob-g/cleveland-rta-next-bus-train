@@ -58,30 +58,12 @@
             android:id="@+id/nearMeBtn"
             android:onClick="openNearMe" />
 
-        <LinearLayout
-            android:orientation="horizontal"
+        <Button
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Erase Database"
-                android:id="@+id/eraseDatabaseBtn"
-                android:onClick="fryDb"
-                android:background="#DD3333"
-                android:layout_weight="0.5" />
-
-            <Button
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="Clear Cache"
-                android:id="@+id/clearCacheBtn"
-                android:onClick="clearCache"
-                android:background="#33CC33"
-                android:layout_gravity="right"
-                android:layout_weight="0.5" />
-        </LinearLayout>
+            android:layout_height="wrap_content"
+            android:text="@string/settings"
+            android:id="@+id/settingsBtn"
+            android:onClick="openSettings" />
 
         <ImageView
             android:layout_width="161dp"
