@@ -24,6 +24,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
  */
 public abstract class ServiceAlertsController {
     public static List<Map<String, String>> getAlertsByLine(Context context, String[] routes, int[] routeIds) {
+        PersistentDataController.loadCacheDurations(context);
         List<Map<String, String>> alertList = new ArrayList<>();
         try {
             boolean alreadyCached = true;

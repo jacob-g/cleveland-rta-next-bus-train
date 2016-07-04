@@ -259,7 +259,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_next_bus_train);
-        getSupportActionBar().setDisplayHomeAsUpEnabled(true); //TODO: fix this up button
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         //give listeners to the appropriate actions
         Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner); //this is for finding directions after a line is selected
@@ -335,6 +335,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected String[] doInBackground(Void... params) {
+            PersistentDataController.loadCacheDurations(myContext);
             return PersistentDataController.getLines(myContext);
         }
 

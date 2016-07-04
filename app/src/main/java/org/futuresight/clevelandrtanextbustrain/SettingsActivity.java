@@ -44,6 +44,8 @@ public class SettingsActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         try {
+            PersistentDataController.loadCacheDurations(this);
+
             //load settings
             //sort favorites by proximity/alpha
             Spinner sortFavoritesSpinner = (Spinner) findViewById(R.id.sortFavoritesSpinner);

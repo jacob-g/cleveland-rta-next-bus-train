@@ -148,6 +148,17 @@ public abstract class PersistentDataController {
         return (int) (System.currentTimeMillis() / 1000L);
     }
 
+    private static Map<String, Integer> cacheDurations;
+    public static void loadCacheDurations(Context context) {
+        cacheDurations = new HashMap<>();
+        String[] keys = {"lineExpiry", "stationExpiry", "alertExpiry", "escElExpiry", "favLocationExpiry"};
+        int[] defaults = {lineExpiry, stationExpiry, alertExpiry, escElExpiry, favLocationExpiry};
+        for (int i = 0; i < keys.length; i++) {
+            cacheDurations.put(keys[i], getFromDatabase(context, keys[i], defaults[i]));
+        }
+    }
+
+    //TODO: make this function run as few times as necessary in order to prevent overlapping tasks from messing it up
     private static int getFromDatabase(Context context, String key, int other) {
         String out = getConfig(context, key);
         if (out.equals("")) {
@@ -158,19 +169,19 @@ public abstract class PersistentDataController {
     }
 
     public static int getLineExpiry(Context context) {
-        return getFromDatabase(context, "lineExpiry", lineExpiry);
+        return cacheDurations == null || !cacheDurations.containsKey("lineExpiry") ? lineExpiry : cacheDurations.get("lineExpiry");
     }
     public static int getStationExpiry(Context context) {
-        return getFromDatabase(context, "stationExpiry", stationExpiry);
+        return cacheDurations == null || !cacheDurations.containsKey("stationExpiry") ? stationExpiry : cacheDurations.get("stationExpiry");
     }
     public static int getAlertExpiry(Context context) {
-        return getFromDatabase(context, "alertExpiry", alertExpiry);
+        return cacheDurations == null || !cacheDurations.containsKey("alertExpiry") ? alertExpiry : cacheDurations.get("alertExpiry");
     }
     public static int getEscElExpiry(Context context) {
-        return getFromDatabase(context, "escElExpiry", escElExpiry);
+        return cacheDurations == null || !cacheDurations.containsKey("escElExpiry") ? escElExpiry : cacheDurations.get("escElExpiry");
     }
     public static int getFavLocationExpiry(Context context) {
-        return getFromDatabase(context, "favLocationExpiry", favLocationExpiry);
+        return cacheDurations == null || !cacheDurations.containsKey("favLocationExpiry") ? favLocationExpiry : cacheDurations.get("favLocationExpiry");
     }
     public static int getNoLocationRefreshPeriod() {
         return noLocationRefreshPeriod;

@@ -183,6 +183,7 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_manage_locations);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        PersistentDataController.loadCacheDurations(this);
 
         //populate the layout with the items
         LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
