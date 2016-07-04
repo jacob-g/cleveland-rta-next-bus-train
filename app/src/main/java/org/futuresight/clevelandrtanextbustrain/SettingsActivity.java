@@ -32,7 +32,9 @@ public class SettingsActivity extends AppCompatActivity {
         @Override
         public void afterTextChanged(Editable s) {
             if (Pattern.matches("^[0-9]+", s.toString())) {
-                PersistentDataController.setConfig(SettingsActivity.this, config, Integer.toString(Integer.parseInt(s.toString()) * 3600));
+                int newDuration = Integer.parseInt(s.toString()) * 3600;
+                PersistentDataController.setConfig(SettingsActivity.this, config, Integer.toString(newDuration));
+                PersistentDataController.setCacheDuration(config, newDuration);
             }
         }
     }
@@ -44,8 +46,6 @@ public class SettingsActivity extends AppCompatActivity {
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
         try {
-            PersistentDataController.loadCacheDurations(this);
-
             //load settings
             //sort favorites by proximity/alpha
             Spinner sortFavoritesSpinner = (Spinner) findViewById(R.id.sortFavoritesSpinner);

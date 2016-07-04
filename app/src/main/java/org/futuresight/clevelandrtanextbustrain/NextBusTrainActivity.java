@@ -335,7 +335,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected String[] doInBackground(Void... params) {
-            PersistentDataController.loadCacheDurations(myContext);
             return PersistentDataController.getLines(myContext);
         }
 

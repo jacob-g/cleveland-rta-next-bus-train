@@ -158,7 +158,10 @@ public abstract class PersistentDataController {
         }
     }
 
-    //TODO: make this function run as few times as necessary in order to prevent overlapping tasks from messing it up
+    public static void setCacheDuration(String key, int val) {
+        cacheDurations.put(key, val);
+    }
+
     private static int getFromDatabase(Context context, String key, int other) {
         String out = getConfig(context, key);
         if (out.equals("")) {
@@ -169,18 +172,33 @@ public abstract class PersistentDataController {
     }
 
     public static int getLineExpiry(Context context) {
+        if (cacheDurations == null) {
+            loadCacheDurations(context);
+        }
         return cacheDurations == null || !cacheDurations.containsKey("lineExpiry") ? lineExpiry : cacheDurations.get("lineExpiry");
     }
     public static int getStationExpiry(Context context) {
+        if (cacheDurations == null) {
+            loadCacheDurations(context);
+        }
         return cacheDurations == null || !cacheDurations.containsKey("stationExpiry") ? stationExpiry : cacheDurations.get("stationExpiry");
     }
     public static int getAlertExpiry(Context context) {
+        if (cacheDurations == null) {
+            loadCacheDurations(context);
+        }
         return cacheDurations == null || !cacheDurations.containsKey("alertExpiry") ? alertExpiry : cacheDurations.get("alertExpiry");
     }
     public static int getEscElExpiry(Context context) {
+        if (cacheDurations == null) {
+            loadCacheDurations(context);
+        }
         return cacheDurations == null || !cacheDurations.containsKey("escElExpiry") ? escElExpiry : cacheDurations.get("escElExpiry");
     }
     public static int getFavLocationExpiry(Context context) {
+        if (cacheDurations == null) {
+            loadCacheDurations(context);
+        }
         return cacheDurations == null || !cacheDurations.containsKey("favLocationExpiry") ? favLocationExpiry : cacheDurations.get("favLocationExpiry");
     }
     public static int getNoLocationRefreshPeriod() {
