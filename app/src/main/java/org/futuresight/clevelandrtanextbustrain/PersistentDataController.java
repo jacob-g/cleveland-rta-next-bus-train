@@ -2,6 +2,8 @@ package org.futuresight.clevelandrtanextbustrain;
 
 import android.content.Context;
 
+import com.google.android.gms.maps.model.LatLng;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -300,5 +302,18 @@ public abstract class PersistentDataController {
         DatabaseHandler db = new DatabaseHandler(context);
         db.setConfig(key, val);
         db.close();
+    }
+
+    public static double distance(LatLng first, LatLng second) {
+        //from http://www.movable-type.co.uk/scripts/latlong.html
+        int R = 6371000;
+        double lat1 = Math.toRadians(first.latitude), lat2 = Math.toRadians(second.latitude);
+        double lng1 = Math.toRadians(first.longitude), lng2 = Math.toRadians(second.longitude);
+        double dLat = lat2 - lat1;
+        double dLng = lng2 - lng1;
+
+        double a = Math.sin(dLat / 2) * Math.sin(dLat / 2) + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        double c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+        return R * c;
     }
 }

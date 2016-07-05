@@ -324,12 +324,12 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
     private class StationComparableByLocation implements Comparable<StationComparableByLocation> {
         final Station s;
         final double distance;
-        public StationComparableByLocation(Station s, double lat, double lng) {
+        public StationComparableByLocation(Station s, LatLng myPos) {
             this.s = s;
             if (s.getLatLng() == null) {
                 distance = Double.MAX_VALUE;
             } else {
-                distance = Math.sqrt(Math.pow(lat - s.getLatLng().latitude, 2) + Math.pow(lng - s.getLatLng().longitude, 2));
+                distance = PersistentDataController.distance(s.getLatLng(), myPos);
             }
 
         }
@@ -349,7 +349,8 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
     public void onLocationChanged(Location location) {
         Queue<StationComparableByLocation> pq = new PriorityQueue<>();
         for (Station s : stations) {
-            pq.add(new StationComparableByLocation(s, location.getLatitude(), location.getLongitude()));
+            LatLng myPos = new LatLng(location.getLatitude(), location.getLongitude());
+            pq.add(new StationComparableByLocation(s, myPos));
         }
         LinearLayout favoriteListLayout = (LinearLayout) findViewById(R.id.favoriteLocationsListView);
         favoriteListLayout.removeAllViews();

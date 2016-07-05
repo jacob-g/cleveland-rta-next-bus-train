@@ -1,5 +1,8 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
 import android.location.Location;
@@ -16,18 +19,24 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.PriorityQueue;
+import java.util.Queue;
 
 //Tower City location: 41 29 51; -81 41 37 (DMS)
 //https://developer.android.com/training/location/retrieve-current.html#play-services
 
 public class NearMeActivity extends FragmentActivity
-        implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener {
+        implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnCameraChangeListener {
 
     private GoogleMap mMap;
     private GoogleApiClient apiClient;
@@ -82,6 +91,8 @@ public class NearMeActivity extends FragmentActivity
             LatLng twrCity = new LatLng(41.4975, -81.6939);
             //TODO: add all stations
             mMap.addMarker(new MarkerOptions().position(twrCity).title("Tower City").snippet("Transfer between all rail lines"));
+            mMap.setOnMarkerClickListener(this);
+            mMap.setOnCameraChangeListener(this);
 
             //BEGIN TEST SECTION
             new GetPointsTask().execute();
@@ -111,20 +122,33 @@ public class NearMeActivity extends FragmentActivity
                     points = new ArrayList<>();
                 }
             }
-            System.out.println(points);
             paths.add(points);
             return paths;
         }
 
         protected void onPostExecute(List<List<LatLng>> paths) {
+            //TODO: give the lines colors
             for (List<LatLng> path : paths) {
                 PolylineOptions polyLineOptions = new PolylineOptions();
                 polyLineOptions.addAll(path);
-                polyLineOptions.width(2);
+                polyLineOptions.width(4);
                 polyLineOptions.color(Color.BLUE);
                 mMap.addPolyline(polyLineOptions);
             }
         }
+    }
+
+    private void alertDialog(String title, String msg) {
+        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
+        alertDialog.setTitle(title);
+        alertDialog.setMessage(msg);
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                    }
+                });
+        alertDialog.show();
     }
 
     private class TempStation {
@@ -144,7 +168,10 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    Map<Marker, TempStation> markers = new HashMap<>();
+
     private class GetStopsTask extends AsyncTask<Void, Void, List<TempStation>> {
+        //TODO: cache all of the stops
         public GetStopsTask() {
         }
         protected List<TempStation> doInBackground(Void... params) {
@@ -165,9 +192,106 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected void onPostExecute(List<TempStation> stops) {
+            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel;
             for (TempStation st : stops) {
-                mMap.addMarker(new MarkerOptions().position(st.pos).title(st.name).snippet(st.line));
+                Marker m;
+                markers.put(m = mMap.addMarker(new MarkerOptions().position(st.pos).title(st.name).snippet(st.line)), st);
+                if (!shouldBeVisible) {
+                    m.setVisible(false);
+                }
             }
+            alreadyVisible = shouldBeVisible;
+        }
+    }
+
+    private boolean alreadyVisible = false;
+    private final double minZoomLevel = 13.5;
+    @Override
+    public void onCameraChange(CameraPosition cameraPosition) {
+        if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {
+            for (Marker m : markers.keySet()) {
+                //don't show the icons when zoomed out too much
+                m.setVisible(!alreadyVisible);
+            }
+            alreadyVisible = !alreadyVisible;
+        }
+    }
+
+    private class ObjectByDistance<E> implements Comparable<ObjectByDistance<E>> {
+        E obj;
+        double dist;
+        Comparable secondary;
+        public ObjectByDistance(E o, double d, Comparable s) {
+            obj = o;
+            dist = d;
+            secondary = s;
+        }
+
+        public E getObj() {
+            return obj;
+        }
+
+        public int compareTo(ObjectByDistance<E> other) {
+            if (this.dist > other.dist) {
+                return 1;
+            } else if (this.dist < other.dist) {
+                return -1;
+            } else {
+                return this.secondary.compareTo(other.secondary);
+            }
+        }
+    }
+
+    @Override
+    public boolean onMarkerClick(final Marker marker) {
+        TempStation st = markers.get(marker);
+        if (st != null) {
+            Queue<ObjectByDistance<TempStation>> closeStations = new PriorityQueue<>();
+
+            for (Marker m : markers.keySet()) {
+                double d = PersistentDataController.distance(marker.getPosition(), m.getPosition());
+                if (d < 200) {
+                    TempStation otherStation = markers.get(m);
+                    closeStations.add(new ObjectByDistance<>(otherStation, d, otherStation.name));
+                }
+            }
+
+            String[] options = new String[closeStations.size()];
+            final TempStation[] stations = new TempStation[closeStations.size()];
+            int i = 0;
+            while (!closeStations.isEmpty()) {
+                //TODO: make this show the direction as text and not a number
+                TempStation s = closeStations.remove().getObj();
+                options[i] = s.name + " (" + s.line + ", " + s.dir + ")";
+                stations[i] = s;
+                i++;
+            }
+            AlertDialog.Builder builder = new AlertDialog.Builder(this);
+            builder.setTitle("Possible stations (within 200m of where you clicked)").setItems(options, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialogInterface, int i) {
+                    //TODO: open the next bus/train activity
+                    TempStation station = stations[i];
+                    Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
+                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                    intent.putExtra("lineId", station.lineId);
+                    intent.putExtra("lineName", station.line);
+                    intent.putExtra("dirId", station.dir);
+                    intent.putExtra("stopId", station.id);
+                    intent.putExtra("stopName", station.name);
+                    startActivity(intent);
+                    if (apiClient != null) {
+                        apiClient.disconnect();
+                    }
+                    finish();
+                }
+            });
+            builder.create();
+            builder.show();
+            return true;
+        } else {
+            System.out.println("Couldn't find the marker");
+            return false;
         }
     }
 
@@ -190,9 +314,8 @@ public class NearMeActivity extends FragmentActivity
 
     @Override
     public void onLocationChanged(Location location) {
-        mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
-        mMap.animateCamera(CameraUpdateFactory.zoomTo(15));
-        System.out.println(location.getLatitude() + " " + location.getLongitude());
+        //TODO: make this a decent way to follow the user
+        //mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
     }
 
 
@@ -200,6 +323,7 @@ public class NearMeActivity extends FragmentActivity
     private void initializeMap() {
         try {
             mMap.setMyLocationEnabled(true);
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.4975, -81.6939), 10)); //focus on Cleveland
         } catch (SecurityException e) {
             e.printStackTrace();
         }
