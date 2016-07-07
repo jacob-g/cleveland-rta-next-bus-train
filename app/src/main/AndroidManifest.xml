@@ -81,10 +81,7 @@
         </activity>
         <activity
             android:name=".SettingsActivity"
-            android:label="@string/settings">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="org.futuresight.clevelandrtanextbustrain.MainMenu" /></activity>
+            android:label="@string/settings" />
     </application>
 
 </manifest>

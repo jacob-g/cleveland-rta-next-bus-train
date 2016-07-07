@@ -53,6 +53,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String ESCEL_STATUSES_TABLE = "escel_statuses";
         private static final String FIELD_STATUS = "status";
 
+    private static final String ALL_STOPS_TABLE = "all_stops";
+
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
     private static final String NAME = "name";
@@ -142,6 +144,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_EXPIRES + " INTEGER"
                 + ")";
         db.execSQL(CREATE_ESCEL_STATUSES_TABLE);
+
+        String CREATE_ALL_STOPS_TABLE = "CREATE TABLE IF NOT EXISTS " + ALL_STOPS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_STATION_ID + " INTEGER,"
+                + FIELD_NAME + " INTEGER,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_LINE_NAME + " TEXT,"
+                + FIELD_DIR_ID + " INTEGER,"
+                + FIELD_DIR_NAME + " TEXT,"
+                + FIELD_LAT + " REAL,"
+                + FIELD_LNG + " REAL"
+                + ")";
+        db.execSQL(CREATE_ALL_STOPS_TABLE);
 
         boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
@@ -587,5 +602,50 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         db.execSQL("DELETE FROM " + ESCEL_STATUSES_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
         db.close();
+    }
+
+    public void cacheAllStops(List<Station> stations) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        db.execSQL("DELETE FROM " + ALL_STOPS_TABLE);
+
+        String sql = "INSERT INTO " + ALL_STOPS_TABLE + "(" + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + ") VALUES(?,?,?,?,?,?,?,?)";
+        SQLiteStatement statement = db.compileStatement(sql);
+        for (Station st : stations) {
+            statement.clearBindings();
+            statement.bindLong(1, st.getStationId());
+            statement.bindString(2, st.getStationName());
+            statement.bindLong(3, st.getLineId());
+            statement.bindString(4, st.getLineName());
+            statement.bindString(5, st.getDirName());
+            statement.bindLong(6, st.getDirId());
+            statement.bindDouble(7, st.getLatLng().latitude);
+            statement.bindDouble(8, st.getLatLng().longitude);
+            statement.execute();
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
+        db.close();
+        setConfig("lastSavedAllStops", Integer.toString(PersistentDataController.getCurTime()));
+    }
+
+    public List<Station> getCachedStopLocations() {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
+
+        List<Station> outList = new ArrayList<>();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                //String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng
+                outList.add(new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7)));
+            } while (cursor.moveToNext());
+        } else {
+            outList = null;
+        }
+        cursor.close();
+        db.close();
+        return outList;
     }
 }

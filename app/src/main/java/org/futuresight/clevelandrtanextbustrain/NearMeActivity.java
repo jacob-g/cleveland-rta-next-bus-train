@@ -1,6 +1,7 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -19,18 +20,30 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
 
+import org.w3c.dom.Document;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
+import org.xml.sax.InputSource;
+
+import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
+import java.util.Set;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
 
 //Tower City location: 41 29 51; -81 41 37 (DMS)
 //https://developer.android.com/training/location/retrieve-current.html#play-services
@@ -87,16 +100,12 @@ public class NearMeActivity extends FragmentActivity
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
         try {
-            //placeholder to show how to mark stations
-            LatLng twrCity = new LatLng(41.4975, -81.6939);
-            //TODO: add all stations
-            mMap.addMarker(new MarkerOptions().position(twrCity).title("Tower City").snippet("Transfer between all rail lines"));
             mMap.setOnMarkerClickListener(this);
             mMap.setOnCameraChangeListener(this);
 
             //BEGIN TEST SECTION
-            new GetPointsTask().execute();
             new GetStopsTask().execute();
+            new GetPointsTask().execute();
             //END TEST SECTION
         } catch (Exception e) {
             e.printStackTrace();
@@ -105,8 +114,19 @@ public class NearMeActivity extends FragmentActivity
 
     }
 
+    private ProgressDialog createDialog(String title, String message) {
+        ProgressDialog dlg = new ProgressDialog(NearMeActivity.this);
+        dlg.setTitle(title);
+        dlg.setMessage(message);
+        dlg.show();
+        return dlg;
+    }
+
     private class GetPointsTask extends AsyncTask<Void, Void, List<List<LatLng>>> {
+        private ProgressDialog pDlg;
         public GetPointsTask() {
+            //TODO: update the time period shown to reflect the appropriate setting
+            pDlg = createDialog("Loading lines", "This may take a while, but you only have to do this once every two weeks.");
         }
         protected List<List<LatLng>> doInBackground(Void... params) {
             List<List<LatLng>> paths = new ArrayList<>();
@@ -135,72 +155,120 @@ public class NearMeActivity extends FragmentActivity
                 polyLineOptions.color(Color.BLUE);
                 mMap.addPolyline(polyLineOptions);
             }
+            pDlg.dismiss();
         }
     }
 
-    private void alertDialog(String title, String msg) {
-        AlertDialog alertDialog = new AlertDialog.Builder(this).create();
-        alertDialog.setTitle(title);
-        alertDialog.setMessage(msg);
-        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
-                new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        dialog.dismiss();
-                    }
-                });
-        alertDialog.show();
-    }
+    Map<Marker, Station> markers = new HashMap<>();
+    Set<Integer> favIds = new HashSet<>();
 
-    private class TempStation {
-        public final LatLng pos;
-        public final String line;
-        public final String name;
-        public final int lineId;
-        public final int dir;
-        public final int id;
-        public TempStation(int id, String name, double lat, double lng, String line, int lineId, int dir) {
-            this.id = id;
-            this.name = name;
-            pos = new LatLng(lat, lng);
-            this.line = line;
-            this.lineId = lineId;
-            this.dir = dir;
-        }
-    }
-
-    Map<Marker, TempStation> markers = new HashMap<>();
-
-    private class GetStopsTask extends AsyncTask<Void, Void, List<TempStation>> {
-        //TODO: cache all of the stops
+    private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
+        private ProgressDialog pDlg;
         public GetStopsTask() {
+            //TODO: update the time period shown to reflect the appropriate setting
+            pDlg = createDialog("Loading stops", "This make take a while, but you only have to do this once every two weeks.");
         }
-        protected List<TempStation> doInBackground(Void... params) {
-            List<TempStation> out = new ArrayList<>();
-            String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
-            String[] lines = httpData.split("\n");
-            for (String line : lines) {
-                String[] parts = line.split("\\|");
-                if (parts.length == 7) {
-                    out.add(new TempStation(Integer.parseInt(parts[0]), parts[1], Double.parseDouble(parts[5]), Double.parseDouble(parts[6]), parts[3], Integer.parseInt(parts[4]), Integer.parseInt(parts[2])));
-                } else {
-                    System.out.println(parts.length);
-                    System.out.println(line);
+        protected List<Station> doInBackground(Void... params) {
+            List<Station> out = new ArrayList<>();
+            try {
+                String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, "lastSavedAllStops");
+                boolean expired = false;
+                if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
+                    expired = true;
                 }
+                DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
+                List<Station> fromDb = db.getCachedStopLocations();
+
+                if (!expired && fromDb != null) {
+                    System.out.println("Reading from cache");
+                    out = fromDb;
+                } else {
+                    System.out.println("Getting from network");
+                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
+                    Map<Integer, String> directions = new HashMap<>();
+
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
+                    Node rootNode = doc.getDocumentElement();
+
+                    if (doc.hasChildNodes()) {
+                        NodeList nl = rootNode.getChildNodes();
+                        for (int i = 0; i < nl.getLength(); i++) {
+                            Node curNode = nl.item(i); //either <ds> or <ls>
+                            switch (curNode.getNodeName()) {
+                                case "ds":
+                                    NodeList dirNodes = curNode.getChildNodes();
+                                    for (int j = 0; j < dirNodes.getLength(); j++) {
+                                        Node dirNode = dirNodes.item(j);
+                                        if (dirNode.getNodeName().equals("d")) {
+                                            int id = Integer.parseInt(dirNode.getAttributes().getNamedItem("i").getTextContent());
+                                            String name = dirNode.getAttributes().getNamedItem("n").getTextContent();
+                                            directions.put(id, name);
+                                        }
+                                    }
+                                    break;
+                                case "ls":
+                                    NodeList lineNodes = curNode.getChildNodes();
+                                    for (int j = 0; j < lineNodes.getLength(); j++) {
+                                        Node lineNode = lineNodes.item(j);
+                                        if (lineNode.getNodeName().equals("l")) {
+                                            int lineId = Integer.parseInt(lineNode.getAttributes().getNamedItem("i").getTextContent());
+                                            String lineName = lineNode.getAttributes().getNamedItem("n").getTextContent();
+                                            int dirId = Integer.parseInt(lineNode.getAttributes().getNamedItem("d").getTextContent());
+                                            NodeList stopNodes = lineNode.getChildNodes();
+                                            for (int k = 0; k < stopNodes.getLength(); k++) {
+                                                Node stopNode = stopNodes.item(k);
+                                                if (stopNode.getNodeName().equals("s")) {
+                                                    int id = Integer.parseInt(stopNode.getAttributes().getNamedItem("i").getTextContent());
+                                                    String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
+                                                    double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
+                                                    double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
+
+                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng);
+                                                    out.add(st);
+                                                }
+                                            }
+                                        }
+                                    }
+                                    break;
+                            }
+                        }
+                    }
+                    db.cacheAllStops(out);
+                }
+                db.close();
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-            System.out.println(out);
+
+
             return out;
         }
 
-        protected void onPostExecute(List<TempStation> stops) {
-            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel;
-            for (TempStation st : stops) {
+        protected void onPostExecute(List<Station> stops) {
+            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
+            //get favorites
+            DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
+            List<Station> favorites = db.getFavoriteLocations();
+            db.close();
+            for (Station s : favorites) {
+                favIds.add(s.getStationId());
+            }
+            //add the markers to the map
+            for (Station st : stops) {
                 Marker m;
-                markers.put(m = mMap.addMarker(new MarkerOptions().position(st.pos).title(st.name).snippet(st.line)), st);
+                markers.put(m = mMap.addMarker(new MarkerOptions().position(st.getLatLng())), st);
+                if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.btn_star_big_off));
+                    m.setAnchor(0.5f, 0.5f); //center the icon
+                }
                 if (!shouldBeVisible) {
                     m.setVisible(false);
                 }
             }
             alreadyVisible = shouldBeVisible;
+            System.out.println("Markers ready!");
+            pDlg.dismiss();
         }
     }
 
@@ -221,8 +289,10 @@ public class NearMeActivity extends FragmentActivity
         E obj;
         double dist;
         Comparable secondary;
-        public ObjectByDistance(E o, double d, Comparable s) {
+        boolean preferred;
+        public ObjectByDistance(E o, boolean preferred, double d, Comparable s) {
             obj = o;
+            this.preferred = preferred;
             dist = d;
             secondary = s;
         }
@@ -232,6 +302,11 @@ public class NearMeActivity extends FragmentActivity
         }
 
         public int compareTo(ObjectByDistance<E> other) {
+            if (this.preferred && !other.preferred) {
+                return -1;
+            } else if (!this.preferred && other.preferred) {
+                return 1;
+            }
             if (this.dist > other.dist) {
                 return 1;
             } else if (this.dist < other.dist) {
@@ -244,25 +319,24 @@ public class NearMeActivity extends FragmentActivity
 
     @Override
     public boolean onMarkerClick(final Marker marker) {
-        TempStation st = markers.get(marker);
+        Station st = markers.get(marker);
         if (st != null) {
-            Queue<ObjectByDistance<TempStation>> closeStations = new PriorityQueue<>();
+            Queue<ObjectByDistance<Station>> closeStations = new PriorityQueue<>();
 
             for (Marker m : markers.keySet()) {
                 double d = PersistentDataController.distance(marker.getPosition(), m.getPosition());
                 if (d < 200) {
-                    TempStation otherStation = markers.get(m);
-                    closeStations.add(new ObjectByDistance<>(otherStation, d, otherStation.name));
+                    Station otherStation = markers.get(m);
+                    closeStations.add(new ObjectByDistance<>(otherStation, favIds.contains(otherStation.getStationId()), d, otherStation.getName()));
                 }
             }
 
             String[] options = new String[closeStations.size()];
-            final TempStation[] stations = new TempStation[closeStations.size()];
+            final Station[] stations = new Station[closeStations.size()];
             int i = 0;
             while (!closeStations.isEmpty()) {
-                //TODO: make this show the direction as text and not a number
-                TempStation s = closeStations.remove().getObj();
-                options[i] = s.name + " (" + s.line + ", " + s.dir + ")";
+                Station s = closeStations.remove().getObj();
+                options[i] = s.getStationName() + " (" + s.getLineName() + ", " + s.getDirName() + ")";
                 stations[i] = s;
                 i++;
             }
@@ -270,15 +344,14 @@ public class NearMeActivity extends FragmentActivity
             builder.setTitle("Possible stations (within 200m of where you clicked)").setItems(options, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
-                    //TODO: open the next bus/train activity
-                    TempStation station = stations[i];
+                    Station station = stations[i];
                     Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                    intent.putExtra("lineId", station.lineId);
-                    intent.putExtra("lineName", station.line);
-                    intent.putExtra("dirId", station.dir);
-                    intent.putExtra("stopId", station.id);
-                    intent.putExtra("stopName", station.name);
+                    intent.putExtra("lineId", station.getLineId());
+                    intent.putExtra("lineName", station.getLineName());
+                    intent.putExtra("dirId", station.getDirId());
+                    intent.putExtra("stopId", station.getStationId());
+                    intent.putExtra("stopName", station.getStationName());
                     startActivity(intent);
                     if (apiClient != null) {
                         apiClient.disconnect();
