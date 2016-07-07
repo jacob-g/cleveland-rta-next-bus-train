@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script type="text/javascript">
+    var redLineId = 147;
+    var blueGreenLinesId = 184;
+    var directionNames = ['← West', 'East →'];
+    var directionNamesAllLines = ['← West (Red)', 'East (Red) →', '← West (Blue/Green)', 'East (Blue/Green) →'];
+    var directionIds = [14, 3];
+    var directionIdsAllLines = [14, 3, 14, 3];
+    function openStation(name, stationId, lineId) {
+      appInterface.goToStation(name, directionNames, directionIds, stationId, lineId);
+    }
+    function openStationMultipleIds(name, stationIds, lineId) {
+      appInterface.goToStationMultipleDirs(name, directionNames, directionIds, stationIds, lineId);
+    }
+    function openStationMultipleLines(name, stationIds) {
+      appInterface.goToStationMultipleLines(name, directionNamesAllLines, directionIdsAllLines, stationIds, [redLineId, redLineId, blueGreenLinesId, blueGreenLinesId]);
+    }
+    </script>
+  </head>
+  <body style="padding:0px; margin:0px !important">
+    <img src="railmap.svg" usemap="#stationmap" onclick="alert('X: ' + event.clientX + ', Y: ' + event.clientY)" />
+    <map name="stationmap">
+      <!-- all lines -->
+      <area shape="poly" coords="290,270,460,100,470,120,320,270" href="#towercity" alt="Tower City" onclick="openStationMultipleLines(this.alt, [16134, 16134, 16134, 16134]);" />
+      <area shape="poly" coords="310,300,370,240,380,250,320,310" href="#e34" alt="East 34th" onclick="openStationMultipleLines(this.alt, [16124, 16124, 16124, 16124]);" />
+      <!-- different IDs in different directions, 16145 on B/G eastbound--><area shape="poly" coords="300,340,340,300,345,310,315,345" href="#e55" alt="East 55th" onclick="openStationMultipleLines(this.alt, [16144, 16145, 16144, 16145]);" />
+
+      <!-- red line east of E. 55th -->
+      <area shape="poly" coords="370,270,410,270,405,290,360,290" href="#e79r" alt="East 79th (Red)" onclick="openStation(this.alt, 16135, redLineId);" />
+      <area shape="poly" coords="390,250,460,250,455,270,380,270" href="#e105quincy" alt="East 105th-Quincy" onclick="openStation(this.alt, 16136, redLineId);" />
+      <area shape="poly" coords="400,235,480,235,480,260,390,260" href="#cedaruniv" alt="Cedar-University" onclick="openStation(this.alt, 16137, redLineId);" />
+      <area shape="poly" coords="420,220,530,220,530,240,416,240" href="#littleitaly" alt="Little Italy - University Circle" onclick="openStation(this.alt, 17306, redLineId);" />
+      <area shape="poly" coords="435,200,480,200,480,220,420,220" href="#superior" alt="Superior" onclick="openStation(this.alt, 16139, redLineId);" />
+      <area shape="poly" coords="450,180,630,180,630,200,440,200" href="#windermere" alt="Louis Stokes Station at Windermere" onclick="openStation(this.alt, 16140, redLineId);" />
+
+      <!-- red line west of Tower City -->
+      <area shape="poly" coords="260,295,305,355,290,365,240,295" href="#w25" alt="West 25th-Ohio City" onclick="openStation(this.alt, 16125, redLineId);" />
+      <area shape="poly" coords="240,300,315,380,300,390,215,300" href="#w65" alt="West 65th - Lorain" onclick="openStation(this.alt, 16120, redLineId);" />
+      <area shape="poly" coords="215,300,280,370,270,385,190,300" href="#wblvd" alt="West Boulevard - Cudell" onclick="openStation(this.alt, 16132, redLineId);" />
+      <area shape="poly" coords="120,300,200,300,200,315,115,315" href="#w117" alt="West 117th - Madison" onclick="openStation(this.alt, 16131, redLineId);" />
+      <area shape="poly" coords="140,315,190,315,190,335,140,335" href="#triskett" alt="Triskett" onclick="openStation(this.alt, 16130, redLineId);" />
+      <area shape="poly" coords="115,335,170,335,170,350,115,350" href="#westpark" alt="West Park" onclick="openStation(this.alt, 16129, redLineId);" />
+      <area shape="poly" coords="110,350,150,350,150,365,110,365" href="#puritas" alt="Puritas" onclick="openStation(this.alt, 16128, redLineId);"  />
+      <area shape="poly" coords="80,365,135,365,135,390,80,390" href="#brookpark" alt="Brookpark" onclick="openStation(this.alt, 16126, redLineId);" />
+      <area shape="poly" coords="60,390,165,390,165,465,60,465" href="#airport" alt="Airport" onclick="openStation(this.alt, 16127, redLineId);" />
+
+      <!-- waterfront line -->
+      <area shape="poly" coords="310,130,385,130,385,165,310,165" href="#southharbor" alt="South Harbor" onclick="openStation(this.alt, 16142, blueGreenLinesId);" />
+      <area shape="poly" coords="250,110,310,180,300,180,240,120" href="#northcoast" alt="North Coast" onclick="openStation(this.alt, 14868, blueGreenLinesId);" />
+      <area shape="poly" coords="195,120,275,205,265,215,185,130" href="#w3" alt="West 3rd" onclick="openStation(this.alt, 549, blueGreenLinesId);" />
+      <area shape="poly" coords="245,240,305,180,315,190,255,250" href="#flatseast" alt="Flats East Bank" onclick="openStation(this.alt, 15876, blueGreenLinesId);" />
+      <area shape="poly" coords="260,255,325,195,335,205,270,265" href="#settlers" alt="Settlers Landing" onclick="openStation(this.alt, 16143, blueGreenLinesId);" />
+
+      <!-- shared portion of blue/green lines THESE STATIONS HAVE DIFFERENT IDS IN DIFFERENT DIRECTIONS!!! -->
+      <area shape="poly" coords="355,350,370,330,370,320,385,320,385,335,365,360" href="#e79bg" alt="East 79th (Blue/Green)" onclick="openStationMultipleIds(this.alt, [17347, 16141], blueGreenLinesId);" />
+      <area shape="poly" coords="350,380,390,330,390,320,405,320,405,340,360,390" href="#buckeye" alt="Buckeye-Woodhill" onclick="openStationMultipleIds(this.alt, [17348, 15841], blueGreenLinesId);" />
+      <area shape="poly" coords="370,380,415,330,415,320,430,320,430,340,385,390" href="#e116" alt="East 116th - St. Lukes" onclick="openStationMultipleIds(this.alt, [15859, 17349, 15859], blueGreenLinesId);" />
+      <area shape="poly" coords="400,370,440,330,440,320,455,320,455,340,415,380" href="#shakersq" alt="Shaker Square" onclick="openStationMultipleIds(this.alt, [15860, 17350], blueGreenLinesId);" />
+
+      <!-- green line -->
+      <area shape="poly" coords="460,330,460,310,485,290,495,300,475,315,475,330" href="#coventry" alt="Coventry" onclick="openStationMultipleIds(this.alt, [15861, 17342], blueGreenLinesId);" />
+      <area shape="poly" coords="480,330,480,310,520,275,525,290,495,315,495,330" href="#southingtong" alt="Southington (Green)" onclick="openStationMultipleIds(this.alt, [15862, 922], blueGreenLinesId);" />
+      <area shape="poly" coords="505,330,505,310,595,225,600,240,520,315,520,330" href="#nature" alt="Nature Center at South Park" onclick="openStationMultipleIds(this.alt, [15863, 921], blueGreenLinesId);" />
+      <area shape="poly" coords="525,330,525,310,565,275,570,290,540,315,540,330" href="#leeshaker" alt="Lee - Shaker" onclick="openStationMultipleIds(this.alt, [920, 15843], blueGreenLinesId);" />
+      <area shape="poly" coords="550,330,550,310,585,280,590,290,565,315,565,330" href="#attleboro" alt="Attleboro" onclick="openStationMultipleIds(this.alt, [15864, 17343], blueGreenLinesId);" />
+      <area shape="poly" coords="575,330,575,310,595,295,600,305,590,315,590,330" href="#eaton" alt="Eaton" onclick="openStationMultipleIds(this.alt, [17344, 15865], blueGreenLinesId);" />
+      <area shape="poly" coords="595,330,595,310,630,280,635,290,610,315,610,330" href="#courtland" alt="Courtland" onclick="openStationMultipleIds(this.alt, [17345, 15866], blueGreenLinesId);" />
+      <area shape="poly" coords="620,330,620,310,675,255,680,265,635,315,635,330" href="#warrensvilleshaker" alt="Warrensville-Shaker" onclick="openStationMultipleIds(this.alt, [17346, 15845], blueGreenLinesId);" />
+      <area shape="poly" coords="640,330,640,310,665,290,670,300,655,315,655,330" href="#belvoir" alt="Belvoir" onclick="openStationMultipleIds(this.alt, [15970, 919], blueGreenLinesId);" />
+      <area shape="poly" coords="665,330,665,310,700,280,705,290,680,315,680,330" href="#westgreen" alt="West Green" onclick="openStationMultipleIds(this.alt, [953, 15867], blueGreenLinesId);" />
+      <area shape="poly" coords="690,305,745,305,745,335,690,335" href="#greenroad" alt="Green Road" onclick="openStationMultipleIds(this.alt, [952, 15868], blueGreenLinesId);" />
+
+      <!-- blue line -->
+      <area shape="poly" coords="425,370,460,340,470,350,435,380" href="#drexmore" alt="Drexmore" onclick="openStationMultipleIds(this.alt, [910, 15873], blueGreenLinesId);" />
+      <area shape="poly" coords="435,395,475,355,485,365,445,405" href="#swoodland" alt="South Woodland" onclick="openStationMultipleIds(this.alt, [15872, 911], blueGreenLinesId);" />
+      <area shape="poly" coords="455,410,490,370,500,380,465,420" href="#southingtonb" alt="Southington (Blue)" onclick="openStationMultipleIds(this.alt, [15871, 912], blueGreenLinesId);" />
+      <area shape="poly" coords="480,415,510,390,520,400,490,425" href="#onaway" alt="Onaway" onclick="openStationMultipleIds(this.alt, [913, 15870], blueGreenLinesId);" />
+      <area shape="poly" coords="500,425,525,400,535,410,510,435" href="#ashby" alt="Ashby" onclick="openStationMultipleIds(this.alt, [914, 15869], blueGreenLinesId);" />
+      <area shape="poly" coords="505,455,540,420,540,410,555,410,555,420,515,465" href="#leevanaken" alt="Lee - Van Aken" onclick="openStationMultipleIds(this.alt, [17340, 15844], blueGreenLinesId);" />
+      <area shape="poly" coords="545,440,560,420,560,410,575,410,575,420,555,450" href="#avalon" alt="Avalon" onclick="openStationMultipleIds(this.alt, [915, 15835], blueGreenLinesId);" />
+      <area shape="poly" coords="565,445,585,420,585,410,600,410,600,420,570,450" href="#kenmore" alt="Kenmore" onclick="openStationMultipleIds(this.alt, [15836, 916], blueGreenLinesId);" />
+      <area shape="poly" coords="585,445,610,420,610,410,625,410,625,420,590,455" href="#lynnfield" alt="Lynnfield" onclick="openStationMultipleIds(this.alt, [17341, 15837], blueGreenLinesId);" />
+      <area shape="poly" coords="605,445,630,420,630,410,650,410,650,420,615,455" href="#farnsleigh" alt="Farnsleigh" onclick="openStationMultipleIds(this.alt, [15838, 949], blueGreenLinesId);" />
+      <area shape="poly" coords="650,405,720,405,720,445,650,445" href="#warrensvillevanaken" alt="Warrensville - Van Aken" onclick="openStationMultipleIds(this.alt, [17307, 17308], blueGreenLinesId);" />
+
+    </map>
+  </body>
+</html>

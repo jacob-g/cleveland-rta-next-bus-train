@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+      <!--<script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+      <script type="text/javascript" src="jquery.maphilight.min.js"></script>
+      <script type="text/javascript">
+        $(function () {
+            $('.stationmap').maphilight();
+        });
+    </script>-->
+    <script type="text/javascript">
+    var healthLineId = 136;
+    var directionNames = ['← West', 'East →'];
+    var directionIds = [14, 3];
+    function openStation(name, stationId, lineId) {
+      appInterface.goToStation(name, directionNames, directionIds, stationId, lineId);
+    }
+    function openStationOneDirection(name, stationId, direction, lineId) {
+      appInterface.goToStation(name, [directionNames[direction]], [directionIds[direction]], stationId, lineId);
+    }
+    function openStationMultipleIds(name, stationIds, lineId) {
+      appInterface.goToStationMultipleDirs(name, directionNames, directionIds, stationIds, lineId);
+    }
+    </script>
+  </head>
+  <body style="padding:0px; margin:0px !important">
+    <img src="healthline.svg" usemap="#stationmap" class="stationmap" onclick="alert('X: ' + event.clientX + ', Y: ' + event.clientY)" />
+    <map name="stationmap">
+        <!--the loop, this is really confusing and the RTA website is very unhelpful -->
+      <area shape="poly" coords="15,240,65,240,65,180,15,180" href="#towercity" alt="Tower City" onclick="openStationOneDirection(this.alt, 16620, 1, healthLineId);" />
+        <!--<area shape="poly" coords="61,154,80,154,80,171,61,171" href="#unknown" alt="Unknown" onclick="openStationOneDirection(this.alt, 0, 0, healthLineId);" />-->
+        <area shape="poly" coords="31,159,51,159,51,175,31,175" href="#wroadwaysuperior" alt="West roadway - Superior" onclick="openStationOneDirection(this.alt, 16619, 0, healthLineId);" />
+      <!--top side of the map on the straight section -->
+      <area shape="poly" coords="120,135,80,175,80,195,95,195,95,180,130,145" href="#e2" alt="East 2nd St." onclick="openStationMultipleIds(this.alt, [17283, 16621], healthLineId);" />
+      <area shape="poly" coords="163,135,123,175,123,195,138,195,138,180,173,145" href="#e9" alt="East 9th St." onclick="openStationMultipleIds(this.alt, [17281, 16623], healthLineId);" />
+      <area shape="poly" coords="206,135,166,175,166,195,181,195,181,180,216,145" href="#e19" alt="East 19th St." onclick="openStationMultipleIds(this.alt, [16592, 16593], healthLineId);" />
+      <area shape="poly" coords="249,135,209,175,209,195,224,195,224,180,259,145" href="#e30" alt="East 30th St." onclick="openStationMultipleIds(this.alt, [16596, 16597], healthLineId);" />
+      <area shape="poly" coords="293,135,253,175,253,195,268,195,268,180,303,145" href="#e40" alt="East 40th St." onclick="openStationMultipleIds(this.alt, [16600, 16601], healthLineId);" />
+      <area shape="poly" coords="337,135,297,175,297,195,312,195,312,180,347,145" href="#e59" alt="East 59th St." onclick="openStationMultipleIds(this.alt, [16604, 16605], healthLineId);" />
+      <area shape="poly" coords="380,135,340,175,340,195,355,195,355,180,390,145" href="#e71" alt="East 71st St." onclick="openStationMultipleIds(this.alt, [16608, 16609], healthLineId);" />
+      <area shape="poly" coords="423,135,383,175,383,195,398,195,398,180,433,145" href="#e83" alt="East 83rd St." onclick="openStationMultipleIds(this.alt, [16612, 16613], healthLineId);" />
+      <area shape="poly" coords="467,135,427,175,427,195,442,195,442,180,477,145" href="#e93" alt="East 93rd St." onclick="openStationMultipleIds(this.alt, [16669, 16670], healthLineId);" />
+      <area shape="poly" coords="515,131,471,175,471,195,486,195,486,180,525,141" href="#e105" alt="East 105th St." onclick="openStationMultipleIds(this.alt, [16673, 16674], healthLineId);" />
+      <!--bottom side on the straight section-->
+      <area shape="poly" coords="72,221,100,193,100,175,118,175,118,193,82,231" href="#e6" alt="East 6th St." onclick="openStationMultipleIds(this.alt, [17282, 16622], healthLineId);" />
+      <area shape="poly" coords="115,223,145,193,145,175,163,175,163,193,125,233" href="#e14" alt="East 14th St." onclick="openStationMultipleIds(this.alt, [17280, 16624], healthLineId);" />
+      <area shape="poly" coords="158,223,188,193,188,175,206,175,206,193,168,233" href="#e24" alt="East 24th St." onclick="openStationMultipleIds(this.alt, [16594, 16595], healthLineId);" />
+      <area shape="poly" coords="201,223,231,193,231,175,249,175,249,193,211,233" href="#e36" alt="East 36th St." onclick="openStationMultipleIds(this.alt, [16598, 16599], healthLineId);" />
+      <area shape="poly" coords="241,225,272,194,272,175,291,175,291,193,251,235" href="#e51" alt="East 51st St." onclick="openStationMultipleIds(this.alt, [16602, 16603], healthLineId);" />
+      <area shape="poly" coords="284,225,315,194,315,175,334,175,334,193,294,235" href="#e66" alt="East 66th St." onclick="openStationMultipleIds(this.alt, [16606, 16607], healthLineId);" />
+      <area shape="poly" coords="327,225,358,194,358,175,377,175,377,193,337,235" href="#e79" alt="East 79th St." onclick="openStationMultipleIds(this.alt, [16610, 16611], healthLineId);" />
+      <area shape="poly" coords="367,225,402,192,402,175,421,175,421,193,379,237" href="#e89" alt="East 89th St." onclick="openStationMultipleIds(this.alt, [16667, 16668], healthLineId);" />
+        <area shape="poly" coords="408,230,448,190,448,175,467,175,467,204,422,245" href="#e100" alt="East 100th St." onclick="openStationMultipleIds(this.alt, [16671, 16672], healthLineId);" />
+      <area shape="poly" coords="445,234,489,192,489,175,508,175,508,193,456,245" href="#stokes" alt="Stokes Blvd." onclick="openStationMultipleIds(this.alt, [16675, 16676], healthLineId);" />
+        <!--diagonal portion - both directions-->
+        <area shape="poly" coords="568,235,518,186,512,170,527,167,532,182,576,226" href="#adelbert" alt="Adelbert Rd." onclick="openStationMultipleIds(this.alt, [16677, 16678], healthLineId);" />
+        <area shape="poly" coords="588,223,543,181,533,164,550,160,556,175,594,215" href="#cornell" alt="Cornell Rd." onclick="openStationMultipleIds(this.alt, [16679, 16680], healthLineId);" />
+        <area shape="poly" coords="612,215,563,172,558,159,570,153,580,167,618,205" href="#e115" alt="East 115th St." onclick="openStationMultipleIds(this.alt, [16681, 16682], healthLineId);" />
+        <area shape="poly" coords="548,106,592,147,599,163,585,167,578,154,540,116" href="#e118" alt="East 118th St." onclick="openStationMultipleIds(this.alt, [16683, 16684], healthLineId);" />
+        <area shape="poly" coords="683,247,601,167,602,143,615,140,664,190,660,201,690,237" href="#e123" alt="East 123rd St." onclick="openStationMultipleIds(this.alt, [16625, 16626], healthLineId);" />
+        <area shape="poly" coords="584,86,638,135,643,148,631,154,623,140,576,94" href="#lakeview" alt="Lakeview Rd." onclick="openStationMultipleIds(this.alt, [16627, 16628], healthLineId);" />
+        <!-- diagonal portion, westbound only -->
+        <area shape="poly" coords="611,81,658,125,665,143,652,147,646,134,601,91" href="#delmont" alt="Delmont Ave." onclick="openStationOneDirection(this.alt, 16629, 0, healthLineId);" />
+        <area shape="poly" coords="667,81,704,113,709,130,697,135,689,121,659,90" href="#emily" alt="Emily St." onclick="openStationOneDirection(this.alt, 16631, 0, healthLineId);" />
+        <area shape="poly" coords="734,57,773,93,777,110,764,114,758,100,726,67" href="#eddy" alt="Eddy Rd." onclick="openStationOneDirection(this.alt, 16635, 0, healthLineId);" />
+        <area shape="poly" coords="763,29,817,81,821,97,809,101,802,87,753,39" href="#lakefront" alt="Lakefront Rd." onclick="openStationOneDirection(this.alt, 16637, 0, healthLineId);" />
+        <area shape="poly" coords="804,13,863,68,866,82,853,87,846,74,797,22" href="#debraann" alt="Debra Ann Ln." onclick="openStationOneDirection(this.alt, 16639, 0, healthLineId);" />
+        <!--diagonal portion, eastbound only-->
+        <area shape="poly" coords="733,177,689,133,683,120,669,126,677,142,725,186" href="#roxbury" alt="Roxbury Rd." onclick="openStationOneDirection(this.alt, 16630, 1, healthLineId);" />
+        <area shape="poly" coords="778,163,735,119,726,107,713,113,721,127,769,172" href="#garfield" alt="Garfield Rd." onclick="openStationOneDirection(this.alt, 16632, 1, healthLineId);" />
+        <area shape="poly" coords="853,151,801,99,793,85,779,93,787,107,841,159" href="#Wellesley" alt="Wellesley Ave." onclick="openStationOneDirection(this.alt, 16636, 1, healthLineId);" />
+        <area shape="poly" coords="893,129,847,87,838,73,825,78,831,93,883,141" href="#belmore" alt="Belmore Rd." onclick="openStationOneDirection(this.alt, 16638, 1, healthLineId);" />
+        <!--Superior and Stokes-Windermere-->
+        <area shape="poly" coords="687,32,807,164,797,171,735,107,723,105,673,47" href="#superior" alt="Superior Ave." onclick="openStationMultipleIds(this.alt, [16633, 16634], healthLineId);" />
+        <area shape="poly" coords="855,40,980,40,980,90,885,90,885,60,855,60" href="#stokeswindermere" alt="Louis Stokes Station at Windermere" onclick="openStationOneDirection(this.alt, 16716, 0, healthLineId);" />
+    </map>
+  </body>
+</html>

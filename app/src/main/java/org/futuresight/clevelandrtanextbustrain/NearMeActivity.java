@@ -129,6 +129,7 @@ public class NearMeActivity extends FragmentActivity
             pDlg = createDialog("Loading lines", "This may take a while, but you only have to do this once every two weeks.");
         }
         protected List<List<LatLng>> doInBackground(Void... params) {
+            //TODO: cache the points and update the API spec
             List<List<LatLng>> paths = new ArrayList<>();
             List<LatLng> points = new ArrayList<>();
             String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords");
