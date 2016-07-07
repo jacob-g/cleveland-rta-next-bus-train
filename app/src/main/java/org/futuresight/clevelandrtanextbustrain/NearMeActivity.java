@@ -122,38 +122,77 @@ public class NearMeActivity extends FragmentActivity
         return dlg;
     }
 
-    private class GetPointsTask extends AsyncTask<Void, Void, List<List<LatLng>>> {
+    public static class ColoredPointList {
+        public final List<LatLng> points = new ArrayList<>();
+        public final int color;
+        public ColoredPointList(int color) {
+            this.color = color;
+        }
+    }
+
+    private class GetPointsTask extends AsyncTask<Void, Void, List<NearMeActivity.ColoredPointList>> {
         private ProgressDialog pDlg;
+
         public GetPointsTask() {
             //TODO: update the time period shown to reflect the appropriate setting
             pDlg = createDialog("Loading lines", "This may take a while, but you only have to do this once every two weeks.");
         }
-        protected List<List<LatLng>> doInBackground(Void... params) {
-            //TODO: cache the points and update the API spec
-            List<List<LatLng>> paths = new ArrayList<>();
-            List<LatLng> points = new ArrayList<>();
-            String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords");
-            String[] lines = httpData.split("\n");
-            for (String line : lines) {
-                String[] parts = line.split(" ");
-                if (parts.length == 2) {
-                    points.add(new LatLng(Double.parseDouble(parts[0]), Double.parseDouble(parts[1])));
-                } else if (line.equals("")) {
-                    paths.add(points);
-                    points = new ArrayList<>();
-                }
+        protected List<ColoredPointList> doInBackground(Void... params) {
+            String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, "lastSavedAllPaths");
+            boolean expired = false;
+            if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
+                expired = true;
             }
-            paths.add(points);
+            DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
+            List<ColoredPointList> fromDb = db.getAllPaths();
+
+            List<ColoredPointList> paths = new ArrayList<>();
+            try {
+                if (!expired && fromDb != null) {
+                    System.out.println("From cache!");
+                    paths = fromDb;
+                } else {
+                    System.out.println("From internet!");
+                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords");
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
+                    Node rootNode = doc.getDocumentElement();
+
+                    if (doc.hasChildNodes()) {
+                        NodeList nl = rootNode.getChildNodes();
+                        for (int i = 0; i < nl.getLength(); i++) {
+                            Node pathNode = nl.item(i);
+                            if (pathNode.getNodeName().equals("p")) {
+                                int color = Color.rgb(Integer.parseInt(pathNode.getAttributes().getNamedItem("r").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("g").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("b").getTextContent()));
+                                ColoredPointList path = new ColoredPointList(color);
+                                NodeList pointNodeList = pathNode.getChildNodes();
+                                for (int j = 0; j < pointNodeList.getLength(); j++) {
+                                    Node pointNode = pointNodeList.item(j);
+                                    if (pointNode.getNodeName().equals("n")) {
+                                        double lat = Double.parseDouble(pointNode.getAttributes().getNamedItem("lt").getTextContent());
+                                        double lng = Double.parseDouble(pointNode.getAttributes().getNamedItem("ln").getTextContent());
+                                        path.points.add(new LatLng(lat, lng));
+                                    }
+                                }
+                                paths.add(path);
+                            }
+                        }
+                    }
+                    db.cacheAllPaths(paths);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
             return paths;
         }
 
-        protected void onPostExecute(List<List<LatLng>> paths) {
-            //TODO: give the lines colors
-            for (List<LatLng> path : paths) {
+        protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
+            for (ColoredPointList path : paths) {
                 PolylineOptions polyLineOptions = new PolylineOptions();
-                polyLineOptions.addAll(path);
+                polyLineOptions.addAll(path.points);
                 polyLineOptions.width(4);
-                polyLineOptions.color(Color.BLUE);
+                polyLineOptions.color(path.color);
                 mMap.addPolyline(polyLineOptions);
             }
             pDlg.dismiss();
@@ -181,10 +220,8 @@ public class NearMeActivity extends FragmentActivity
                 List<Station> fromDb = db.getCachedStopLocations();
 
                 if (!expired && fromDb != null) {
-                    System.out.println("Reading from cache");
                     out = fromDb;
                 } else {
-                    System.out.println("Getting from network");
                     String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
                     Map<Integer, String> directions = new HashMap<>();
 

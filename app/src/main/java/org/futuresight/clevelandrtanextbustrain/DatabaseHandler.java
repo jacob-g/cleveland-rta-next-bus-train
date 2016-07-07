@@ -6,6 +6,7 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.database.sqlite.SQLiteStatement;
+import android.graphics.Color;
 
 import com.google.android.gms.maps.model.LatLng;
 
@@ -54,6 +55,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_STATUS = "status";
 
     private static final String ALL_STOPS_TABLE = "all_stops";
+
+    private static final String LINE_PATHS_TABLE = "line_paths";
+        private static final String FIELD_PATH_ID = "path_id";
+        private static final String FIELD_RED = "red";
+        private static final String FIELD_GREEN = "green";
+        private static final String FIELD_BLUE = "blue";
 
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
@@ -157,6 +164,17 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_LNG + " REAL"
                 + ")";
         db.execSQL(CREATE_ALL_STOPS_TABLE);
+
+        String CREATE_LINE_PATHS_TABLE = "CREATE TABLE IF NOT EXISTS " + LINE_PATHS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_PATH_ID + " INTEGER,"
+                + FIELD_LAT + " REAL,"
+                + FIELD_LNG + " REAL,"
+                + FIELD_RED + " INTEGER,"
+                + FIELD_GREEN + " INTEGER,"
+                + FIELD_BLUE + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_LINE_PATHS_TABLE);
 
         boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
@@ -640,6 +658,65 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             do {
                 //String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng
                 outList.add(new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7)));
+            } while (cursor.moveToNext());
+        } else {
+            outList = null;
+        }
+        cursor.close();
+        db.close();
+        return outList;
+    }
+
+    public void cacheAllPaths(List<NearMeActivity.ColoredPointList> paths) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        db.execSQL("DELETE FROM " + LINE_PATHS_TABLE);
+
+        String sql = "INSERT INTO " + LINE_PATHS_TABLE + "(" + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," +
+                FIELD_GREEN + "," + FIELD_BLUE + ") VALUES(?,?,?,?,?,?)";
+        SQLiteStatement statement = db.compileStatement(sql);
+        int pathId = 0;
+        for (NearMeActivity.ColoredPointList path : paths) {
+            for (LatLng point : path.points) {
+                statement.clearBindings();
+                statement.bindLong(1, pathId);
+                statement.bindDouble(2, point.latitude);
+                statement.bindDouble(3, point.longitude);
+                statement.bindLong(4, Color.red(path.color));
+                statement.bindLong(5, Color.green(path.color));
+                statement.bindLong(6, Color.blue(path.color));
+                statement.execute();
+            }
+            pathId++;
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
+        db.close();
+        setConfig("lastSavedAllPaths", Integer.toString(PersistentDataController.getCurTime()));
+    }
+
+    public List<NearMeActivity.ColoredPointList> getAllPaths() {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
+
+        List<NearMeActivity.ColoredPointList> outList = new ArrayList<>();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        int lastPath = -1;
+        boolean first = true;
+        NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK);
+        if (cursor.moveToFirst()) {
+            do {
+                if (lastPath != cursor.getInt(0)) {
+                    lastPath = cursor.getInt(0);
+                    if (first) {
+                        first = false;
+                    } else {
+                        outList.add(path);
+                    }
+                    path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)));
+                }
+                path.points.add(new LatLng(cursor.getDouble(1), cursor.getDouble(2)));
             } while (cursor.moveToNext());
         } else {
             outList = null;
