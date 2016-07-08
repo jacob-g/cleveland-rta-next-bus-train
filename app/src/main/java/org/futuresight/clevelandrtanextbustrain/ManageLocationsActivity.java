@@ -83,7 +83,7 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
                     }
                 }
             });
-            mainBtn.setId(3000);
+            mainBtn.setId(View.generateViewId());
 
             RelativeLayout.LayoutParams lp;
             editBtn = new ImageButton(context);
@@ -122,7 +122,7 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
                     alertDialog.show();
                 }
             });
-            editBtn.setId(3001);
+            editBtn.setId(View.generateViewId());
 
             deleteBtn = new ImageButton(context);
             deleteBtn.setImageDrawable(getResources().getDrawable(android.R.drawable.ic_menu_delete));
@@ -152,7 +152,7 @@ public class ManageLocationsActivity extends AppCompatActivity implements Locati
                     alertDialog.show();
                 }
             });
-            deleteBtn.setId(3002);
+            deleteBtn.setId(View.generateViewId());
 
             lp = new RelativeLayout.LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
             lp.addRule(RelativeLayout.ALIGN_PARENT_START);

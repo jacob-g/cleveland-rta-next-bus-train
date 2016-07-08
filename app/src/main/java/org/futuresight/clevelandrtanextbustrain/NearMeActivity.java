@@ -103,10 +103,9 @@ public class NearMeActivity extends FragmentActivity
             mMap.setOnMarkerClickListener(this);
             mMap.setOnCameraChangeListener(this);
 
-            //BEGIN TEST SECTION
+            //Get the points and stops
             new GetStopsTask().execute();
             new GetPointsTask().execute();
-            //END TEST SECTION
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -134,11 +133,10 @@ public class NearMeActivity extends FragmentActivity
         private ProgressDialog pDlg;
 
         public GetPointsTask() {
-            //TODO: update the time period shown to reflect the appropriate setting
-            pDlg = createDialog("Loading lines", "This may take a while, but you only have to do this once every two weeks.");
+            pDlg = createDialog(getResources().getString(R.string.loading_lines), getResources().getString(R.string.take_a_while));
         }
         protected List<ColoredPointList> doInBackground(Void... params) {
-            String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, "lastSavedAllPaths");
+            String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
             boolean expired = false;
             if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
                 expired = true;
@@ -149,10 +147,8 @@ public class NearMeActivity extends FragmentActivity
             List<ColoredPointList> paths = new ArrayList<>();
             try {
                 if (!expired && fromDb != null) {
-                    System.out.println("From cache!");
                     paths = fromDb;
                 } else {
-                    System.out.println("From internet!");
                     String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords");
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
@@ -205,13 +201,12 @@ public class NearMeActivity extends FragmentActivity
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
         private ProgressDialog pDlg;
         public GetStopsTask() {
-            //TODO: update the time period shown to reflect the appropriate setting
-            pDlg = createDialog("Loading stops", "This make take a while, but you only have to do this once every two weeks.");
+            pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
         protected List<Station> doInBackground(Void... params) {
             List<Station> out = new ArrayList<>();
             try {
-                String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, "lastSavedAllStops");
+                String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_STOPS);
                 boolean expired = false;
                 if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
                     expired = true;
@@ -311,7 +306,7 @@ public class NearMeActivity extends FragmentActivity
     }
 
     private boolean alreadyVisible = false;
-    private final double minZoomLevel = 13.5;
+    private final double minZoomLevel = 14;
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {

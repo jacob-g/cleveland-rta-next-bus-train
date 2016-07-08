@@ -68,7 +68,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private static final String FIELD_EXPIRES = "expires";
 
     //config values
-    private static final String CONFIG_LAST_SAVED_LINES = "last_saved_lines";
+    public static final String CONFIG_LAST_SAVED_LINES = "last_saved_lines";
+    public static final String CONFIG_LAST_SAVED_ALL_PATHS = "lastSavedAllPaths";
+    public static final String CONFIG_LAST_SAVED_ALL_STOPS = "lastSavedAllStops";
 
     private static boolean initialized = false;
     private static Context context;
@@ -256,13 +258,15 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void fryCache() { //erase everything, hopefully not needed
         SQLiteDatabase db = this.getWritableDatabase();
 
-        // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
         onCreate(db);
 
@@ -275,7 +279,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void fry() { //erase everything, hopefully not needed
         SQLiteDatabase db = this.getWritableDatabase();
 
-        // Drop older table if existed
         db.execSQL("DROP TABLE IF EXISTS " + FAVORITE_LOCATIONS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + LINES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + DIRS_TABLE);
@@ -284,6 +287,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
 
         PersistentDataController.removeCachedStuff();
 
@@ -644,7 +649,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.setTransactionSuccessful();
         db.endTransaction();
         db.close();
-        setConfig("lastSavedAllStops", Integer.toString(PersistentDataController.getCurTime()));
+        setConfig(CONFIG_LAST_SAVED_ALL_STOPS, Integer.toString(PersistentDataController.getCurTime()));
     }
 
     public List<Station> getCachedStopLocations() {
@@ -692,7 +697,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.setTransactionSuccessful();
         db.endTransaction();
         db.close();
-        setConfig("lastSavedAllPaths", Integer.toString(PersistentDataController.getCurTime()));
+        setConfig(CONFIG_LAST_SAVED_ALL_PATHS, Integer.toString(PersistentDataController.getCurTime()));
     }
 
     public List<NearMeActivity.ColoredPointList> getAllPaths() {

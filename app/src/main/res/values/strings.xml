@@ -51,8 +51,11 @@
     <string name="other">Other</string>
     <string name="clear_cache">Clear Cache</string>
     <string name="reset_everything">Reset Everything</string>
+    <string name="loading_stops">Loading stops</string>
+    <string name="take_a_while">This may take a while.</string>
     <string-array name="sort_favorites_options">
         <item>Alphabetical</item>
         <item>Closeness</item>
     </string-array>
+    <string name="loading_lines">Loading lines</string>
 </resources>
