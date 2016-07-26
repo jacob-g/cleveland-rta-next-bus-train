@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.content.res.ResourcesCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.AdapterView;
@@ -210,6 +211,19 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
+    private Button.OnClickListener viewOnMapClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View v) {
+            final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            if (stopIds == null || !stopIds.containsKey(stationName)) {
+                return;
+            }
+            final int stationId = stopIds.get(stationName);
+            Intent intent = new Intent(NextBusTrainActivity.this, NearMeActivity.class);
+            intent.putExtra("stationId", stationId);
+            startActivity(intent);
+        }
+    };
+
     //listener that runs when a direction is selected (loads the appropriate stops)
     private Spinner.OnItemSelectedListener dirSelectedListener = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
@@ -274,6 +288,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         selectFavoriteBtn.setOnClickListener(selectFavoriteClickedListener);
         Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
         serviceAlertsBtn.setOnClickListener(serviceAlertsClickedClickedListener);
+        ImageButton viewOnMapBtn = (ImageButton)findViewById(R.id.viewOnMapBtn);
+        viewOnMapBtn.setOnClickListener(viewOnMapClickedListener);
 
         //cut off some destinations by replacing them with shorter names
         //TODO: store the mappings online and download/cache them
@@ -670,9 +686,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 for (EscalatorElevatorAlert alert : statuses) {
                     ImageView im = new ImageView(myContext);
                     if (alert.working) {
-                        im.setImageDrawable(getResources().getDrawable(android.R.drawable.presence_online));
+                        im.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.presence_online, null));
                     } else {
-                        im.setImageDrawable(getResources().getDrawable(android.R.drawable.presence_busy));
+                        im.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.presence_busy, null));
                     }
 
                     TextView cap = new TextView(myContext);

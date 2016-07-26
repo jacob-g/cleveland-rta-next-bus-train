@@ -54,6 +54,7 @@ public class NearMeActivity extends FragmentActivity
     private GoogleMap mMap;
     private GoogleApiClient apiClient;
     private LocationRequest mLocationRequest;
+    private boolean shouldFocusOnCleveland = true;
 
     @Override
     public void onConnectionSuspended(int x) {
@@ -288,10 +289,19 @@ public class NearMeActivity extends FragmentActivity
                 favIds.add(s.getStationId());
             }
             //add the markers to the map
+            int stationId = -1;
+            if (getIntent().hasExtra("stationId")) { //if a station id is sent in, focus on that station
+                stationId = getIntent().getExtras().getInt("stationId");
+            }
+            LatLng autoFocusPosition = null;
             for (Station st : stops) {
                 Marker m;
                 markers.put(m = mMap.addMarker(new MarkerOptions().position(st.getLatLng())), st);
-                if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                if (st.getStationId() == stationId) {
+                    autoFocusPosition = st.getLatLng();
+                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon
+                    m.setAnchor(0.5f, 0.5f); //center the icon
+                } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
                     m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.btn_star_big_off));
                     m.setAnchor(0.5f, 0.5f); //center the icon
                 }
@@ -300,8 +310,12 @@ public class NearMeActivity extends FragmentActivity
                 }
             }
             alreadyVisible = shouldBeVisible;
-            System.out.println("Markers ready!");
             pDlg.dismiss();
+
+            if (autoFocusPosition != null) {
+                shouldFocusOnCleveland = false;
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, 17));
+            }
         }
     }
 
@@ -429,7 +443,9 @@ public class NearMeActivity extends FragmentActivity
     private void initializeMap() {
         try {
             mMap.setMyLocationEnabled(true);
-            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.4975, -81.6939), 10)); //focus on Cleveland
+            if (shouldFocusOnCleveland) {
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.4975, -81.6939), 10)); //focus on Cleveland
+            }
         } catch (SecurityException e) {
             e.printStackTrace();
         }
