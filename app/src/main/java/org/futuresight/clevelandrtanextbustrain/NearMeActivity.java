@@ -198,9 +198,10 @@ public class NearMeActivity extends FragmentActivity
 
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
-
+    //TODO: optimize this and minimize garbage collector use
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
         private ProgressDialog pDlg;
+
         public GetStopsTask() {
             pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
@@ -249,6 +250,7 @@ public class NearMeActivity extends FragmentActivity
                                             int lineId = Integer.parseInt(lineNode.getAttributes().getNamedItem("i").getTextContent());
                                             String lineName = lineNode.getAttributes().getNamedItem("n").getTextContent();
                                             int dirId = Integer.parseInt(lineNode.getAttributes().getNamedItem("d").getTextContent());
+                                            char lineType = lineNode.getAttributes().getNamedItem("t").getTextContent().charAt(0); //"b" is bus, "r" is rail
                                             NodeList stopNodes = lineNode.getChildNodes();
                                             for (int k = 0; k < stopNodes.getLength(); k++) {
                                                 Node stopNode = stopNodes.item(k);
@@ -259,6 +261,7 @@ public class NearMeActivity extends FragmentActivity
                                                     double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
 
                                                     Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng);
+                                                    st.setType(lineType);
                                                     out.add(st);
                                                 }
                                             }
@@ -299,11 +302,18 @@ public class NearMeActivity extends FragmentActivity
                 markers.put(m = mMap.addMarker(new MarkerOptions().position(st.getLatLng())), st);
                 if (st.getStationId() == stationId) {
                     autoFocusPosition = st.getLatLng();
-                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon
+                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
                     m.setAnchor(0.5f, 0.5f); //center the icon
+                    m.setZIndex(3);
                 } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
-                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.btn_star_big_off));
-                    m.setAnchor(0.5f, 0.5f); //center the icon
+                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/favoritepin.png"));
+                    m.setZIndex(2);
+                } else if (st.getType() == 'r') {
+                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png"));
+                    m.setZIndex(1);
+                } else {
+                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png"));
+                    m.setZIndex(0);
                 }
                 if (!shouldBeVisible) {
                     m.setVisible(false);

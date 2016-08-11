@@ -10,6 +10,8 @@ import android.view.MenuItem;
 import android.view.View;
 
 public class MainMenu extends AppCompatActivity {
+    //TODO: add credits
+    //CREDITS: base GPS pin and bus icon by Freepik from flaticon.com, train icon by Scott de Jonge on flaticon.com, star icon by Madebyoliver on flaticon.com
     private void alertDialog(String title, String msg, final boolean die) {
         AlertDialog alertDialog = new AlertDialog.Builder(this).create();
         alertDialog.setTitle(title);

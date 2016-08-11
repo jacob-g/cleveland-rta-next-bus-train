@@ -9,6 +9,7 @@ public class Station {
     private String stationName, dirName, lineName, name; //name represents the name given by the user
     private int stationId, dirId, lineId;
     private LatLng loc;
+    public char type = 'b';
 
     public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
         this.stationName = stationName;
@@ -65,6 +66,14 @@ public class Station {
 
     public LatLng getLatLng() {
         return loc;
+    }
+
+    public void setType(char t) {
+        type = t;
+    }
+
+    public char getType() {
+        return type;
     }
 
     public String toString() {

@@ -61,6 +61,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_RED = "red";
         private static final String FIELD_GREEN = "green";
         private static final String FIELD_BLUE = "blue";
+        private static final String FIELD_TYPE = "type";
 
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
@@ -163,7 +164,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_DIR_ID + " INTEGER,"
                 + FIELD_DIR_NAME + " TEXT,"
                 + FIELD_LAT + " REAL,"
-                + FIELD_LNG + " REAL"
+                + FIELD_LNG + " REAL,"
+                + FIELD_TYPE + " STRING"
                 + ")";
         db.execSQL(CREATE_ALL_STOPS_TABLE);
 
@@ -268,6 +270,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+        setConfig(db, CONFIG_LAST_SAVED_ALL_PATHS, "0");
+        setConfig(db, CONFIG_LAST_SAVED_ALL_STOPS, "0");
         onCreate(db);
 
         PersistentDataController.removeCachedStuff();
@@ -632,7 +636,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.beginTransaction();
         db.execSQL("DELETE FROM " + ALL_STOPS_TABLE);
 
-        String sql = "INSERT INTO " + ALL_STOPS_TABLE + "(" + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + ") VALUES(?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO " + ALL_STOPS_TABLE + "(" + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + ") VALUES(?,?,?,?,?,?,?,?,?)";
         SQLiteStatement statement = db.compileStatement(sql);
         for (Station st : stations) {
             statement.clearBindings();
@@ -644,6 +648,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             statement.bindLong(6, st.getDirId());
             statement.bindDouble(7, st.getLatLng().latitude);
             statement.bindDouble(8, st.getLatLng().longitude);
+            statement.bindString(9, Character.toString(st.getType()));
             statement.execute();
         }
         db.setTransactionSuccessful();
@@ -655,14 +660,20 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public List<Station> getCachedStopLocations() {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
+        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
 
         List<Station> outList = new ArrayList<>();
         Cursor cursor = db.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
             do {
                 //String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng
-                outList.add(new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7)));
+                Station st = new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7));
+                if (cursor.getString(8) == null || cursor.getString(8).length() == 0) {
+                    st.setType('b');
+                } else {
+                    st.setType(cursor.getString(8).charAt(0));
+                }
+                outList.add(st);
             } while (cursor.moveToNext());
         } else {
             outList = null;
