@@ -32,6 +32,18 @@ public class Station {
         loc = new LatLng(lat, lng);
     }
 
+    public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng, char type) {
+        this.stationName = stationName;
+        this.stationId = stationId;
+        this.dirName = dirName;
+        this.dirId = dirId;
+        this.lineName = lineName;
+        this.lineId = lineId;
+        this.name = name;
+        this.type = type;
+        loc = new LatLng(lat, lng);
+    }
+
     public String getStationName() {
         return this.stationName;
     }

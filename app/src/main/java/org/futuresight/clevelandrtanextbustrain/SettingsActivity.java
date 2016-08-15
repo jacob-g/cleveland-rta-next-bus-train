@@ -1,5 +1,7 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import android.app.AlertDialog;
+import android.content.DialogInterface;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
@@ -108,11 +110,28 @@ public class SettingsActivity extends AppCompatActivity {
     }
 
     public void fryDb(View v) {
-        //TODO: confirmation dialog
-        DatabaseHandler db = new DatabaseHandler(this);
-        db.fry();
-        db.close();
-        finish();
+        final AlertDialog.Builder inputAlert = new AlertDialog.Builder(SettingsActivity.this);
+        inputAlert.setTitle(getResources().getText(R.string.deletefavorite));
+        inputAlert.setMessage(getResources().getText(R.string.confirmfrydb).toString());
+        inputAlert.setPositiveButton(getResources().getText(R.string.yes), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                DatabaseHandler db = new DatabaseHandler(SettingsActivity.this);
+                db.fry();
+                db.close();
+                finish();
+            }
+        });
+        inputAlert.setNegativeButton(getResources().getText(R.string.no), new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        });
+        AlertDialog alertDialog = inputAlert.create();
+        alertDialog.setCancelable(false);
+        alertDialog.show();
+
     }
 
     public void clearCache(View v) {

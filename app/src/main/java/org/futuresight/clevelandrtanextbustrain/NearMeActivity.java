@@ -20,6 +20,7 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
@@ -198,7 +199,6 @@ public class NearMeActivity extends FragmentActivity
 
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
-    //TODO: optimize this and minimize garbage collector use
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
         private ProgressDialog pDlg;
 
@@ -260,8 +260,7 @@ public class NearMeActivity extends FragmentActivity
                                                     double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
                                                     double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
 
-                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng);
-                                                    st.setType(lineType);
+                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType);
                                                     out.add(st);
                                                 }
                                             }
@@ -282,7 +281,13 @@ public class NearMeActivity extends FragmentActivity
             return out;
         }
 
+        //TODO: optimize, fix "W/Google Maps Android API: GLHudOverlay deprecated; draw(): no-op"
         protected void onPostExecute(List<Station> stops) {
+            //preload bitmap descriptors to improve performance
+            BitmapDescriptor favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
+            BitmapDescriptor busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
+            BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
+
             boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             //get favorites
             DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
@@ -306,13 +311,13 @@ public class NearMeActivity extends FragmentActivity
                     m.setAnchor(0.5f, 0.5f); //center the icon
                     m.setZIndex(3);
                 } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
-                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/favoritepin.png"));
+                    m.setIcon(favoritePin);
                     m.setZIndex(2);
                 } else if (st.getType() == 'r') {
-                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png"));
+                    m.setIcon(railPin);
                     m.setZIndex(1);
                 } else {
-                    m.setIcon(BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png"));
+                    m.setIcon(busPin);
                     m.setZIndex(0);
                 }
                 if (!shouldBeVisible) {
@@ -346,8 +351,8 @@ public class NearMeActivity extends FragmentActivity
         E obj;
         double dist;
         Comparable secondary;
-        boolean preferred;
-        public ObjectByDistance(E o, boolean preferred, double d, Comparable s) {
+        int preferred;
+        public ObjectByDistance(E o, int preferred, double d, Comparable s) {
             obj = o;
             this.preferred = preferred;
             dist = d;
@@ -359,9 +364,9 @@ public class NearMeActivity extends FragmentActivity
         }
 
         public int compareTo(ObjectByDistance<E> other) {
-            if (this.preferred && !other.preferred) {
+            if (this.preferred > other.preferred) {
                 return -1;
-            } else if (!this.preferred && other.preferred) {
+            } else if (this.preferred < other.preferred) {
                 return 1;
             }
             if (this.dist > other.dist) {
@@ -374,6 +379,7 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    final int MAX_STATION_CLICK_DISTANCE = 100; //distance in meters to show stations close to where a user clicks
     @Override
     public boolean onMarkerClick(final Marker marker) {
         Station st = markers.get(marker);
@@ -382,9 +388,17 @@ public class NearMeActivity extends FragmentActivity
 
             for (Marker m : markers.keySet()) {
                 double d = PersistentDataController.distance(marker.getPosition(), m.getPosition());
-                if (d < 200) {
+                if (d < MAX_STATION_CLICK_DISTANCE) {
                     Station otherStation = markers.get(m);
-                    closeStations.add(new ObjectByDistance<>(otherStation, favIds.contains(otherStation.getStationId()), d, otherStation.getName()));
+                    int priority;
+                    if (favIds.contains(otherStation.getStationId())) { //prioritize favorites
+                        priority = 2;
+                    } else if (otherStation.getType() == 'r') { //prioritize rail over bus
+                        priority = 1;
+                    } else {
+                        priority = 0;
+                    }
+                    closeStations.add(new ObjectByDistance<>(otherStation, priority, d, otherStation.getName() + " (" + otherStation.getLineName() + ", " + otherStation.getDirName()));
                 }
             }
 
@@ -398,7 +412,7 @@ public class NearMeActivity extends FragmentActivity
                 i++;
             }
             AlertDialog.Builder builder = new AlertDialog.Builder(this);
-            builder.setTitle("Possible stations (within 200m of where you clicked)").setItems(options, new DialogInterface.OnClickListener() {
+            builder.setTitle(String.format(getResources().getString(R.string.nearbystations), MAX_STATION_CLICK_DISTANCE)).setItems(options, new DialogInterface.OnClickListener() {
                 @Override
                 public void onClick(DialogInterface dialogInterface, int i) {
                     Station station = stations[i];
