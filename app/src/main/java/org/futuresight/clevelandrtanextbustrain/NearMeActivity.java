@@ -24,6 +24,7 @@ import com.google.android.gms.maps.model.BitmapDescriptor;
 import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.CameraPosition;
 import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.maps.model.PolylineOptions;
@@ -131,6 +132,7 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    //TODO: optimize
     private class GetPointsTask extends AsyncTask<Void, Void, List<NearMeActivity.ColoredPointList>> {
         private ProgressDialog pDlg;
 
@@ -197,6 +199,21 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    private class NumberPair {
+        public final int first, second;
+        public NumberPair(int first, int second) {
+            this.first = first;
+            this.second = second;
+        }
+
+        public boolean equals(NumberPair other) {
+            return this.first == other.first && this.second == other.second;
+        }
+    }
+
+    final double sectorSize = 0.005;
+    final char railType = 'r';
+    Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
@@ -281,12 +298,12 @@ public class NearMeActivity extends FragmentActivity
             return out;
         }
 
-        //TODO: optimize, fix "W/Google Maps Android API: GLHudOverlay deprecated; draw(): no-op"
         protected void onPostExecute(List<Station> stops) {
             //preload bitmap descriptors to improve performance
             BitmapDescriptor favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
             BitmapDescriptor busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
             BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
+            char railType = 'r';
 
             boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             //get favorites
@@ -301,31 +318,25 @@ public class NearMeActivity extends FragmentActivity
             if (getIntent().hasExtra("stationId")) { //if a station id is sent in, focus on that station
                 stationId = getIntent().getExtras().getInt("stationId");
             }
+            long startTime = System.currentTimeMillis();
             LatLng autoFocusPosition = null;
-            for (Station st : stops) {
-                Marker m;
-                markers.put(m = mMap.addMarker(new MarkerOptions().position(st.getLatLng())), st);
-                if (st.getStationId() == stationId) {
-                    autoFocusPosition = st.getLatLng();
-                    m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
-                    m.setAnchor(0.5f, 0.5f); //center the icon
-                    m.setZIndex(3);
-                } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
-                    m.setIcon(favoritePin);
-                    m.setZIndex(2);
-                } else if (st.getType() == 'r') {
-                    m.setIcon(railPin);
-                    m.setZIndex(1);
-                } else {
-                    m.setIcon(busPin);
-                    m.setZIndex(0);
+            markers = new HashMap<>(stops.size(), 0.5f);
+            int size = stops.size();
+            for (int i = 0; i < size; i++) {
+                //TODO: still auto-move to the desired location if one is sent in (code for that is in onCameraChange)
+                Station st = stops.get(i);
+                int sectorLat = (int)Math.floor(st.getLatLng().latitude / sectorSize);
+                int sectorLng = (int)Math.floor(st.getLatLng().longitude / sectorSize);
+                NumberPair sectorKey = new NumberPair(sectorLat, sectorLng);
+                if (!markerSectors.containsKey(sectorKey)) {
+                    markerSectors.put(sectorKey, new ArrayList<Station>());
                 }
-                if (!shouldBeVisible) {
-                    m.setVisible(false);
-                }
+                markerSectors.get(sectorKey).add(st);
             }
             alreadyVisible = shouldBeVisible;
             pDlg.dismiss();
+            long endTime = System.currentTimeMillis();
+            System.out.println("Execution time: " + (endTime - startTime) + "ms");
 
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;
@@ -336,6 +347,7 @@ public class NearMeActivity extends FragmentActivity
 
     private boolean alreadyVisible = false;
     private final double minZoomLevel = 14;
+    Set<NumberPair> spotsAdded = new HashSet<>();
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {
@@ -344,6 +356,52 @@ public class NearMeActivity extends FragmentActivity
                 m.setVisible(!alreadyVisible);
             }
             alreadyVisible = !alreadyVisible;
+        }
+
+        if (alreadyVisible) {
+            //TODO: make this run smoother
+            LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+            double minLat = bounds.southwest.latitude, minLng = bounds.southwest.longitude, maxLat = bounds.northeast.latitude, maxLng = bounds.northeast.longitude;
+
+            minLat -= sectorSize;
+            maxLat += sectorSize;
+            minLng -= sectorSize;
+            maxLng += sectorSize;
+
+            BitmapDescriptor favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
+            BitmapDescriptor busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
+            BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
+            int minLatInt = (int)Math.floor(minLat / sectorSize);
+            int maxLatInt = (int)Math.ceil(maxLat / sectorSize);
+            int minLngInt = (int)Math.floor(minLng / sectorSize);
+            int maxLngInt = (int)Math.ceil(maxLng / sectorSize);
+            for (NumberPair pos : markerSectors.keySet()) {
+                System.out.println(minLatInt + " " + maxLatInt);
+                if (minLatInt < pos.first && pos.first < maxLatInt && minLngInt < pos.second && pos.second < maxLngInt) {
+                    if (spotsAdded.add(pos)) {
+                        for (Station st: markerSectors.get(pos)) {
+                            Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                        /*if (st.getStationId() == stationId) {
+                            autoFocusPosition = st.getLatLng();
+                            m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
+                            m.setAnchor(0.5f, 0.5f); //center the icon
+                            m.setZIndex(3);
+                        } else */
+                            if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                                m.setIcon(favoritePin);
+                                m.setZIndex(2);
+                            } else if (st.getType() == railType) {
+                                m.setIcon(railPin);
+                                m.setZIndex(1);
+                            } else {
+                                m.setIcon(busPin);
+                                m.setZIndex(0);
+                            }
+                            markers.put(m, st);
+                        }
+                    }
+                }
+            }
         }
     }
 

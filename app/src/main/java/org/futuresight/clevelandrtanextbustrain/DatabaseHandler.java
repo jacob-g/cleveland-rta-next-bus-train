@@ -662,8 +662,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
         String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
 
-        List<Station> outList = new ArrayList<>();
+
         Cursor cursor = db.rawQuery(selectQuery, null);
+        List<Station> outList = new ArrayList<>(cursor.getCount());
         if (cursor.moveToFirst()) {
             do {
                 //String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng
