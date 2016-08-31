@@ -38,6 +38,7 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -132,7 +133,6 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    //TODO: optimize
     private class GetPointsTask extends AsyncTask<Void, Void, List<NearMeActivity.ColoredPointList>> {
         private ProgressDialog pDlg;
 
@@ -213,6 +213,7 @@ public class NearMeActivity extends FragmentActivity
 
     final double sectorSize = 0.005;
     final char railType = 'r';
+    private int focusStationId = -1;
     Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
@@ -323,7 +324,6 @@ public class NearMeActivity extends FragmentActivity
             markers = new HashMap<>(stops.size(), 0.5f);
             int size = stops.size();
             for (int i = 0; i < size; i++) {
-                //TODO: still auto-move to the desired location if one is sent in (code for that is in onCameraChange)
                 Station st = stops.get(i);
                 int sectorLat = (int)Math.floor(st.getLatLng().latitude / sectorSize);
                 int sectorLng = (int)Math.floor(st.getLatLng().longitude / sectorSize);
@@ -332,6 +332,10 @@ public class NearMeActivity extends FragmentActivity
                     markerSectors.put(sectorKey, new ArrayList<Station>());
                 }
                 markerSectors.get(sectorKey).add(st);
+                if (st.getStationId() == stationId) {
+                    autoFocusPosition = st.getLatLng();
+                    focusStationId = stationId;
+                }
             }
             alreadyVisible = shouldBeVisible;
             pDlg.dismiss();
@@ -359,7 +363,6 @@ public class NearMeActivity extends FragmentActivity
         }
 
         if (alreadyVisible) {
-            //TODO: make this run smoother
             LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
             double minLat = bounds.southwest.latitude, minLng = bounds.southwest.longitude, maxLat = bounds.northeast.latitude, maxLng = bounds.northeast.longitude;
 
@@ -375,19 +378,17 @@ public class NearMeActivity extends FragmentActivity
             int maxLatInt = (int)Math.ceil(maxLat / sectorSize);
             int minLngInt = (int)Math.floor(minLng / sectorSize);
             int maxLngInt = (int)Math.ceil(maxLng / sectorSize);
-            for (NumberPair pos : markerSectors.keySet()) {
-                System.out.println(minLatInt + " " + maxLatInt);
-                if (minLatInt < pos.first && pos.first < maxLatInt && minLngInt < pos.second && pos.second < maxLngInt) {
+            for (Iterator it = markerSectors.keySet().iterator(); it.hasNext(); ) {
+                NumberPair pos = (NumberPair)it.next();
+                if (minLatInt <= pos.first && pos.first <= maxLatInt && minLngInt <= pos.second && pos.second <= maxLngInt) {
                     if (spotsAdded.add(pos)) {
                         for (Station st: markerSectors.get(pos)) {
                             Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                        /*if (st.getStationId() == stationId) {
-                            autoFocusPosition = st.getLatLng();
-                            m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
-                            m.setAnchor(0.5f, 0.5f); //center the icon
-                            m.setZIndex(3);
-                        } else */
-                            if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                            if (st.getStationId() == focusStationId) {
+                                m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
+                                m.setAnchor(0.5f, 0.5f); //center the icon
+                                m.setZIndex(3);
+                            } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
                                 m.setIcon(favoritePin);
                                 m.setZIndex(2);
                             } else if (st.getType() == railType) {
@@ -400,6 +401,7 @@ public class NearMeActivity extends FragmentActivity
                             markers.put(m, st);
                         }
                     }
+                    it.remove();
                 }
             }
         }
