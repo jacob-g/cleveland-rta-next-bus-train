@@ -44,7 +44,7 @@ public abstract class NetworkController {
             conn.setRequestMethod("POST");
             conn.setDoInput(true);
             conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json;\tcharset=utf-8");
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             conn.setRequestProperty("Cookie", "gali=edit-facility-select&has_js=1");
 
 
@@ -93,7 +93,7 @@ public abstract class NetworkController {
             conn.setRequestMethod("GET");
             conn.setDoInput(true);
             conn.setDoOutput(true);
-            conn.setRequestProperty("Content-Type", "application/json;\tcharset=utf-8");
+            conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
 
             int responseCode=conn.getResponseCode();
 
