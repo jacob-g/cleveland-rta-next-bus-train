@@ -517,9 +517,13 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    boolean hasLocation = false;
     @Override
     public void onLocationChanged(Location location) {
-        //TODO: make this a decent way to follow the user
+        if (!hasLocation) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
+            hasLocation = true;
+        }
         //mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
     }
 

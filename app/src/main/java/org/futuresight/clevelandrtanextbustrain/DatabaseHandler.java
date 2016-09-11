@@ -63,6 +63,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_BLUE = "blue";
         private static final String FIELD_TYPE = "type";
 
+    private static final String DEST_MAPPINGS_TABLE = "dest_mappings";
+        private static final String FIELD_ORIGINAL = "original";
+        private static final String FIELD_REPLACEMENT = "replacement";
+
     //the universal names for fields
     private static final String ID = "id"; //the universal "id" field in each table
     private static final String NAME = "name";
@@ -179,6 +183,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_BLUE + " INTEGER"
                 + ")";
         db.execSQL(CREATE_LINE_PATHS_TABLE);
+
+        String CREATE_DEST_MAPPINGS_TABLE = "CREATE TABLE IF NOT EXISTS " + DEST_MAPPINGS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_ORIGINAL + " STRING,"
+                + FIELD_REPLACEMENT + " STRING,"
+                + FIELD_EXPIRES + " INTEGER"
+                + ")";
+        db.execSQL(CREATE_DEST_MAPPINGS_TABLE);
 
         boolean shouldPopulateConfig = !hasTable(db, CONFIG_TABLE);
         String CREATE_CONFIG_TABLE = "CREATE TABLE IF NOT EXISTS " + CONFIG_TABLE + "("
@@ -741,5 +753,40 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         cursor.close();
         db.close();
         return outList;
+    }
+
+    public Map<String, String> getDestMappings() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Map<String, String> out = new HashMap<>();
+        String selectQuery = "SELECT " + FIELD_ORIGINAL + "," + FIELD_REPLACEMENT + " FROM " + DEST_MAPPINGS_TABLE + " WHERE " + FIELD_EXPIRES + ">" + PersistentDataController.getCurTime();
+        Cursor cursor = db.rawQuery(selectQuery, null);
+        if (cursor.moveToFirst()) {
+            do {
+                out.put(cursor.getString(0), cursor.getString(1));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+        db.close();
+        return out;
+    }
+
+    public void saveDestMappings(Map<String, String> mappings) {
+        int stationExpiry = PersistentDataController.getStationExpiry(context);
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.beginTransaction();
+        db.execSQL("DELETE FROM " + DEST_MAPPINGS_TABLE);
+
+        String sql = "INSERT INTO " + DEST_MAPPINGS_TABLE + "(" + FIELD_ORIGINAL + "," + FIELD_REPLACEMENT + "," + FIELD_EXPIRES + ") VALUES(?,?,?)";
+        SQLiteStatement statement = db.compileStatement(sql);
+        for (String orig : mappings.keySet()) {
+            statement.clearBindings();
+            statement.bindString(1, orig);
+            statement.bindString(2, mappings.get(orig));
+            statement.bindDouble(3, PersistentDataController.getCurTime() + stationExpiry);
+            statement.execute();
+        }
+        db.setTransactionSuccessful();
+        db.endTransaction();
+        db.close();
     }
 }

@@ -8,6 +8,7 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.w3c.dom.Document;
+import org.w3c.dom.NamedNodeMap;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
@@ -33,6 +34,7 @@ public abstract class PersistentDataController {
     static String[] lines = new String[0];
     static Map<String, Integer> lineIds = new HashMap<>();
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
+    static Map<String, String> destMappings = new HashMap<>();
     public static final int lineExpiry = 60 * 60 * 24 * 14;
     public static final int stationExpiry = 60 * 60 * 24 * 7;
     public static final int alertExpiry = 60 * 60 * 24 * 1;
@@ -133,6 +135,50 @@ public abstract class PersistentDataController {
             loadLines(context);
         }
         return lines;
+    }
+
+    private static void loadDestMappings(Context context) {
+        Map<String, Integer> mappings = new HashMap<>();
+        DatabaseHandler db = new DatabaseHandler(context);
+        if ((destMappings = db.getDestMappings()).isEmpty()) {
+            //not cached
+            try {
+                String rawXML = NetworkController.performPostCall("https://nexttrain.futuresight.org/api/getdestmappings", "");
+                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                Document doc = dBuilder.parse(new InputSource(new StringReader(rawXML)));
+                Node rootNode = doc.getDocumentElement();
+
+                if (doc.hasChildNodes()) {
+                    NodeList nl = rootNode.getChildNodes();
+                    for (int i = 0; i < nl.getLength(); i++) {
+                        Node curNode = nl.item(i); //<e> node
+                        if (!curNode.getNodeName().equals("#text")) {
+                            Map<String, String> nodeInfo = new HashMap<>();
+                            NamedNodeMap attributes = curNode.getAttributes();
+                            for (int j = 0; j < attributes.getLength(); j++) {
+                                String key = attributes.item(j).getNodeName();
+                                if (!key.equals("#text")) {
+                                    String val = attributes.item(j).getTextContent();
+                                    nodeInfo.put(key, val);
+                                }
+                            }
+                            destMappings.put(nodeInfo.get("o"), nodeInfo.get("r"));
+                        }
+                    }
+                }
+                db.saveDestMappings(destMappings);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        db.close();
+    }
+
+    public static Map<String, String> getDestMappings(Context context) {
+        if (destMappings.isEmpty()) {
+            loadDestMappings(context);
+        }
+        return destMappings;
     }
 
     public static void setLines(String[] l) {

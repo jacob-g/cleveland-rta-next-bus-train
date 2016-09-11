@@ -292,21 +292,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
         ImageButton viewOnMapBtn = (ImageButton)findViewById(R.id.viewOnMapBtn);
         viewOnMapBtn.setOnClickListener(viewOnMapClickedListener);
 
-        //cut off some destinations by replacing them with shorter names
-        //TODO: store the mappings online and download/cache them
-        destMappings.put("Blue Line - Van Aken / Warrensville", "Blue - Warrensville");
-        destMappings.put("Green Line - Green Road", "Green - Green Road");
-        destMappings.put("Blue Line - Waterfront", "Waterfront");
-        destMappings.put("Green Line - Waterfront", "Waterfront");
-        destMappings.put("Red Line - Stokes / Windermere", "Windermere");
-        destMappings.put("Red Line - Airport", "Airport");
-        destMappings.put("Blue Line - E. 79th Street", "E. 79th Street");
-        destMappings.put("Green Line - E. 79th Street", "E. 79th Street");
-        destMappings.put("Red Line - E. 79th Street", "E. 79th Street");
-        destMappings.put("Red Line - Tower City / Public Square", "Tower City");
-        destMappings.put("Blue Line - Tower City / Public Square", "Tower City");
-        destMappings.put("Green Line - Tower City / Public Square", "Tower City");
-
         if (!NetworkController.connected(this)) {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
             return;
@@ -329,7 +314,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
             //create a timer to get the list of stops as appropriate
-            //TODO: make it so that the event only runs when there is a station selected and all that (i.e. not when loading/caching, etc.)
             Timer timer = new Timer();
             TimerTask updateTimes = new UpdateTimesTask(this.findViewById(android.R.id.content));
             timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);
@@ -350,9 +334,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
-
         }
         protected String[] doInBackground(Void... params) {
+            destMappings = PersistentDataController.getDestMappings(myContext);
             return PersistentDataController.getLines(myContext);
         }
 
