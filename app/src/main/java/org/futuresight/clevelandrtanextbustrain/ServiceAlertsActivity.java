@@ -63,6 +63,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         ProgressDialog dlg = new ProgressDialog(this);
         dlg.setTitle("Loading");
         dlg.setMessage("Please wait...");
+        dlg.setCancelable(false);
         dlg.show();
         return dlg;
     }

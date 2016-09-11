@@ -121,6 +121,7 @@ public class NearMeActivity extends FragmentActivity
         ProgressDialog dlg = new ProgressDialog(NearMeActivity.this);
         dlg.setTitle(title);
         dlg.setMessage(message);
+        dlg.setCancelable(false);
         dlg.show();
         return dlg;
     }

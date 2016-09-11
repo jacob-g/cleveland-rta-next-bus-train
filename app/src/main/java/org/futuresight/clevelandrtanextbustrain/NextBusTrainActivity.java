@@ -245,6 +245,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         ProgressDialog dlg = new ProgressDialog(NextBusTrainActivity.this);
         dlg.setTitle("Loading");
         dlg.setMessage("Please wait...");
+        dlg.setCancelable(false);
         dlg.show();
         return dlg;
     }
@@ -349,6 +350,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public GetLinesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
+
         }
         protected String[] doInBackground(Void... params) {
             return PersistentDataController.getLines(myContext);
