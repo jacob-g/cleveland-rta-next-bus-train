@@ -227,7 +227,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 String[][] routeList = new String[selectedRoutes.length][2];
                 int i = 0;
                 for (String s : selectedRoutes) {
-                    routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap(myContext).get(s))}; //TODO: make this not crash when the route list isn't ready
+                    routeList[i] = new String[]{s, Integer.toString(PersistentDataController.getLineIdMap(myContext).get(s))};
                     i++;
                 }
                 ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);

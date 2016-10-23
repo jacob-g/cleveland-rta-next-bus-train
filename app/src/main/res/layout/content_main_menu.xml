@@ -65,6 +65,13 @@
             android:id="@+id/settingsBtn"
             android:onClick="openSettings" />
 
+        <Button
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="Credits"
+            android:id="@+id/creditsBtn"
+            android:onClick="openCredits" />
+
         <ImageView
             android:layout_width="161dp"
             android:layout_height="wrap_content"

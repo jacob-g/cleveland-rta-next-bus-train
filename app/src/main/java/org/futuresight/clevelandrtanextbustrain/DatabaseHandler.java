@@ -88,7 +88,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             db.close();
             initialized = true;
         }
-        this.context = context;
+        DatabaseHandler.context = context;
     }
 
     // Creating Tables
