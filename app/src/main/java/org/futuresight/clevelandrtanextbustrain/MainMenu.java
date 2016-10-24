@@ -1,8 +1,10 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
+import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
@@ -10,6 +12,23 @@ import android.view.MenuItem;
 import android.view.View;
 
 public class MainMenu extends AppCompatActivity {
+    private class GetStopsTask extends AsyncTask<Void, Void, Void> {
+        private ProgressDialog pDlg;
+
+        public GetStopsTask() {
+            //pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
+        }
+
+        protected Void doInBackground(Void... params) {
+            PersistentDataController.getMapMarkers(MainMenu.this);
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+
+        }
+    }
+
     //CREDITS: base GPS pin and bus icon by Freepik from flaticon.com, train icon by Scott de Jonge on flaticon.com, star icon by Madebyoliver on flaticon.com
     private void alertDialog(String title, String msg, final boolean die) {
         AlertDialog alertDialog = new AlertDialog.Builder(this).create();
@@ -34,7 +53,7 @@ public class MainMenu extends AppCompatActivity {
         if (!NetworkController.connected(this)) {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
-
+        new GetStopsTask().execute();
     }
 
     @Override

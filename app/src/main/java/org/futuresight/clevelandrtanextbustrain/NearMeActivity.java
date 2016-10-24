@@ -225,79 +225,7 @@ public class NearMeActivity extends FragmentActivity
             pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
         protected List<Station> doInBackground(Void... params) {
-            List<Station> out = new ArrayList<>();
-            try {
-                String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_STOPS);
-                boolean expired = false;
-                if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
-                    expired = true;
-                }
-                DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
-                List<Station> fromDb = db.getCachedStopLocations();
-
-                if (!expired && fromDb != null) {
-                    out = fromDb;
-                } else {
-                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
-                    Map<Integer, String> directions = new HashMap<>();
-
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
-                    Node rootNode = doc.getDocumentElement();
-
-                    if (doc.hasChildNodes()) {
-                        NodeList nl = rootNode.getChildNodes();
-                        for (int i = 0; i < nl.getLength(); i++) {
-                            Node curNode = nl.item(i); //either <ds> or <ls>
-                            switch (curNode.getNodeName()) {
-                                case "ds":
-                                    NodeList dirNodes = curNode.getChildNodes();
-                                    for (int j = 0; j < dirNodes.getLength(); j++) {
-                                        Node dirNode = dirNodes.item(j);
-                                        if (dirNode.getNodeName().equals("d")) {
-                                            int id = Integer.parseInt(dirNode.getAttributes().getNamedItem("i").getTextContent());
-                                            String name = dirNode.getAttributes().getNamedItem("n").getTextContent();
-                                            directions.put(id, name);
-                                        }
-                                    }
-                                    break;
-                                case "ls":
-                                    NodeList lineNodes = curNode.getChildNodes();
-                                    for (int j = 0; j < lineNodes.getLength(); j++) {
-                                        Node lineNode = lineNodes.item(j);
-                                        if (lineNode.getNodeName().equals("l")) {
-                                            int lineId = Integer.parseInt(lineNode.getAttributes().getNamedItem("i").getTextContent());
-                                            String lineName = lineNode.getAttributes().getNamedItem("n").getTextContent();
-                                            int dirId = Integer.parseInt(lineNode.getAttributes().getNamedItem("d").getTextContent());
-                                            char lineType = lineNode.getAttributes().getNamedItem("t").getTextContent().charAt(0); //"b" is bus, "r" is rail
-                                            NodeList stopNodes = lineNode.getChildNodes();
-                                            for (int k = 0; k < stopNodes.getLength(); k++) {
-                                                Node stopNode = stopNodes.item(k);
-                                                if (stopNode.getNodeName().equals("s")) {
-                                                    int id = Integer.parseInt(stopNode.getAttributes().getNamedItem("i").getTextContent());
-                                                    String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
-                                                    double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
-                                                    double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
-
-                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType);
-                                                    out.add(st);
-                                                }
-                                            }
-                                        }
-                                    }
-                                    break;
-                            }
-                        }
-                    }
-                    db.cacheAllStops(out);
-                }
-                db.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-
-
-            return out;
+            return PersistentDataController.getMapMarkers(NearMeActivity.this);
         }
 
         protected void onPostExecute(List<Station> stops) {
@@ -307,7 +235,6 @@ public class NearMeActivity extends FragmentActivity
             BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
             char railType = 'r';
 
-            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             //get favorites
             DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
             List<Station> favorites = db.getFavoriteLocations();
@@ -338,6 +265,7 @@ public class NearMeActivity extends FragmentActivity
                     focusStationId = stationId;
                 }
             }
+            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             alreadyVisible = shouldBeVisible;
             pDlg.dismiss();
             long endTime = System.currentTimeMillis();
@@ -347,6 +275,7 @@ public class NearMeActivity extends FragmentActivity
                 shouldFocusOnCleveland = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, 17));
             }
+            onCameraChange(mMap.getCameraPosition());
         }
     }
 
@@ -400,6 +329,9 @@ public class NearMeActivity extends FragmentActivity
                                 m.setZIndex(0);
                             }
                             markers.put(m, st);
+                            if (alreadyVisible) {
+                                m.setVisible(true);
+                            }
                         }
                     }
                     it.remove();
