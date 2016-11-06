@@ -70,11 +70,10 @@ public abstract class NetworkController {
 
             }
         } catch (Exception e) {
-            if (e.getMessage().contains("Unable to resolve host")) {
-                response = null;
-            } else {
+            if (!e.getMessage().contains("Unable to resolve host")) {
                 e.printStackTrace();
             }
+            response = null;
         }
 
         return response;
@@ -106,12 +105,10 @@ public abstract class NetworkController {
                 response="";
             }
         } catch (Exception e) {
-            if (e.getMessage().contains("Unable to resolve host")) {
-                //connection failed
-                response = null;
-            } else {
+            if (!e.getMessage().contains("Unable to resolve host")) {
                 e.printStackTrace();
             }
+            response = null;
         }
 
         return response;
