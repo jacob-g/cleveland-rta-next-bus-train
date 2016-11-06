@@ -276,6 +276,7 @@ public abstract class PersistentDataController {
     }
 
     public static Map<String, Integer> loadDirIds(Context context, int lineId) {
+        System.out.println("Loading directions from network");
         String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + lineId + "}");
         try {
             if (httpData == null) {
@@ -320,6 +321,7 @@ public abstract class PersistentDataController {
     }
 
     public static Map<String, Integer> loadStationIds(Context context, int lineId, int dirId) {
+        System.out.println("Getting stations from network");
         String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + lineId + ", directionID: " + dirId + "}");
         if (httpData == null) {
             return null;

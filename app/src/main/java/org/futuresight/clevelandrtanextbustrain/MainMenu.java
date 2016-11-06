@@ -27,10 +27,6 @@ public class MainMenu extends AppCompatActivity {
         //pre-fetching of data
         protected Void doInBackground(Void... params) {
             PersistentDataController.loadLines(MainMenu.this); //pre-fetch line list
-            System.out.println("Fetched lines");
-
-            PersistentDataController.getMapMarkers(MainMenu.this); //pre-fetch the map markers
-            System.out.println("Fetched map information");
 
             //pre-fetch the stops for the user's favorite locations
             DatabaseHandler db = new DatabaseHandler(MainMenu.this);
@@ -40,15 +36,39 @@ public class MainMenu extends AppCompatActivity {
             for (Station st : favoriteStations) {
                 linesToFetch.add(st.getLineId());
             }
+            if (PersistentDataController.getLines(MainMenu.this).length == 0) {
+                return null;
+            }
+            linesToFetch.add(PersistentDataController.getLineIdMap(MainMenu.this).get(PersistentDataController.getLines(MainMenu.this)[0])); //also add the first line in the list as the next bus/train will attempt to load that upon being opened
             for (int line : linesToFetch) {
                 Map<String, Integer> dirIdsForFavorite = PersistentDataController.getDirIds(MainMenu.this, line);
+                if (dirIdsForFavorite.isEmpty()) {
+                    return null;
+                }
                 for (String key : dirIdsForFavorite.keySet()) {
                     int dirId = dirIdsForFavorite.get(key);
-                    System.out.println("Line ID: " + line + ", Direction ID: " + dirId);
                     PersistentDataController.loadStationIds(MainMenu.this, line, dirId);
                 }
             }
-            System.out.println("Fetched stop ids for favorite lines");
+
+            return null;
+        }
+
+        protected void onPostExecute(Void v) {
+
+        }
+    }
+
+    private class GetMarkersTask extends AsyncTask<Void, Void, Void> { //TODO: make this run completely independently of everything else to avoid interference
+        private ProgressDialog pDlg;
+
+        public GetMarkersTask() {
+            //pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
+        }
+
+        protected Void doInBackground(Void... params) {
+            PersistentDataController.getMapMarkers(MainMenu.this); //pre-fetch the map markers
+
             return null;
         }
 
@@ -82,6 +102,7 @@ public class MainMenu extends AppCompatActivity {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
         new GetStopsTask().execute();
+        new GetMarkersTask().execute();
     }
 
     @Override
