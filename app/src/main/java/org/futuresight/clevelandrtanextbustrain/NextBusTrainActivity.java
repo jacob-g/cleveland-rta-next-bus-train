@@ -341,6 +341,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String[] lineNames) {
+            if (lineNames.length == 0) {
+                alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
+            }
             //put that into the spinner
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
@@ -394,6 +397,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (dirs.isEmpty()) {
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
+
+                    if (arr.length() == 0) {
+                        alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
+                    }
 
                     dirIds = new HashMap<>();
                     directions = new String[arr.length()];
@@ -475,6 +482,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (stations.isEmpty()) {
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
+
+                    if (arr.length() == 0) {
+                        alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
+                    }
 
                     stops = new String[arr.length()];
                     stopIds = new HashMap<>();

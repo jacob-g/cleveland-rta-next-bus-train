@@ -20,6 +20,7 @@ public class MainMenu extends AppCompatActivity {
         }
 
         protected Void doInBackground(Void... params) {
+            PersistentDataController.getLines(MainMenu.this);
             PersistentDataController.getMapMarkers(MainMenu.this);
             return null;
         }

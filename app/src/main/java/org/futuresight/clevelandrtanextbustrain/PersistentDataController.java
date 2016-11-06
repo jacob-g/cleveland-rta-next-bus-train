@@ -111,6 +111,10 @@ public abstract class PersistentDataController {
                 JSONArray arr = json.getJSONArray("d");
                 lineNames = new String[arr.length()];
 
+                if (arr.length() == 0) { //nextconnect is down, fail gracefully
+                    return;
+                }
+
                 for (int i = 0; i < arr.length(); i++) {
                     JSONObject lineObj = arr.getJSONObject(i);
                     lineNames[i] = lineObj.getString("name");

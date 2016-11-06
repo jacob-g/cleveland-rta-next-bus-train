@@ -62,4 +62,5 @@
     <string name="nearbystations">Nearby stations (within %d meters of where you clicked)</string>
     <string name="confirmfrydb">Are you sure you want to erase everything? This means you will lose all of your settings and saved locations.</string>
     <string name="imageCredits">The icons used in the &quot;Near Me&quot; section app were taken from Flaticon.com. The base GPS pin and bus icons are by Freepik, the train icon is by Scott de Jonge, and the star icon is by Madebyoliver. Many thanks to them!</string>
+    <string name="nextconnectdown">It appears that the source of the arrival information is temporarily down. Please come back later. We apologize for the inconvenience.</string>
 </resources>
