@@ -24,15 +24,14 @@ import android.widget.TextView;
 import com.google.android.gms.maps.model.LatLng;
 
 import org.json.JSONArray;
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -372,7 +371,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     }
 
-    private class GetDirectionsTask extends AsyncTask<String, Void, String> {
+    private class GetDirectionsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
         private ProgressDialog myProgressDialog;
         private Map<String, Integer> dirs;
@@ -381,101 +380,80 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myContext = context;
             myProgressDialog = pdlg;
         }
-        protected String doInBackground(String... params) {
+        protected Map<String, Integer> doInBackground(String... params) {
             route = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             dirs = PersistentDataController.getDirIds(myContext, route);
-            if (dirs.isEmpty()) {
+            return dirIds = dirs;
+            /*if (dirs.isEmpty()) {
                 return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
             } else {
                 return "";
-            }
+            }*/
         }
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
-                int selectPos = -1;
-                if (dirs.isEmpty()) {
-                    if (result == null) {
-                        return;
-                    }
-                    JSONObject json = new JSONObject(result);
-                    JSONArray arr = json.getJSONArray("d");
-
-                    if (arr.length() == 0) {
-                        alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
-                    }
-
-                    dirIds = new HashMap<>();
-                    directions = new String[arr.length()];
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject dirObj = arr.getJSONObject(i);
-                        directions[i] = dirObj.getString("name");
-                        int id = dirObj.getInt("id");
-                        dirIds.put(directions[i], id);
-                        if (preSelectedDirId == id) {
-                            selectPos = i;
-                            preSelectedDirId = -1;
-                        }
-                    }
-                    PersistentDataController.saveDirIds(myContext, route, dirIds);
-                } else {
-                    dirIds = dirs;
-                    directions = new String[dirs.size()];
-                    int i = 0;
-                    for (String key : dirs.keySet()) {
-                        directions[i] = key;
-                        i++;
-                    }
-                    Arrays.sort(directions);
-                    for (i = 0; i < directions.length; i++) {
-                        if (preSelectedDirId == dirs.get(directions[i])) {
-                            selectPos = i;
-                            preSelectedDirId = -1;
-                        }
-                    }
+                if (result == null) { //connection failed
+                    myProgressDialog.dismiss();
+                    return;
+                } else if (result.isEmpty()) {
+                    alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
                 }
+                Set<String> dirSet = result.keySet();
+                directions = new String[dirSet.size()];
+                dirSet.toArray(directions);
                 //put that into the spinner
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
-                if (selectPos != -1) {
-                    dirSpinner.setSelection(selectPos);
+
+                if (preSelectedDirId != -1) {
+                    for (int i = 0; i < directions.length; i++) {
+                        if (preSelectedDirId == dirIds.get(adapter.getItem(i))) {
+                            dirSpinner.setSelection(i);
+                            break;
+                        }
+                    }
                 }
-            } catch (JSONException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             myProgressDialog.dismiss();
         }
     }
 
-    private class GetStopsTask extends AsyncTask<String, Void, String> {
+    private class GetStopsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
         private Map<String, Integer> stations;
         private int myRouteId, myDirId;
         private ProgressDialog myProgressDialog;
-        private String route;
         public GetStopsTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDialog = pdlg;
         }
-        protected String doInBackground(String... params) {
-            route = params[0];
+        protected Map<String, Integer> doInBackground(String... params) {
             myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             myDirId = dirIds.get(params[1]);
             stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
-            if (stations.isEmpty()) {
-                return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + myRouteId + ", directionID: " + myDirId + "}");
-            } else {
-                return "";
-            }
+            return PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
         }
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
+                if (result == null) {
+                    myProgressDialog.dismiss();
+                    return;
+                }
+
                 Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 int selectPos = -1;
+
+                stopIds = result;
+                Set<String> stopSet = result.keySet();
+                stops = new String[stopSet.size()];
+                stopSet.toArray(stops);
 
                 //get the current selection in case the direction is changing
                 String curSelection = "";
@@ -483,59 +461,19 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     curSelection = stationSpinner.getSelectedItem().toString();
                 }
 
-                if (stations.isEmpty()) {
-                    if (result == null) {
-                        return;
-                    }
-                    JSONObject json = new JSONObject(result);
-                    JSONArray arr = json.getJSONArray("d");
-
-                    if (arr.length() == 0) {
-                        alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
-                    }
-
-                    stops = new String[arr.length()];
-                    stopIds = new HashMap<>();
-
-                    for (int i = 0; i < arr.length(); i++) {
-                        JSONObject stopObj = arr.getJSONObject(i);
-                        stops[i] = stopObj.getString("name");
-                        int id = stopObj.getInt("id");
-                        stopIds.put(stops[i], id);
-                        if (preSelectedStopId == id) { //if this equals the stop ID sent in by the location manager, pick it
-                            selectPos = i;
-                            preSelectedStopId = -1;
-                        } else if (stops[i].equals(curSelection) && selectPos == -1 && preSelectedStopId == -1) { //otherwise, if changing direction and it's the same station that was selected before, select it
-                            selectPos = i;
-                        }
-                    }
-                    PersistentDataController.saveStationIds(myContext, myRouteId, myDirId, stopIds);
-                } else {
-                    stopIds = stations;
-                    stops = new String[stations.size()];
-                    int i = 0;
-                    for (String key : stations.keySet()) {
-                        stops[i] = key;
-                        i++;
-                    }
-                    Arrays.sort(stops);
-                    for (i = 0; i < stops.length; i++) {
-                        if (preSelectedStopId == stations.get(stops[i])) {
-                            selectPos = i;
-                            preSelectedStopId = -1;
-                        } else if (stops[i].equals(curSelection) && selectPos == -1 && preSelectedStopId == -1) {
-                            selectPos = i;
-                        }
-                    }
-                }
-
                 //put that into the spinner
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
-                if (selectPos != -1) {
-                    stationSpinner.setSelection(selectPos);
+
+                if (preSelectedStopId != -1) {
+                    for (int i = 0; i < stops.length; i++) {
+                        if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || curSelection.equals(stopIds.get(adapter.getItem(i)))) {
+                            stationSpinner.setSelection(i);
+                            break;
+                        }
+                    }
                 }
-            } catch (JSONException e) {
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             myProgressDialog.dismiss();
@@ -557,6 +495,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 blankAll();
             }
             int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
+            if (dirIds == null || stopIds == null) {
+                return null;
+            }
             int dirId = dirIds.get(params[1]);
             stopId = stopIds.get(params[2]);
             route = params[0]; //save the route for later in case we want to color the results

@@ -19,6 +19,7 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -82,7 +83,7 @@ public abstract class PersistentDataController {
         directions = new HashMap<>();
     }
 
-    private static void loadLines(Context context) {
+    public static void loadLines(Context context) {
         String[] lineNames = new String[0];
         Map<String, Integer> ids = new HashMap<>();
         if (linesStored(context)) {
@@ -268,7 +269,38 @@ public abstract class PersistentDataController {
         DatabaseHandler db = new DatabaseHandler(context);
         Map<String, Integer> out = db.getDirs(lineId);
         db.close();
+        if (out.isEmpty()) {
+            out = loadDirIds(context, lineId);
+        }
         return out;
+    }
+
+    public static Map<String, Integer> loadDirIds(Context context, int lineId) {
+        String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + lineId + "}");
+        try {
+            if (httpData == null) {
+                return null;
+            }
+            JSONObject json = new JSONObject(httpData);
+            JSONArray arr = json.getJSONArray("d");
+
+            if (arr.length() == 0) { //next connect is down, TODO: return an error specific to that
+                return new HashMap<>();
+            }
+
+            Map<String, Integer> dirIds = new TreeMap<>();
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject dirObj = arr.getJSONObject(i);
+                String name = dirObj.getString("name");
+                int id = dirObj.getInt("id");
+                dirIds.put(name, id);
+            }
+            PersistentDataController.saveDirIds(context, lineId, dirIds);
+            return dirIds;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static void saveDirIds(Context context, int lineId, Map<String, Integer> directions) {
@@ -281,7 +313,39 @@ public abstract class PersistentDataController {
         DatabaseHandler db = new DatabaseHandler(context);
         Map<String, Integer> out = db.getStations(lineId, dirId);
         db.close();
+        if (out.isEmpty()) {
+            loadStationIds(context, lineId, dirId);
+        }
         return out;
+    }
+
+    public static Map<String, Integer> loadStationIds(Context context, int lineId, int dirId) {
+        String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + lineId + ", directionID: " + dirId + "}");
+        if (httpData == null) {
+            return null;
+        }
+        try {
+            JSONObject json = new JSONObject(httpData);
+            JSONArray arr = json.getJSONArray("d");
+
+            if (arr.length() == 0) { //nextconnect is down, TODO: return a more specific error
+                return new HashMap<>();
+            }
+
+            Map<String, Integer> stopIds = new TreeMap<>();
+
+            for (int i = 0; i < arr.length(); i++) {
+                JSONObject stopObj = arr.getJSONObject(i);
+                String name = stopObj.getString("name");
+                int id = stopObj.getInt("id");
+                stopIds.put(name, id);
+            }
+            PersistentDataController.saveStationIds(context, lineId, dirId, stopIds);
+            return stopIds;
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static void saveStationIds(Context context, int lineId, int dirId, Map<String, Integer> stations) {

@@ -14,6 +14,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Created by jacob on 5/15/16.
@@ -468,7 +469,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public Map<String, Integer> getDirs(int lineId) {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        Map<String, Integer> outMap = new HashMap<>();
+        Map<String, Integer> outMap = new TreeMap<>();
 
         String selectQuery = "SELECT " + FIELD_DIR_ID + "," + FIELD_NAME + " FROM " + DIRS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
 
@@ -502,7 +503,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public Map<String, Integer> getStations(int lineId, int dirId) {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        Map<String, Integer> outMap = new HashMap<>();
+        Map<String, Integer> outMap = new TreeMap<>();
 
         String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + " FROM " + STATIONS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_DIR_ID + "=" + dirId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
 
