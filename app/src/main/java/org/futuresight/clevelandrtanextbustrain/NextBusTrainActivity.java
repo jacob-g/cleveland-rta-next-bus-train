@@ -467,7 +467,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
                 if (preSelectedStopId != -1) {
                     for (int i = 0; i < stops.length; i++) {
-                        if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || curSelection.equals(stopIds.get(adapter.getItem(i)))) {
+                        if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || curSelection.equals(adapter.getItem(i))) {
                             stationSpinner.setSelection(i);
                             break;
                         }
