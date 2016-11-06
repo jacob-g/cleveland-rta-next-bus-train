@@ -11,6 +11,11 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
+
 public class MainMenu extends AppCompatActivity {
     private class GetStopsTask extends AsyncTask<Void, Void, Void> {
         private ProgressDialog pDlg;
@@ -19,10 +24,31 @@ public class MainMenu extends AppCompatActivity {
             //pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
 
+        //pre-fetching of data
         protected Void doInBackground(Void... params) {
-            PersistentDataController.loadLines(MainMenu.this);
-            PersistentDataController.getMapMarkers(MainMenu.this);
-            //TODO: pre-fetch direction and stop data
+            PersistentDataController.loadLines(MainMenu.this); //pre-fetch line list
+            System.out.println("Fetched lines");
+
+            PersistentDataController.getMapMarkers(MainMenu.this); //pre-fetch the map markers
+            System.out.println("Fetched map information");
+
+            //pre-fetch the stops for the user's favorite locations
+            DatabaseHandler db = new DatabaseHandler(MainMenu.this);
+            List<Station> favoriteStations = db.getFavoriteLocations();
+            db.close();
+            Set<Integer> linesToFetch = new TreeSet<>();
+            for (Station st : favoriteStations) {
+                linesToFetch.add(st.getLineId());
+            }
+            for (int line : linesToFetch) {
+                Map<String, Integer> dirIdsForFavorite = PersistentDataController.getDirIds(MainMenu.this, line);
+                for (String key : dirIdsForFavorite.keySet()) {
+                    int dirId = dirIdsForFavorite.get(key);
+                    System.out.println("Line ID: " + line + ", Direction ID: " + dirId);
+                    PersistentDataController.loadStationIds(MainMenu.this, line, dirId);
+                }
+            }
+            System.out.println("Fetched stop ids for favorite lines");
             return null;
         }
 

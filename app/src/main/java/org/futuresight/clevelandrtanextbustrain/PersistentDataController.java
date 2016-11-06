@@ -284,7 +284,7 @@ public abstract class PersistentDataController {
             JSONObject json = new JSONObject(httpData);
             JSONArray arr = json.getJSONArray("d");
 
-            if (arr.length() == 0) { //next connect is down, TODO: return an error specific to that
+            if (arr.length() == 0) {
                 return new HashMap<>();
             }
 
@@ -328,7 +328,7 @@ public abstract class PersistentDataController {
             JSONObject json = new JSONObject(httpData);
             JSONArray arr = json.getJSONArray("d");
 
-            if (arr.length() == 0) { //nextconnect is down, TODO: return a more specific error
+            if (arr.length() == 0) {
                 return new HashMap<>();
             }
 
