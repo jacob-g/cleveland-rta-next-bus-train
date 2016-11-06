@@ -176,6 +176,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         protected void onPostExecute(LatLng pos) {
             try {
+                //TODO: on network failure, fail gracefully
                 DatabaseHandler db = new DatabaseHandler(myContext);
                 Station st;
                 if (pos == null) {
@@ -395,6 +396,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 int selectPos = -1;
                 if (dirs.isEmpty()) {
+                    if (result == null) {
+                        return;
+                    }
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
 
@@ -480,6 +484,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 }
 
                 if (stations.isEmpty()) {
+                    if (result == null) {
+                        return;
+                    }
                     JSONObject json = new JSONObject(result);
                     JSONArray arr = json.getJSONArray("d");
 
@@ -561,8 +568,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(String result) {
             //parse the result as JSON
             try {
-                if (!NetworkController.connected(myContext)) {
-                    alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
+                if (!NetworkController.connected(myContext) || result == null) {
                     return;
                 }
                 //it's d->stops->0->crossings, then an array with the stop information

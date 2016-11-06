@@ -59,8 +59,8 @@ public abstract class ServiceAlertsController {
                 }
                 urlString.deleteCharAt(urlString.length() - 1);
                 String result = NetworkController.basicHTTPRequest(urlString.toString());
-                if (!result.equals("") && !result.equals("Error")) {
-                    //get the service alert count
+                if (result != null && !result.equals("") && !result.equals("Error")) {
+                    //get the service alert count;
                     int count = 0;
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = dBuilder.parse(new InputSource(new StringReader(result)));

@@ -107,6 +107,10 @@ public abstract class PersistentDataController {
             //not cached
             try {
                 String result = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getRoutes", "");
+                if (result == null) {
+                    PersistentDataController.setLines(new String[0]);
+                    return;
+                }
                 JSONObject json = new JSONObject(result);
                 JSONArray arr = json.getJSONArray("d");
                 lineNames = new String[arr.length()];
@@ -142,12 +146,15 @@ public abstract class PersistentDataController {
     }
 
     private static void loadDestMappings(Context context) {
-        Map<String, Integer> mappings = new HashMap<>();
         DatabaseHandler db = new DatabaseHandler(context);
         if ((destMappings = db.getDestMappings()).isEmpty()) {
             //not cached
             try {
                 String rawXML = NetworkController.performPostCall("https://nexttrain.futuresight.org/api/getdestmappings", "");
+                if (rawXML == null) {
+                    destMappings = new HashMap<>();
+                    return;
+                }
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(new InputSource(new StringReader(rawXML)));
                 Node rootNode = doc.getDocumentElement();
@@ -309,6 +316,10 @@ public abstract class PersistentDataController {
             statuses = new ArrayList<>();
             String rawXML = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/escelstatus?version=1&stationid=" + stationId);
             try {
+                if (rawXML == null) {
+                    return new ArrayList<>();
+                }
+
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                 Document doc = dBuilder.parse(new InputSource(new StringReader(rawXML)));
                 Node rootNode = doc.getDocumentElement();
@@ -382,6 +393,9 @@ public abstract class PersistentDataController {
                 out = fromDb;
             } else {
                 String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
+                if (httpData == null) {
+                    return new ArrayList<>();
+                }
                 Map<Integer, String> directions = new HashMap<>();
 
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
