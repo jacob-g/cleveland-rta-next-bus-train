@@ -124,7 +124,7 @@ public abstract class NetworkController {
     public static LatLng getLocationForStation(int id) {
         LatLng out = null;
         try {
-            String data = basicHTTPRequest("https://nexttrain.futuresight.org/api/getstopinfo?version=1&id=" + id);
+            String data = basicHTTPRequest("https://nexttrain.futuresight.org/api/getstopinfo?version=" + PersistentDataController.API_VERSION + "&id=" + id);
             if (data.startsWith("<?xml")) {
                 Map<String, String> stopDataMap = new HashMap<>();
                 DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();

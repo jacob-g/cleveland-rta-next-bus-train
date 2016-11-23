@@ -48,7 +48,7 @@ public abstract class ServiceAlertsController {
                 }
             } else {
                 //not cached, so get them from the web
-                StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?version=1&");
+                StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?version=" + PersistentDataController.API_VERSION + "&");
                 for (String s : routes) {
                     urlString.append("routes[]=");
                     urlString.append(URLEncoder.encode(s, "UTF-8"));

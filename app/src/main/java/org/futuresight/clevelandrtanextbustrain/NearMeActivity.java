@@ -156,7 +156,7 @@ public class NearMeActivity extends FragmentActivity
                 if (!expired && fromDb != null) {
                     paths = fromDb;
                 } else {
-                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords");
+                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?version=" + PersistentDataController.API_VERSION);
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
                     Node rootNode = doc.getDocumentElement();

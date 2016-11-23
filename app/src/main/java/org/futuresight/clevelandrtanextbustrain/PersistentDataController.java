@@ -42,6 +42,7 @@ public abstract class PersistentDataController {
     public static final int escElExpiry = 60 * 60;
     public static final int favLocationExpiry = 60 * 60 * 24 * 14;
     public static final int noLocationRefreshPeriod = 60 * 60 * 12;
+    public static final int API_VERSION = 1;
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -151,7 +152,7 @@ public abstract class PersistentDataController {
         if ((destMappings = db.getDestMappings()).isEmpty()) {
             //not cached
             try {
-                String rawXML = NetworkController.performPostCall("https://nexttrain.futuresight.org/api/getdestmappings", "");
+                String rawXML = NetworkController.performPostCall("https://nexttrain.futuresight.org/api/getdestmappings?version=" + PersistentDataController.API_VERSION, "");
                 if (rawXML == null) {
                     destMappings = new HashMap<>();
                     return;
@@ -380,7 +381,7 @@ public abstract class PersistentDataController {
         if ((statuses = db.getEscElStatusesForStation(stationId)) != null) {
         } else {
             statuses = new ArrayList<>();
-            String rawXML = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/escelstatus?version=1&stationid=" + stationId);
+            String rawXML = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/escelstatus?version=" + PersistentDataController.API_VERSION + "&stationid=" + stationId);
             try {
                 if (rawXML == null) {
                     return new ArrayList<>();
@@ -458,7 +459,7 @@ public abstract class PersistentDataController {
             if (!expired && fromDb != null) {
                 out = fromDb;
             } else {
-                String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops");
+                String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops?version=" + PersistentDataController.API_VERSION);
                 if (httpData == null) {
                     return new ArrayList<>();
                 }
