@@ -100,6 +100,7 @@ public class NearMeActivity extends FragmentActivity
      * it inside the SupportMapFragment. This method will only be triggered once the user has
      * installed Google Play services and returned to the app.
      */
+
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -110,6 +111,7 @@ public class NearMeActivity extends FragmentActivity
             //Get the points and stops
             new GetStopsTask().execute();
             new GetPointsTask().execute();
+
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -461,10 +463,12 @@ public class NearMeActivity extends FragmentActivity
 
 
     //call this once we have permission to track the current user's location
+    boolean mapInitialized = false;
     private void initializeMap() {
         try {
             mMap.setMyLocationEnabled(true);
-            if (shouldFocusOnCleveland) {
+            if (shouldFocusOnCleveland && !mapInitialized) {
+                mapInitialized = true;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.4975, -81.6939), 10)); //focus on Cleveland
             }
         } catch (SecurityException e) {
