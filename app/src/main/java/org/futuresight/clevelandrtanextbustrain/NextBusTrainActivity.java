@@ -465,15 +465,17 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
 
-                System.out.println("Pre-selected stop ID: " + preSelectedStopId);
-                if (preSelectedStopId != -1) {
-                    for (int i = 0; i < stops.length; i++) { //if there was a stop previously selected then select it again (this is to avoid resetting the spinner when changing directions), but if there is a stop sent in to the activity that overrides the previously selected stop
-                        if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || (preSelectedStopId == -1 && curSelection.equals(adapter.getItem(i)))) {
-                            stationSpinner.setSelection(i);
-                            break;
-                        }
+                System.out.println("Preselected ID: " + preSelectedStopId);
+                System.out.println("Current selection: " + curSelection);
+                for (int i = 0; i < adapter.getCount(); i++) { //if there was a stop previously selected then select it again (this is to avoid resetting the spinner when changing directions), but if there is a stop sent in to the activity that overrides the previously selected stop
+                    if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || (preSelectedStopId == -1 && curSelection.equals(adapter.getItem(i)))) {
+                        System.out.println("Found a selection: " + i);
+                        stationSpinner.setSelection(i);
+                        preSelectedStopId = -1;
+                        break;
                     }
                 }
+
             } catch (Exception e) {
                 e.printStackTrace();
             }
