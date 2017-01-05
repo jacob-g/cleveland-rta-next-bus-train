@@ -46,6 +46,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_VALUE = "value";
 
     private static final String ALERTS_TABLE = "alerts";
+        private static final String FIELD_READ = "read";
         private static final String FIELD_TITLE = "title";
         private static final String FIELD_DESCRIPTION = "description";
         private static final String FIELD_URL = "url";
@@ -135,7 +136,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL(CREATE_STATIONS_TABLE);
 
         String CREATE_ALERTS_TABLE = "CREATE TABLE IF NOT EXISTS " + ALERTS_TABLE + "("
-                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + ID + " INTEGER PRIMARY KEY,"
+                + FIELD_READ + " INTEGER,"
                 + FIELD_LINE_ID + " INTEGER,"
                 + FIELD_TITLE + " TEXT,"
                 + FIELD_URL + " TEXT,"
@@ -540,20 +542,52 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
-    public void saveAlert(int lineId, String title, String url, String text) {
+    //save an alert, returns true if it's new and false if it's an update
+    public boolean saveAlert(int alertId, int lineId, String title, String url, String text) {
         SQLiteDatabase db = this.getWritableDatabase();
-        //insert the alert
-        ContentValues values = new ContentValues();
-        values.put(FIELD_LINE_ID, lineId);
-        values.put(FIELD_TITLE, title);
-        values.put(FIELD_URL, url);
-        values.put(FIELD_DESCRIPTION, text);
-        values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
-        db.insert(ALERTS_TABLE, null, values);
+        Cursor cursor = db.rawQuery("SELECT 1 FROM " + ALERTS_TABLE + " WHERE " + ID + "=" + alertId, null);
+        if (cursor.getCount() > 0) {
+            ContentValues values = new ContentValues();
+            values.put(FIELD_TITLE, title);
+            values.put(FIELD_DESCRIPTION, text);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            db.update(ALERTS_TABLE, values, ID + "=" + alertId, null);
+            return false;
+        } else {
+            //insert the alert
+            ContentValues values = new ContentValues();
+            values.put(ID, alertId);
+            values.put(FIELD_READ, 0);
+            values.put(FIELD_LINE_ID, lineId);
+            values.put(FIELD_TITLE, title);
+            values.put(FIELD_URL, url);
+            values.put(FIELD_DESCRIPTION, text);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            db.insert(ALERTS_TABLE, null, values);
 
-        //delete old ones
-        db.execSQL("DELETE FROM " + ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
-        db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+            //delete old ones
+            //db.execSQL("DELETE FROM " + ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+            db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+            db.close();
+            return true;
+        }
+    }
+
+    public void markAlertsAsRead(List<Integer> ids) {
+        //TODO: figure out why this isn't properly marking the alerts as read
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        StringBuilder whereClause = new StringBuilder(ID + " IN(");
+        for (int id : ids) {
+            whereClause.append(id + ",");
+        }
+        whereClause.deleteCharAt(whereClause.length() - 1);
+        whereClause.append(") AND " + FIELD_READ + "=0");
+
+        ContentValues values = new ContentValues();
+        values.put(FIELD_READ, 1);
+        db.update(ALERTS_TABLE, values, whereClause.toString(), null);
+
         db.close();
     }
 
@@ -582,16 +616,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         //otherwise get the results
         List<Map<String, String>> outList = new ArrayList<>();
 
-        selectQuery = "SELECT " + FIELD_URL + "," + FIELD_TITLE + "," + FIELD_DESCRIPTION + " FROM " + ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
+        selectQuery = "SELECT " + ID + "," + FIELD_URL + "," + FIELD_TITLE + "," + FIELD_DESCRIPTION + "," + FIELD_READ + " FROM " + ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
 
         Cursor cursor = db.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
             do {
                 Map<String, String> alertInfo = new HashMap<>();
-                alertInfo.put("url", cursor.getString(0));
-                alertInfo.put("title", cursor.getString(1));
-                alertInfo.put("info", cursor.getString(2));
+                alertInfo.put("id", Integer.toString(cursor.getInt(0)));
+                alertInfo.put("url", cursor.getString(1));
+                alertInfo.put("title", cursor.getString(2));
+                alertInfo.put("info", cursor.getString(3));
+                alertInfo.put("new", cursor.getInt(4) == 0 ? "true" : "false");
                 outList.add(alertInfo);
+                System.out.println(alertInfo);
             } while (cursor.moveToNext());
         }
         db.close();

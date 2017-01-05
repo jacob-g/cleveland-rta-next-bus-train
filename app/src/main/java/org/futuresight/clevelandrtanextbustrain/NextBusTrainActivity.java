@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.PorterDuff;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.content.res.ResourcesCompat;
@@ -195,6 +196,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
     //listener that runs when the "select favorite" button is clicked
     private Button.OnClickListener serviceAlertsClickedClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
+            Button myBtn = (Button) view;
+            myBtn.getBackground().clearColorFilter();
             Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
             intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
             intent.putExtra("routeId", PersistentDataController.getLineIdMap(view.getContext()).get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
@@ -587,23 +590,35 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //task to get the times of the bus/train
-    private class GetServiceAlertsTask extends AsyncTask<String, Void, Integer> {
+    private class GetServiceAlertsTask extends AsyncTask<String, Void, int[]> {
         private Context myContext;
         private String route;
         public GetServiceAlertsTask(Context context) {
             myContext = context;
         }
-        protected Integer doInBackground(String... params) {
+        protected int[] doInBackground(String... params) {
             int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             route = params[0]; //save the route for later in case we want to color the results
-            return ServiceAlertsController.getAlertsByLine(myContext, new String[]{route}, new int[]{routeId}).size();
+            int unread = 0; //0 if all alerts are unread, 1 if there are any new ones
+            List<Map<String, String>> alerts = ServiceAlertsController.getAlertsByLine(myContext, new String[]{route}, new int[]{routeId});
+            for (Map<String, String> alert : alerts) {
+                if (alert.containsKey("new") && alert.get("new").equals("true")) {
+                    unread = 1;
+                    break;
+                }
+            }
+            return new int[]{alerts.size(), unread};
         }
 
-        protected void onPostExecute(Integer alertCount) {
+        protected void onPostExecute(int[] params) {
+            int alertCount = params[0];
             Button serviceAlertsBtn = (Button) findViewById(R.id.serviceAlertsBtn);
             if (alertCount > 0) {
                 serviceAlertsBtn.setVisibility(View.VISIBLE);
                 serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
+                if (params[1] == 1) {
+                    serviceAlertsBtn.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
+                }
             } else {
                 serviceAlertsBtn.setVisibility(View.INVISIBLE);
             }

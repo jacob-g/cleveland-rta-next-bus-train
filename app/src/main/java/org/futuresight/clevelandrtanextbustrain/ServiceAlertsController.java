@@ -23,44 +23,42 @@ import javax.xml.parsers.DocumentBuilderFactory;
  * Created by jacob on 6/14/16.
  */
 public abstract class ServiceAlertsController {
+
     public static List<Map<String, String>> getAlertsByLine(Context context, String[] routes, int[] routeIds) {
         List<Map<String, String>> alertList = new ArrayList<>();
         try {
-            boolean alreadyCached = true;
-            List<Integer> needToCache = new ArrayList<>();
+            List<String> needToCache = new ArrayList<>();
+            List<Integer> cachedLineIds = new ArrayList<>();
+            Set<String> alreadyUsedUrls = new TreeSet<>();
             //see if each route is cached
             for (String s : routes) {
-                if (PersistentDataController.getAlerts(context, PersistentDataController.getLineIdMap(context).get(s)) == null) {
-                    alreadyCached = false;
-                    needToCache.add(PersistentDataController.getLineIdMap(context).get(s));
-                }
-            }
-            if (alreadyCached) {
-                //data is already cached
-                Set<String> alreadyUsedUrls = new TreeSet<>();
-                for (int id : routeIds) {
-                    List<Map<String, String>> tempAlertList = PersistentDataController.getAlerts(context, id);
-                    for (Map<String, String> curAlert : tempAlertList) {
-                        if (alreadyUsedUrls.add(curAlert.get("url"))) {
-                            alertList.add(curAlert);
+                List<Map<String, String>> lineAlerts = PersistentDataController.getAlerts(context, PersistentDataController.getLineIdMap(context).get(s));
+                if (lineAlerts == null) {
+                    needToCache.add(s); //mark the route if it needs to be downloaded anew
+                } else {
+                    for (Map<String, String> alert : lineAlerts) {
+                        if (alreadyUsedUrls.add(alert.get("url"))) {
+                            alertList.add(alert); //if the route is cached, just put the cached entry on the list
                         }
                     }
                 }
-            } else {
-                //not cached, so get them from the web
+            }
+            if (!needToCache.isEmpty()) {
+                //get data from the internet
                 StringBuilder urlString = new StringBuilder("https://nexttrain.futuresight.org/api/alerts?version=" + PersistentDataController.API_VERSION + "&");
-                for (String s : routes) {
+                for (String s : needToCache) {
                     urlString.append("routes[]=");
                     urlString.append(URLEncoder.encode(s, "UTF-8"));
                     urlString.append("&");
                     urlString.append("ids[]=");
                     urlString.append(URLEncoder.encode(Integer.toString(PersistentDataController.getLineIdMap(context).get(s)), "UTF-8"));
                     urlString.append("&");
+                    cachedLineIds.add(PersistentDataController.getLineIdMap(context).get(s));
                 }
                 urlString.deleteCharAt(urlString.length() - 1);
                 String result = NetworkController.basicHTTPRequest(urlString.toString());
                 if (result != null && !result.equals("") && !result.equals("Error")) {
-                    //get the service alert count;
+                    //get the service alert count
                     int count = 0;
                     DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                     Document doc = dBuilder.parse(new InputSource(new StringReader(result)));
@@ -90,18 +88,19 @@ public abstract class ServiceAlertsController {
                                         }
                                     }
                                 }
-                                alertList.add(nodeInfo);
+                                if (alreadyUsedUrls.add(nodeInfo.get("url"))) { //add the alert if it's not already there
+                                    alertList.add(nodeInfo);
+                                }
                                 //cache the alert for each line
                                 for (int route : routeIdsForThisAlert) {
-                                    if (needToCache.contains(route)) {
-                                        PersistentDataController.cacheAlert(context, route, nodeInfo.get("title"), nodeInfo.get("url"), nodeInfo.get("info"));
-                                    }
+                                    boolean unread = PersistentDataController.cacheAlert(context, Integer.parseInt(nodeInfo.get("id")), route, nodeInfo.get("title"), nodeInfo.get("url"), nodeInfo.get("info"));
+                                    nodeInfo.put("new", unread ? "true" : "false");
                                 }
                                 count++;
                             }
                         }
                     }
-                    PersistentDataController.markAsSavedForLineAlerts(context, needToCache);
+                    PersistentDataController.markAsSavedForLineAlerts(context, cachedLineIds);
                 } else {
                     //HTTP request failed or whatever
                 }
@@ -110,5 +109,11 @@ public abstract class ServiceAlertsController {
             e.printStackTrace();
         }
         return alertList;
+    }
+
+    public static void markAsRead(Context context, List<Integer> ids) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        db.markAlertsAsRead(ids);
+        db.close();
     }
 }

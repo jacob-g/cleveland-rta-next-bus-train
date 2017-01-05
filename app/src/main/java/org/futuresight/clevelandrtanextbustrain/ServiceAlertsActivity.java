@@ -18,6 +18,7 @@ import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -25,7 +26,6 @@ import java.util.Set;
 
 public class ServiceAlertsActivity extends AppCompatActivity {
     int selectedRouteId;
-
     private Spinner.OnItemSelectedListener lineSelectedListener = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
@@ -125,31 +125,48 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 routeIds[i] = Integer.parseInt(s[1]);
                 i++;
             }
-            return ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
+            List<Map<String, String>> out = ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
+            if (!out.isEmpty()) {
+                List<Integer> ids = new ArrayList<>();
+                for (Map<String, String> alert : out) {
+                    ids.add(Integer.parseInt(alert.get("id")));
+                }
+                ServiceAlertsController.markAsRead(myContext, ids);
+            }
+            return out;
         }
 
         protected void onPostExecute(List<Map<String, String>> alertList) {
             //put the data into the layout
             LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
             serviceAlertsLayout.removeAllViews();
-            for (Map<String, String> alertInfo : alertList) {
-                TextView titleView = new TextView(myContext);
-                titleView.setText(alertInfo.get("title"));
-                titleView.setTypeface(null, Typeface.BOLD);
-                titleView.setTextColor(Color.BLUE);
-                final String url = alertInfo.get("url");
-                titleView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-                        startActivity(browserIntent);
-                    }
-                });
-                serviceAlertsLayout.addView(titleView);
-                TextView contentView = new TextView(myContext);
-                contentView.setMaxLines(10);
-                contentView.setText(alertInfo.get("info").replace("!br!", System.getProperty("line.separator")));
-                serviceAlertsLayout.addView(contentView);
+            if (alertList.isEmpty()) {
+                //no alerts, so just show a brief alert
+                TextView noAlertsNotice = new TextView(myContext);
+                noAlertsNotice.setText("There are no alerts for the selected line at this time.");
+                serviceAlertsLayout.addView(noAlertsNotice);
+            } else {
+                //there are alerts, so display them
+                for (Map<String, String> alertInfo : alertList) {
+                    TextView titleView = new TextView(myContext);
+                    titleView.setText(alertInfo.get("title"));
+                    titleView.setTypeface(null, Typeface.BOLD);
+                    boolean unread = alertInfo.containsKey("new") && alertInfo.get("new").equals("true");
+                    titleView.setTextColor(unread ? Color.RED : Color.BLUE);
+                    final String url = alertInfo.get("url");
+                    titleView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent browserIntent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+                            startActivity(browserIntent);
+                        }
+                    });
+                    serviceAlertsLayout.addView(titleView);
+                    TextView contentView = new TextView(myContext);
+                    contentView.setMaxLines(10);
+                    contentView.setText(alertInfo.get("info").replace("!br!", System.getProperty("line.separator")));
+                    serviceAlertsLayout.addView(contentView);
+                }
             }
             myProgressDialog.dismiss();
         }
@@ -231,7 +248,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     i++;
                 }
                 ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).setOnItemSelectedListener(lineSelectedListener);
-                new GetServiceAlertsTask(myContext, createDialog()).execute(routeList);
+                //new GetServiceAlertsTask(myContext, createDialog()).execute(routeList);
             } catch (Exception e) {
                 e.printStackTrace();
             }

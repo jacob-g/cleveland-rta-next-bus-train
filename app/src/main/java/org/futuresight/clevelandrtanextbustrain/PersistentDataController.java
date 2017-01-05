@@ -363,10 +363,11 @@ public abstract class PersistentDataController {
         return out;
     }
 
-    public static void cacheAlert(Context context, int lineId, String title, String url, String text) {
+    public static boolean cacheAlert(Context context, int alertId, int lineId, String title, String url, String text) {
         DatabaseHandler db = new DatabaseHandler(context);
-        db.saveAlert(lineId, title, url, text);
+        boolean out = db.saveAlert(alertId, lineId, title, url, text);
         db.close();
+        return out;
     }
 
     public static void markAsSavedForLineAlerts(Context context, List<Integer> lineIds) {
