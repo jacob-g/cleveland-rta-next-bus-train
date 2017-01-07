@@ -102,7 +102,7 @@ public class MainMenu extends AppCompatActivity {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
         new GetStopsTask().execute();
-        new GetMarkersTask().execute();
+        new GetMarkersTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     @Override

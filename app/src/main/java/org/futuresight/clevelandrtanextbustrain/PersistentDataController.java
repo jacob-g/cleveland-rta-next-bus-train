@@ -446,8 +446,12 @@ public abstract class PersistentDataController {
         return R * c;
     }
 
+    public static boolean attemptedMapMarkers = false;
+    public static boolean haveMapMarkers = true;
     public static List<Station> getMapMarkers(Context context) {
         try {
+            while (attemptedMapMarkers && !haveMapMarkers); //don't run this task two times at once
+            attemptedMapMarkers = true;
             List<Station> out = new ArrayList<>();
             String cfgValue = PersistentDataController.getConfig(context, DatabaseHandler.CONFIG_LAST_SAVED_ALL_STOPS);
             boolean expired = false;
@@ -517,8 +521,10 @@ public abstract class PersistentDataController {
                 db.cacheAllStops(out);
             }
             db.close();
+            haveMapMarkers = true;
             return out;
         } catch (Exception e) {
+            attemptedMapMarkers = false;
             e.printStackTrace();
         }
 
