@@ -230,7 +230,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     private Button.OnClickListener addToHomeScreenButtonClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View v) {
             //TODO: make the button show full or empty depending on whether it's already added or not
-            //TODO: custom icons
+            //TODO: allow choosing between the bus, rail, and star icons
             //TODO: custom names
             final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
@@ -249,7 +249,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             Intent addIntent = new Intent();
             addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
             addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, stationName);
-            addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), R.mipmap.ic_launcher));
+            addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), R.mipmap.ic_favorite_pin_icon));
             addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
             getApplicationContext().sendBroadcast(addIntent);
         }
