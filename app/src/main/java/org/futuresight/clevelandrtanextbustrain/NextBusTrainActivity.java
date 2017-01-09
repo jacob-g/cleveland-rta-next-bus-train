@@ -227,6 +227,34 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
+    private Button.OnClickListener addToHomeScreenButtonClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View v) {
+            //TODO: make the button show full or empty depending on whether it's already added or not
+            //TODO: custom icons
+            //TODO: custom names
+            final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+            final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+            final int stationId = stopIds.get(stationName);
+            final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
+            final int dirId = dirIds.get(dirName);
+
+            Intent shortcutIntent = new Intent(getApplicationContext(), NextBusTrainActivity.class);
+            shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+            shortcutIntent.putExtra("stopId",stationId);
+            shortcutIntent.putExtra("lineId",lineId);
+            shortcutIntent.putExtra("dirId",dirId);
+
+            Intent addIntent = new Intent();
+            addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
+            addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, stationName);
+            addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), R.mipmap.ic_launcher));
+            addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+            getApplicationContext().sendBroadcast(addIntent);
+        }
+    };
+
     //listener that runs when a direction is selected (loads the appropriate stops)
     private Spinner.OnItemSelectedListener dirSelectedListener = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
@@ -294,6 +322,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         serviceAlertsBtn.setOnClickListener(serviceAlertsClickedClickedListener);
         ImageButton viewOnMapBtn = (ImageButton)findViewById(R.id.viewOnMapBtn);
         viewOnMapBtn.setOnClickListener(viewOnMapClickedListener);
+        ImageButton addToHomeScreenButton = (ImageButton)findViewById(R.id.addToHomeScreenButton);
+        addToHomeScreenButton.setOnClickListener(addToHomeScreenButtonClickedListener);
 
         if (!NetworkController.connected(this)) {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
