@@ -19,6 +19,8 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Spinner;
 import android.widget.TextView;
 
@@ -229,9 +231,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private Button.OnClickListener addToHomeScreenButtonClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View v) {
-            //TODO: make the button show full or empty depending on whether it's already added or not
-            //TODO: allow choosing between the bus, rail, and star icons
-            //TODO: custom names
             final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
             final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
@@ -239,19 +238,80 @@ public class NextBusTrainActivity extends AppCompatActivity {
             final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
             final int dirId = dirIds.get(dirName);
 
-            Intent shortcutIntent = new Intent(getApplicationContext(), NextBusTrainActivity.class);
-            shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-            shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-            shortcutIntent.putExtra("stopId",stationId);
-            shortcutIntent.putExtra("lineId",lineId);
-            shortcutIntent.putExtra("dirId",dirId);
+            //use a dialog box to ask the user for the name of the station
+            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(NextBusTrainActivity.this);
+            inputAlert.setTitle("Add home screen icon");
+            inputAlert.setMessage("What text do you want to appear on the homescreen for this shortcut?");
 
-            Intent addIntent = new Intent();
-            addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
-            addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, stationName);
-            addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), R.mipmap.ic_favorite_pin_icon));
-            addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
-            getApplicationContext().sendBroadcast(addIntent);
+            final LinearLayout optionLayout = new LinearLayout(NextBusTrainActivity.this);
+            optionLayout.setOrientation(LinearLayout.VERTICAL);
+
+            final RadioGroup iconButtons = new RadioGroup(NextBusTrainActivity.this);
+            final RadioButton favPinButton = new RadioButton(NextBusTrainActivity.this);
+            favPinButton.setText("Favorite pin");
+            iconButtons.addView(favPinButton);
+            favPinButton.setChecked(true);
+            final RadioButton railPinButton = new RadioButton(NextBusTrainActivity.this);
+            railPinButton.setText("Rail pin");
+            iconButtons.addView(railPinButton);
+            final RadioButton busPinButton = new RadioButton(NextBusTrainActivity.this);
+            busPinButton.setText("Bus pin");
+            iconButtons.addView(busPinButton);
+            optionLayout.addView(iconButtons);
+
+            //create the text box and automatically populate it with the current station name
+            final EditText userInput = new EditText(NextBusTrainActivity.this);
+            userInput.setText(stationName);
+            optionLayout.addView(userInput);
+            inputAlert.setView(optionLayout);
+
+            inputAlert.setPositiveButton(R.string.save, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    try {
+                        int radioButtonId = iconButtons.indexOfChild(iconButtons.findViewById(iconButtons.getCheckedRadioButtonId()));
+                        //IDs: 0 - favorite, 1 - rail, 2 - bus
+                        int iconId;
+                        switch (radioButtonId) {
+                            case 1:
+                                iconId = R.mipmap.ic_rail_pin_icon;
+                                break;
+                            case 2:
+                                iconId = R.mipmap.ic_bus_pin_icon;
+                                break;
+                            case 0:
+                            default:
+                                iconId = R.mipmap.ic_favorite_pin_icon;
+                                break;
+                        }
+
+                        Intent shortcutIntent = new Intent(getApplicationContext(), NextBusTrainActivity.class);
+                        shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                        shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        shortcutIntent.putExtra("stopId",stationId);
+                        shortcutIntent.putExtra("lineId",lineId);
+                        shortcutIntent.putExtra("dirId",dirId);
+
+                        Intent addIntent = new Intent();
+                        addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
+                        addIntent.putExtra(Intent.EXTRA_SHORTCUT_NAME, userInput.getText().toString());
+                        addIntent.putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, Intent.ShortcutIconResource.fromContext(getApplicationContext(), iconId));
+                        addIntent.setAction("com.android.launcher.action.INSTALL_SHORTCUT");
+                        getApplicationContext().sendBroadcast(addIntent);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+            inputAlert.setNegativeButton(R.string.cancel, new DialogInterface.OnClickListener() {
+                @Override
+                public void onClick(DialogInterface dialog, int which) {
+                    dialog.dismiss();
+                }
+            });
+            AlertDialog alertDialog = inputAlert.create();
+            alertDialog.setCancelable(false);
+            alertDialog.show();
         }
     };
 
@@ -288,6 +348,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+
+                //TODO: change the color of the homescreen button as appropriate
 
                 new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
                 new GetEscalatorElevatorStatus(view.getContext()).execute(stopIds.get(selectedStopStr));
