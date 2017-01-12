@@ -240,22 +240,22 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
             //use a dialog box to ask the user for the name of the station
             final AlertDialog.Builder inputAlert = new AlertDialog.Builder(NextBusTrainActivity.this);
-            inputAlert.setTitle("Add home screen icon");
-            inputAlert.setMessage("What text do you want to appear on the homescreen for this shortcut?");
+            inputAlert.setTitle(getResources().getString(R.string.add_home_screen_icon));
+            inputAlert.setMessage(getResources().getString(R.string.shortcut_text_prompt));
 
             final LinearLayout optionLayout = new LinearLayout(NextBusTrainActivity.this);
             optionLayout.setOrientation(LinearLayout.VERTICAL);
 
             final RadioGroup iconButtons = new RadioGroup(NextBusTrainActivity.this);
             final RadioButton favPinButton = new RadioButton(NextBusTrainActivity.this);
-            favPinButton.setText("Favorite pin");
+            favPinButton.setText(getResources().getString(R.string.favorite_pin));
             iconButtons.addView(favPinButton);
             favPinButton.setChecked(true);
             final RadioButton railPinButton = new RadioButton(NextBusTrainActivity.this);
-            railPinButton.setText("Rail pin");
+            railPinButton.setText(getResources().getString(R.string.rail_pin));
             iconButtons.addView(railPinButton);
             final RadioButton busPinButton = new RadioButton(NextBusTrainActivity.this);
-            busPinButton.setText("Bus pin");
+            busPinButton.setText(getResources().getString(R.string.bus_pin));
             iconButtons.addView(busPinButton);
             optionLayout.addView(iconButtons);
 

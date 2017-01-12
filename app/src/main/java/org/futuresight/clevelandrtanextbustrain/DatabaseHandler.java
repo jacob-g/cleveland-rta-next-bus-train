@@ -567,14 +567,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
             //delete old ones
             //db.execSQL("DELETE FROM " + ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
-            db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+            db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             db.close();
             return true;
         }
     }
 
     public void markAlertsAsRead(List<Integer> ids) {
-        //TODO: figure out why this isn't properly marking the alerts as read
         SQLiteDatabase db = this.getWritableDatabase();
 
         StringBuilder whereClause = new StringBuilder(ID + " IN(");
