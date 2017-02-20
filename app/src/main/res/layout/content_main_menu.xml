@@ -72,14 +72,6 @@
             android:id="@+id/creditsBtn"
             android:onClick="openCredits" />
 
-        <ImageView
-            android:layout_width="161dp"
-            android:layout_height="wrap_content"
-            android:id="@+id/warningIconImageView"
-            android:src="@android:drawable/ic_lock_lock"
-            android:layout_weight="0.42"
-            android:layout_gravity="center_horizontal" />
-
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
