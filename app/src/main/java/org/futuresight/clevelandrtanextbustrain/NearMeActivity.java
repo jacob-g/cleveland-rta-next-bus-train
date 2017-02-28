@@ -273,6 +273,7 @@ public class NearMeActivity extends FragmentActivity
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, 17));
+                hasLocation = true;
             }
             onCameraChange(mMap.getCameraPosition());
         }
@@ -314,10 +315,13 @@ public class NearMeActivity extends FragmentActivity
                         for (Station st: markerSectors.get(pos)) {
                             Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
                             if (st.getStationId() == focusStationId) {
-                                m.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon than the current target icon
-                                m.setAnchor(0.5f, 0.5f); //center the icon
-                                m.setZIndex(3);
-                            } else if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                                Marker m2 = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add));
+                                m2.setAnchor(0.5f, 0.5f); //center the icon
+                                m2.setZIndex(0);
+                            }
+
+                            if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
                                 m.setIcon(favoritePin);
                                 m.setZIndex(2);
                             } else if (st.getType() == railType) {
