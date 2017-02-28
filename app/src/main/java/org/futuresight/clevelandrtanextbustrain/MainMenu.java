@@ -67,7 +67,7 @@ public class MainMenu extends AppCompatActivity {
         }
 
         protected Void doInBackground(Void... params) {
-            PersistentDataController.getMapMarkers(MainMenu.this); //pre-fetch the map markers
+            PersistentDataController.getMapMarkers(MainMenu.this, null); //pre-fetch the map markers
 
             return null;
         }

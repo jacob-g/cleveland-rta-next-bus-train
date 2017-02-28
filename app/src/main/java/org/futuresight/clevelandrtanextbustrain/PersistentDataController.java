@@ -1,5 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
+import android.app.ProgressDialog;
 import android.content.Context;
 
 import com.google.android.gms.maps.model.LatLng;
@@ -277,7 +278,6 @@ public abstract class PersistentDataController {
     }
 
     public static Map<String, Integer> loadDirIds(Context context, int lineId) {
-        System.out.println("Loading directions from network");
         String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + lineId + "}");
         try {
             if (httpData == null) {
@@ -322,7 +322,6 @@ public abstract class PersistentDataController {
     }
 
     public static Map<String, Integer> loadStationIds(Context context, int lineId, int dirId) {
-        System.out.println("Getting stations from network");
         String httpData = NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStops", "{routeID: " + lineId + ", directionID: " + dirId + "}");
         if (httpData == null) {
             return null;
@@ -448,7 +447,7 @@ public abstract class PersistentDataController {
 
     public static boolean attemptedMapMarkers = false;
     public static boolean haveMapMarkers = true;
-    public static List<Station> getMapMarkers(Context context) {
+    public static List<Station> getMapMarkers(Context context, ProgressDialog pDlg) {
         try {
             while (attemptedMapMarkers && !haveMapMarkers); //don't run this task two times at once
             attemptedMapMarkers = true;
@@ -464,58 +463,72 @@ public abstract class PersistentDataController {
             if (!expired && fromDb != null) {
                 out = fromDb;
             } else {
-                String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops?version=" + PersistentDataController.API_VERSION);
-                if (httpData == null) {
-                    return new ArrayList<>();
-                }
-                Map<Integer, String> directions = new HashMap<>();
+                int page = 0;
+                boolean morePages = true;
+                while (morePages) {
+                    page++;
+                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/getallstops?page=" + page + "&version=" + PersistentDataController.API_VERSION);
+                    if (httpData == null) {
+                        return new ArrayList<>();
+                    }
+                    Map<Integer, String> directions = new HashMap<>();
 
-                DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
-                Node rootNode = doc.getDocumentElement();
+                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                    Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
+                    Node rootNode = doc.getDocumentElement();
 
-                if (doc.hasChildNodes()) {
-                    NodeList nl = rootNode.getChildNodes();
-                    for (int i = 0; i < nl.getLength(); i++) {
-                        Node curNode = nl.item(i); //either <ds> or <ls>
-                        switch (curNode.getNodeName()) {
-                            case "ds":
-                                NodeList dirNodes = curNode.getChildNodes();
-                                for (int j = 0; j < dirNodes.getLength(); j++) {
-                                    Node dirNode = dirNodes.item(j);
-                                    if (dirNode.getNodeName().equals("d")) {
-                                        int id = Integer.parseInt(dirNode.getAttributes().getNamedItem("i").getTextContent());
-                                        String name = dirNode.getAttributes().getNamedItem("n").getTextContent();
-                                        directions.put(id, name);
+                    NodeList nl;
+                    if (doc.hasChildNodes() && (nl = rootNode.getChildNodes()).getLength() > 1) {
+                        for (int i = 0; i < nl.getLength(); i++) {
+                            Node curNode = nl.item(i); //either <ds> or <ls>
+                            switch (curNode.getNodeName()) {
+                                case "pages":
+                                    if (pDlg != null) {
+                                        int numPages = Integer.parseInt(curNode.getTextContent());
+                                        pDlg.setProgress((int) ((double) page * 100 / numPages));
                                     }
-                                }
-                                break;
-                            case "ls":
-                                NodeList lineNodes = curNode.getChildNodes();
-                                for (int j = 0; j < lineNodes.getLength(); j++) {
-                                    Node lineNode = lineNodes.item(j);
-                                    if (lineNode.getNodeName().equals("l")) {
-                                        int lineId = Integer.parseInt(lineNode.getAttributes().getNamedItem("i").getTextContent());
-                                        String lineName = lineNode.getAttributes().getNamedItem("n").getTextContent();
-                                        int dirId = Integer.parseInt(lineNode.getAttributes().getNamedItem("d").getTextContent());
-                                        char lineType = lineNode.getAttributes().getNamedItem("t").getTextContent().charAt(0); //"b" is bus, "r" is rail
-                                        NodeList stopNodes = lineNode.getChildNodes();
-                                        for (int k = 0; k < stopNodes.getLength(); k++) {
-                                            Node stopNode = stopNodes.item(k);
-                                            if (stopNode.getNodeName().equals("s")) {
-                                                int id = Integer.parseInt(stopNode.getAttributes().getNamedItem("i").getTextContent());
-                                                String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
-                                                double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
-                                                double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
 
-                                                Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType);
-                                                out.add(st);
+                                    break;
+                                case "ds":
+                                    NodeList dirNodes = curNode.getChildNodes();
+                                    for (int j = 0; j < dirNodes.getLength(); j++) {
+                                        Node dirNode = dirNodes.item(j);
+                                        if (dirNode.getNodeName().equals("d")) {
+                                            int id = Integer.parseInt(dirNode.getAttributes().getNamedItem("i").getTextContent());
+                                            String name = dirNode.getAttributes().getNamedItem("n").getTextContent();
+                                            directions.put(id, name);
+                                        }
+                                    }
+                                    break;
+                                case "ls":
+                                    NodeList lineNodes = curNode.getChildNodes();
+                                    for (int j = 0; j < lineNodes.getLength(); j++) {
+                                        Node lineNode = lineNodes.item(j);
+                                        if (lineNode.getNodeName().equals("l")) {
+                                            int lineId = Integer.parseInt(lineNode.getAttributes().getNamedItem("i").getTextContent());
+                                            String lineName = lineNode.getAttributes().getNamedItem("n").getTextContent();
+                                            int dirId = Integer.parseInt(lineNode.getAttributes().getNamedItem("d").getTextContent());
+                                            char lineType = lineNode.getAttributes().getNamedItem("t").getTextContent().charAt(0); //"b" is bus, "r" is rail
+                                            NodeList stopNodes = lineNode.getChildNodes();
+                                            for (int k = 0; k < stopNodes.getLength(); k++) {
+                                                Node stopNode = stopNodes.item(k);
+                                                if (stopNode.getNodeName().equals("s")) {
+                                                    int id = Integer.parseInt(stopNode.getAttributes().getNamedItem("i").getTextContent());
+                                                    String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
+                                                    double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
+                                                    double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
+
+                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType);
+                                                    out.add(st);
+                                                }
                                             }
                                         }
                                     }
-                                }
-                                break;
+                                    break;
+                            }
                         }
+                    } else {
+                        morePages = false;
                     }
                 }
                 db.cacheAllStops(out);

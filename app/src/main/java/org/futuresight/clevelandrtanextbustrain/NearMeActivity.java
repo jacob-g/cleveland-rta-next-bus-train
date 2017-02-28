@@ -111,7 +111,6 @@ public class NearMeActivity extends FragmentActivity
             //Get the points and stops
             new GetStopsTask().execute();
             new GetPointsTask().execute();
-
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -124,6 +123,7 @@ public class NearMeActivity extends FragmentActivity
         dlg.setTitle(title);
         dlg.setMessage(message);
         dlg.setCancelable(false);
+        dlg.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
         dlg.show();
         return dlg;
     }
@@ -140,7 +140,7 @@ public class NearMeActivity extends FragmentActivity
         private ProgressDialog pDlg;
 
         public GetPointsTask() {
-            pDlg = createDialog(getResources().getString(R.string.loading_lines), getResources().getString(R.string.take_a_while));
+            //pDlg = createDialog(getResources().getString(R.string.loading_lines), getResources().getString(R.string.take_a_while));
         }
         protected List<ColoredPointList> doInBackground(Void... params) {
             String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
@@ -198,7 +198,7 @@ public class NearMeActivity extends FragmentActivity
                 polyLineOptions.color(path.color);
                 mMap.addPolyline(polyLineOptions);
             }
-            pDlg.dismiss();
+            //pDlg.dismiss();
         }
     }
 
@@ -227,7 +227,7 @@ public class NearMeActivity extends FragmentActivity
             pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
         protected List<Station> doInBackground(Void... params) {
-            return PersistentDataController.getMapMarkers(NearMeActivity.this);
+            return PersistentDataController.getMapMarkers(NearMeActivity.this, pDlg);
         }
 
         protected void onPostExecute(List<Station> stops) {
@@ -249,7 +249,6 @@ public class NearMeActivity extends FragmentActivity
             if (getIntent().hasExtra("stationId")) { //if a station id is sent in, focus on that station
                 stationId = getIntent().getExtras().getInt("stationId");
             }
-            long startTime = System.currentTimeMillis();
             LatLng autoFocusPosition = null;
             markers = new HashMap<>(stops.size(), 0.5f);
             int size = stops.size();
@@ -270,8 +269,6 @@ public class NearMeActivity extends FragmentActivity
             boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             alreadyVisible = shouldBeVisible;
             pDlg.dismiss();
-            long endTime = System.currentTimeMillis();
-            System.out.println("Execution time: " + (endTime - startTime) + "ms");
 
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;

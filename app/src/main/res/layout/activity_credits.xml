@@ -36,5 +36,6 @@
             android:layout_height="wrap_content"
             android:id="@+id/textView23"
             tools:text="@string/imageCredits" />
+
     </LinearLayout>
 </RelativeLayout>

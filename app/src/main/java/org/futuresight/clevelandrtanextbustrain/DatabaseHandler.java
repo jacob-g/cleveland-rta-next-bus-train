@@ -565,8 +565,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
             db.insert(ALERTS_TABLE, null, values);
 
-            //delete old ones
-            //db.execSQL("DELETE FROM " + ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime());
+            //delete old alerts, start with the alert entry linking the line with the alert
             db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             db.close();
             return true;
