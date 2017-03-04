@@ -1,7 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -11,6 +10,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.widget.ProgressBar;
+import android.widget.TableLayout;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -109,23 +110,13 @@ public class NearMeActivity extends FragmentActivity
             mMap.setOnCameraChangeListener(this);
 
             //Get the points and stops
-            new GetStopsTask().execute();
-            new GetPointsTask().execute();
+            new GetStopsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+            new GetPointsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         } catch (Exception e) {
             e.printStackTrace();
         }
 
 
-    }
-
-    private ProgressDialog createDialog(String title, String message) {
-        ProgressDialog dlg = new ProgressDialog(NearMeActivity.this);
-        dlg.setTitle(title);
-        dlg.setMessage(message);
-        dlg.setCancelable(false);
-        dlg.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
-        dlg.show();
-        return dlg;
     }
 
     public static class ColoredPointList {
@@ -136,12 +127,10 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    private class GetPointsTask extends AsyncTask<Void, Void, List<NearMeActivity.ColoredPointList>> {
-        private ProgressDialog pDlg;
-
+    private class GetPointsTask extends AsyncTask<Void, Integer, List<NearMeActivity.ColoredPointList>> {
         public GetPointsTask() {
-            //pDlg = createDialog(getResources().getString(R.string.loading_lines), getResources().getString(R.string.take_a_while));
         }
+
         protected List<ColoredPointList> doInBackground(Void... params) {
             String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
             boolean expired = false;
@@ -156,28 +145,38 @@ public class NearMeActivity extends FragmentActivity
                 if (!expired && fromDb != null) {
                     paths = fromDb;
                 } else {
-                    String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?version=" + PersistentDataController.API_VERSION);
-                    DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
-                    Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
-                    Node rootNode = doc.getDocumentElement();
+                    boolean more = true;
+                    int page = 0;
+                    while (more) {
+                        page++;
+                        String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?page=" + page + "&version=" + PersistentDataController.API_VERSION);
+                        DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+                        Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
+                        Node rootNode = doc.getDocumentElement();
 
-                    if (doc.hasChildNodes()) {
-                        NodeList nl = rootNode.getChildNodes();
-                        for (int i = 0; i < nl.getLength(); i++) {
-                            Node pathNode = nl.item(i);
-                            if (pathNode.getNodeName().equals("p")) {
-                                int color = Color.rgb(Integer.parseInt(pathNode.getAttributes().getNamedItem("r").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("g").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("b").getTextContent()));
-                                ColoredPointList path = new ColoredPointList(color);
-                                NodeList pointNodeList = pathNode.getChildNodes();
-                                for (int j = 0; j < pointNodeList.getLength(); j++) {
-                                    Node pointNode = pointNodeList.item(j);
-                                    if (pointNode.getNodeName().equals("n")) {
-                                        double lat = Double.parseDouble(pointNode.getAttributes().getNamedItem("lt").getTextContent());
-                                        double lng = Double.parseDouble(pointNode.getAttributes().getNamedItem("ln").getTextContent());
-                                        path.points.add(new LatLng(lat, lng));
+                        more = false;
+                        if (doc.hasChildNodes()) {
+                            NodeList nl = rootNode.getChildNodes();
+                            for (int i = 0; i < nl.getLength(); i++) {
+                                Node pathNode = nl.item(i);
+                                if (pathNode.getNodeName().equals("p")) {
+                                    more = true;
+                                    int color = Color.rgb(Integer.parseInt(pathNode.getAttributes().getNamedItem("r").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("g").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("b").getTextContent()));
+                                    ColoredPointList path = new ColoredPointList(color);
+                                    NodeList pointNodeList = pathNode.getChildNodes();
+                                    for (int j = 0; j < pointNodeList.getLength(); j++) {
+                                        Node pointNode = pointNodeList.item(j);
+                                        if (pointNode.getNodeName().equals("n")) {
+                                            double lat = Double.parseDouble(pointNode.getAttributes().getNamedItem("lt").getTextContent());
+                                            double lng = Double.parseDouble(pointNode.getAttributes().getNamedItem("ln").getTextContent());
+                                            path.points.add(new LatLng(lat, lng));
+                                        }
                                     }
+                                    paths.add(path);
+                                } else if (pathNode.getNodeName().equals("pages")) {
+                                    int numPages = Integer.parseInt(pathNode.getTextContent());
+                                    publishProgress((int)((double) page * 100 / numPages));
                                 }
-                                paths.add(path);
                             }
                         }
                     }
@@ -190,6 +189,10 @@ public class NearMeActivity extends FragmentActivity
             return paths;
         }
 
+        protected void onProgressUpdate(Integer... progress) {
+            ((ProgressBar)findViewById(R.id.loadingLinesBar)).setProgress(progress[0]);
+        }
+
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
             for (ColoredPointList path : paths) {
                 PolylineOptions polyLineOptions = new PolylineOptions();
@@ -198,7 +201,7 @@ public class NearMeActivity extends FragmentActivity
                 polyLineOptions.color(path.color);
                 mMap.addPolyline(polyLineOptions);
             }
-            //pDlg.dismiss();
+            ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
         }
     }
 
@@ -221,13 +224,11 @@ public class NearMeActivity extends FragmentActivity
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
-        private ProgressDialog pDlg;
 
         public GetStopsTask() {
-            pDlg = createDialog(getResources().getString(R.string.loading_stops), getResources().getString(R.string.take_a_while));
         }
         protected List<Station> doInBackground(Void... params) {
-            return PersistentDataController.getMapMarkers(NearMeActivity.this, pDlg);
+            return PersistentDataController.getMapMarkers(NearMeActivity.this, (ProgressBar)findViewById(R.id.loadingStopsBar));
         }
 
         protected void onPostExecute(List<Station> stops) {
@@ -268,7 +269,6 @@ public class NearMeActivity extends FragmentActivity
             }
             boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
             alreadyVisible = shouldBeVisible;
-            pDlg.dismiss();
 
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;
@@ -276,6 +276,8 @@ public class NearMeActivity extends FragmentActivity
                 hasLocation = true;
             }
             onCameraChange(mMap.getCameraPosition());
+
+            ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
         }
     }
 

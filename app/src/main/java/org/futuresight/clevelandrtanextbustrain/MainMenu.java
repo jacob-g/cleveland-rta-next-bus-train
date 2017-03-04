@@ -59,7 +59,7 @@ public class MainMenu extends AppCompatActivity {
         }
     }
 
-    private class GetMarkersTask extends AsyncTask<Void, Void, Void> { //TODO: make this run completely independently of everything else to avoid interference
+    private class GetMarkersTask extends AsyncTask<Void, Void, Void> {
         private ProgressDialog pDlg;
 
         public GetMarkersTask() {

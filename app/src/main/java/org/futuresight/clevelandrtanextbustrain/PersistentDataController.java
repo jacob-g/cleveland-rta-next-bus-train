@@ -1,7 +1,7 @@
 package org.futuresight.clevelandrtanextbustrain;
 
-import android.app.ProgressDialog;
 import android.content.Context;
+import android.widget.ProgressBar;
 
 import com.google.android.gms.maps.model.LatLng;
 
@@ -447,7 +447,7 @@ public abstract class PersistentDataController {
 
     public static boolean attemptedMapMarkers = false;
     public static boolean haveMapMarkers = true;
-    public static List<Station> getMapMarkers(Context context, ProgressDialog pDlg) {
+    public static List<Station> getMapMarkers(Context context, ProgressBar pDlg) {
         try {
             while (attemptedMapMarkers && !haveMapMarkers); //don't run this task two times at once
             attemptedMapMarkers = true;
