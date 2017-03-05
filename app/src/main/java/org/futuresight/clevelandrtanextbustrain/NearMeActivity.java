@@ -10,8 +10,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.view.View;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
+import android.widget.TableRow;
+import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -45,6 +48,7 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -202,10 +206,11 @@ public class NearMeActivity extends FragmentActivity
                 mMap.addPolyline(polyLineOptions);
             }
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
+            loadedLines = true;
         }
     }
 
-    private class NumberPair {
+    private class NumberPair implements Comparable<NumberPair> {
         public final int first, second;
         public NumberPair(int first, int second) {
             this.first = first;
@@ -215,6 +220,18 @@ public class NearMeActivity extends FragmentActivity
         public boolean equals(NumberPair other) {
             return this.first == other.first && this.second == other.second;
         }
+
+        public String toString() {
+            return "[" + first + "," + second + "]";
+        }
+
+        public int compareTo(NumberPair other) {
+            int out = this.first - other.first;
+            if (out == 0) {
+                out = this.second - other.second;
+            }
+            return out;
+        }
     }
 
     final double sectorSize = 0.005;
@@ -223,6 +240,10 @@ public class NearMeActivity extends FragmentActivity
     Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
+    List<Station> stationList = new ArrayList();
+
+    private boolean loadedStops = false;
+    private boolean loadedLines = false;
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -252,6 +273,7 @@ public class NearMeActivity extends FragmentActivity
             }
             LatLng autoFocusPosition = null;
             markers = new HashMap<>(stops.size(), 0.5f);
+            stationList = new ArrayList<>(stops.size());
             int size = stops.size();
             for (int i = 0; i < size; i++) {
                 Station st = stops.get(i);
@@ -262,6 +284,7 @@ public class NearMeActivity extends FragmentActivity
                     markerSectors.put(sectorKey, new ArrayList<Station>());
                 }
                 markerSectors.get(sectorKey).add(st);
+                stationList.add(st);
                 if (st.getStationId() == stationId) {
                     autoFocusPosition = st.getLatLng();
                     focusStationId = stationId;
@@ -278,6 +301,87 @@ public class NearMeActivity extends FragmentActivity
             onCameraChange(mMap.getCameraPosition());
 
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
+            loadedStops = true;
+        }
+    }
+
+    final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
+    final int STATION_LIST_LIMIT = 8;
+    private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, List<Object[]>> {
+        public GetStopsNearMeTask() {
+        }
+        protected List<Object[]> doInBackground(LatLng... params) {
+            Queue<ObjectByDistance<Station>> closeStations = new PriorityQueue<>();
+
+            for (Station st : stationList) {
+                double d = PersistentDataController.distance(params[0], st.getLatLng());
+                if (d < MAX_STATION_BOTTOM_DISPLAY_DISTANCE) {
+                    int priority;
+                    if (favIds.contains(st.getStationId())) { //prioritize favorites
+                        priority = 2;
+                    } else if (st.getType() == 'r') { //prioritize rail over bus
+                        priority = 1;
+                    } else {
+                        priority = 0;
+                    }
+                    closeStations.add(new ObjectByDistance<>(st, priority, d, st.getName() + " (" + st.getLineName() + ", " + st.getDirName()));
+                }
+            }
+
+            Set<NumberPair> usedLines = new TreeSet<>();
+            List<Object[]> stopList = new ArrayList<>();
+            int i = 0;
+            while (!closeStations.isEmpty() && i < STATION_LIST_LIMIT) {
+                i++;
+                ObjectByDistance<Station> o = closeStations.remove();
+                Station st = o.getObj();
+                NumberPair linePair = new NumberPair(st.getLineId(), st.getDirId());
+                if (usedLines.add(linePair)) { //only add one station for each line-direction combination
+                    List<String[]> arrivalInfo = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                    stopList.add(new Object[]{st.getStationName(), st.getLineName() + " (" + st.getDirName() + ")", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[2] : "N/A", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[1] : "N/A", st});
+                }
+            }
+            return stopList;
+        }
+
+        protected void onPostExecute(List<Object[]> stopList) {
+            ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
+
+            for (Object[] stopInfo : stopList) {
+                TableRow arrivalRow = new TableRow(NearMeActivity.this);
+
+                TextView stationNameView = new TextView(NearMeActivity.this);
+                String stopName = ((String)stopInfo[0]).replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
+                stationNameView.setText(stopName + "\n" + stopInfo[1]);
+                stationNameView.setTextColor(Color.BLUE);
+                final Station station = (Station)stopInfo[4];
+                stationNameView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
+                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                        intent.putExtra("lineId", station.getLineId());
+                        intent.putExtra("lineName", station.getLineName());
+                        intent.putExtra("dirId", station.getDirId());
+                        intent.putExtra("stopId", station.getStationId());
+                        intent.putExtra("stopName", station.getStationName());
+                        startActivity(intent);
+                        if (apiClient != null) {
+                            apiClient.disconnect();
+                        }
+                        finish();
+                        startActivity(intent);
+                    }
+                });
+                arrivalRow.addView(stationNameView, 0);
+
+                TextView stationLineView = new TextView(NearMeActivity.this);
+                stationLineView.setMaxWidth(250);
+                stationLineView.setText(stopInfo[3] + "\n" + stopInfo[2]);
+                arrivalRow.addView(stationLineView, 1);
+
+                ((TableLayout)findViewById(R.id.belowMapLayout)).addView(arrivalRow);
+            }
         }
     }
 
@@ -455,11 +559,17 @@ public class NearMeActivity extends FragmentActivity
     }
 
     boolean hasLocation = false;
+    long lastCheckedStops = 0;
+    final int getStopsNearMeInterval = 10;
     @Override
     public void onLocationChanged(Location location) {
         if (!hasLocation) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
             hasLocation = true;
+        }
+        if (loadedLines && loadedStops && lastCheckedStops < PersistentDataController.getCurTime() - getStopsNearMeInterval) {
+            lastCheckedStops = PersistentDataController.getCurTime();
+            new GetStopsNearMeTask().execute(new LatLng(location.getLatitude(), location.getLongitude()));
         }
         //mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
     }

@@ -26,11 +26,6 @@ import android.widget.TextView;
 
 import com.google.android.gms.maps.model.LatLng;
 
-import org.json.JSONArray;
-import org.json.JSONObject;
-
-import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,7 +38,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
     Map<String, Integer> dirIds = new HashMap<>();
     String[] stops = new String[1];
     Map<String, Integer> stopIds = new HashMap<>();
-    Map<String, String> destMappings = new HashMap<>();
     Map<String,Integer> alertCounts = new HashMap<>(); //lines for we have already checked service alerts
 
     private int preSelectedLineId = -1, preSelectedDirId = -1, preSelectedStopId = -1;
@@ -431,7 +425,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected String[] doInBackground(Void... params) {
-            destMappings = PersistentDataController.getDestMappings(myContext);
             return PersistentDataController.getLines(myContext);
         }
 
@@ -579,16 +572,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //task to get the times of the bus/train
-    private class GetTimesTask extends AsyncTask<String, Void, String> {
+    private class GetTimesTask extends AsyncTask<String, Void, List<String[]>> {
         private Context myContext;
-        private String route;
         private ProgressDialog myProgressDlg;
         private int stopId;
         public GetTimesTask(Context context, ProgressDialog pdlg) {
             myContext = context;
             myProgressDlg = pdlg;
         }
-        protected String doInBackground(String... params) {
+        protected List<String[]> doInBackground(String... params) {
             if (params[0] == null || params[1] == null || params[2] == null) {
                 blankAll();
             }
@@ -598,76 +590,44 @@ public class NextBusTrainActivity extends AppCompatActivity {
             }
             int dirId = dirIds.get(params[1]);
             stopId = stopIds.get(params[2]);
-            route = params[0]; //save the route for later in case we want to color the results
 
             //returns an array of {stop JSON, alerts XML}
-            return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
+            return NetworkController.getStopTimes(myContext, routeId, dirId, stopId);
         }
 
-        protected void onPostExecute(String result) {
+        protected void onPostExecute(List<String[]> stopList) {
             //parse the result as JSON
             try {
-                if (!NetworkController.connected(myContext) || result == null) {
+                if (stopList == null) {
                     return;
                 }
-                //it's d->stops->0->crossings, then an array with the stop information
-                JSONObject json = new JSONObject(result);
-                JSONObject root = json.getJSONObject("d");
-                JSONArray stopsJson = root.getJSONArray("stops");
-                JSONObject stops0JSON = stopsJson.getJSONObject(0);
-
-                if (!stops0JSON.isNull("crossings")) {
-                    JSONArray stopsListJson = stops0JSON.getJSONArray("crossings");
-                    List<String[]> stopList = new ArrayList<>();
-                    for (int i = 0; i < stopsListJson.length(); i++) {
-                        JSONObject curStopJson = stopsListJson.getJSONObject(i);
-                        String time, period;
-                        if (!curStopJson.getBoolean("cancelled")) { //make sure the train isn't cancelled
-                            if (curStopJson.getString("predTime").equals("null")) { //if we don't have an actual time (i.e. for trains that haven't left yet), use the scheduled time
-                                time = curStopJson.getString("schedTime");
-                                period = curStopJson.getString("schedPeriod");
-                            } else {
-                                time = curStopJson.getString("predTime");
-                                period = curStopJson.getString("predPeriod");
-                            }
-                            int timeLeft = getTimeLeft(time, period); //get the time left
-                            String dest = curStopJson.getString("destination");
-                            dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest; //use the desti
-                            String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s")};
-                            stopList.add(stopInfo);
-                        }
-                    }
-
-                    //populate the text fields with the stop data
-                    if (stopList.size() > 0) {
-                        ((TextView) findViewById(R.id.train1timebox)).setText(stopList.get(0)[0]);
-                        ((TextView) findViewById(R.id.train1destbox)).setText(stopList.get(0)[1]);
-                        ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2]);
-                    } else {
-                        ((TextView) findViewById(R.id.train1timebox)).setText(R.string.no_time);
-                        ((TextView) findViewById(R.id.train1destbox)).setText(R.string.no_destination);
-                        ((TextView) findViewById(R.id.train1timeLeftBox)).setText(R.string.not_available);
-                    }
-                    if (stopList.size() > 1) {
-                        ((TextView) findViewById(R.id.train2timebox)).setText(stopList.get(1)[0]);
-                        ((TextView) findViewById(R.id.train2destbox)).setText(stopList.get(1)[1]);
-                        ((TextView) findViewById(R.id.train2timeLeftBox)).setText(stopList.get(1)[2]);
-                    } else {
-                        ((TextView) findViewById(R.id.train2timebox)).setText(R.string.no_time);
-                        ((TextView) findViewById(R.id.train2destbox)).setText(R.string.no_destination);
-                        ((TextView) findViewById(R.id.train2timeLeftBox)).setText(R.string.not_available);
-                    }
-                    if (stopList.size() > 2) {
-                        ((TextView) findViewById(R.id.train3timebox)).setText(stopList.get(2)[0]);
-                        ((TextView) findViewById(R.id.train3destbox)).setText(stopList.get(2)[1]);
-                        ((TextView) findViewById(R.id.train3timeLeftBox)).setText(stopList.get(2)[2]);
-                    } else {
-                        ((TextView) findViewById(R.id.train3timebox)).setText(R.string.no_time);
-                        ((TextView) findViewById(R.id.train3destbox)).setText(R.string.no_destination);
-                        ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
-                    }
+                //populate the text fields with the stop data
+                if (stopList.size() > 0) {
+                    ((TextView) findViewById(R.id.train1timebox)).setText(stopList.get(0)[0]);
+                    ((TextView) findViewById(R.id.train1destbox)).setText(stopList.get(0)[1]);
+                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2]);
                 } else {
-                    blankAll();
+                    ((TextView) findViewById(R.id.train1timebox)).setText(R.string.no_time);
+                    ((TextView) findViewById(R.id.train1destbox)).setText(R.string.no_destination);
+                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(R.string.not_available);
+                }
+                if (stopList.size() > 1) {
+                    ((TextView) findViewById(R.id.train2timebox)).setText(stopList.get(1)[0]);
+                    ((TextView) findViewById(R.id.train2destbox)).setText(stopList.get(1)[1]);
+                    ((TextView) findViewById(R.id.train2timeLeftBox)).setText(stopList.get(1)[2]);
+                } else {
+                    ((TextView) findViewById(R.id.train2timebox)).setText(R.string.no_time);
+                    ((TextView) findViewById(R.id.train2destbox)).setText(R.string.no_destination);
+                    ((TextView) findViewById(R.id.train2timeLeftBox)).setText(R.string.not_available);
+                }
+                if (stopList.size() > 2) {
+                    ((TextView) findViewById(R.id.train3timebox)).setText(stopList.get(2)[0]);
+                    ((TextView) findViewById(R.id.train3destbox)).setText(stopList.get(2)[1]);
+                    ((TextView) findViewById(R.id.train3timeLeftBox)).setText(stopList.get(2)[2]);
+                } else {
+                    ((TextView) findViewById(R.id.train3timebox)).setText(R.string.no_time);
+                    ((TextView) findViewById(R.id.train3destbox)).setText(R.string.no_destination);
+                    ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
                 }
                 if (myProgressDlg != null) {
                     myProgressDlg.dismiss();
@@ -774,15 +734,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
     }
 
-    public int getTimeLeft(String time, String period) { //get the amount of time until a specified arrival
-        String[] timeParts = time.split(":");
-        int minOfDay = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]) + (period.equals("pm") && !timeParts[0].equals("12") ? 720 : 0) - (period.equals("am") && timeParts[0].equals("12") ? 720 : 0);
-        int curTime = Calendar.getInstance().getTime().getHours() * 60 + Calendar.getInstance().getTime().getMinutes();
-        if (minOfDay < curTime) {
-            minOfDay += 1440;
-        }
-        return minOfDay - curTime;
-    }
+
 
 }
 
