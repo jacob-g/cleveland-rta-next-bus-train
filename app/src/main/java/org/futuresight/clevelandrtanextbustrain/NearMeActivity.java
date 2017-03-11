@@ -11,7 +11,10 @@ import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -73,6 +76,7 @@ public class NearMeActivity extends FragmentActivity
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        System.out.println("CREATED MAP");
         setContentView(R.layout.activity_near_me);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -305,8 +309,9 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    final Map<Integer, Boolean> shownLines = new HashMap<>();
     final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
-    final int STATION_LIST_LIMIT = 8;
+    final int STATION_LIST_LIMIT = 15;
     private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, List<Object[]>> {
         public GetStopsNearMeTask() {
         }
@@ -346,6 +351,43 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<Object[]> stopList) {
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
+
+            TableRow showRoutesRow = new TableRow(NearMeActivity.this);
+            Button showRoutesButton = new Button(NearMeActivity.this);
+            showRoutesButton.setText("Show/hide routes"); //TODO: put this in translator
+            showRoutesButton.setOnClickListener(
+                    new Button.OnClickListener() {
+                        public void onClick(View view) {
+                            //use a dialog box to ask the user for the name of the station
+                            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+                            inputAlert.setTitle("Show/Hide Routes"); //TODO: put this in translator
+                            ScrollView mainLineView = new ScrollView(view.getContext());
+                            TableLayout lineLayout = new TableLayout(view.getContext());
+                            mainLineView.addView(lineLayout);
+                            inputAlert.setView(mainLineView);
+
+                            Map<String, Integer> lineIds = PersistentDataController.getLineIdMap(view.getContext());
+                            for (String name : lineIds.keySet()) {
+                                int id = lineIds.get(name);
+                                TableRow row = new TableRow(view.getContext());
+                                CheckBox box = new CheckBox(view.getContext());
+                                row.addView(box, 0);
+                                TextView caption = new TextView(view.getContext());
+                                caption.setText(name);
+                                row.addView(caption, 1);
+                                lineLayout.addView(row);
+                            }
+
+                            //create the text box and automatically populate it with the current station name
+
+                            AlertDialog alertDialog = inputAlert.create();
+                            alertDialog.setCancelable(true);
+                            alertDialog.show();
+                        }
+                    }
+            );
+            showRoutesRow.addView(showRoutesButton, 0);
+            ((TableLayout)findViewById(R.id.belowMapLayout)).addView(showRoutesRow);
 
             for (Object[] stopInfo : stopList) {
                 TableRow arrivalRow = new TableRow(NearMeActivity.this);

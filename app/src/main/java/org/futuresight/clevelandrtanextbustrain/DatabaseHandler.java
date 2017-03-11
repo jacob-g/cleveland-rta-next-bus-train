@@ -430,7 +430,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         if (lastSavedStr != "") {
             lastSavedInt = Integer.parseInt(lastSavedStr);
         }
-        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry(context)) {
+        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.lineListExpiry) {
             db.execSQL("DELETE FROM " + LINES_TABLE);
             db.close(); // Closing database connection
             return false;

@@ -38,6 +38,7 @@ public abstract class PersistentDataController {
     static Map<Integer, Map<String, Integer>> directions = new HashMap<>();
     static Map<String, String> destMappings = new HashMap<>();
     public static final int lineExpiry = 60 * 60 * 24 * 14;
+    public static final int lineListExpiry = 60 * 60;
     public static final int stationExpiry = 60 * 60 * 24 * 7;
     public static final int alertExpiry = 60 * 30;
     public static final int escElExpiry = 60 * 30;
