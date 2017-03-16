@@ -31,57 +31,75 @@
         android:layout_weight="1"
         android:minHeight="108dp">
 
-        <TableLayout
-            android:id="@+id/belowMapLayout"
+        <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:stretchColumns="1">
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="visible">
 
-            <TableRow
-                android:id="@+id/loadingStopsRow"
+            <TableLayout
+                android:id="@+id/belowMapLayout"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="wrap_content"
+                android:stretchColumns="1">
 
-                <TextView
-                    android:id="@+id/loadingStopsLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_column="0"
-                    android:layout_row="0"
-                    android:text="Stops" />
-
-                <ProgressBar
-                    android:id="@+id/loadingStopsBar"
-                    style="?android:attr/progressBarStyleHorizontal"
+                <TableRow
+                    android:id="@+id/loadingStopsRow"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:layout_row="0"
-                    android:progress="0" />
-            </TableRow>
+                    android:layout_height="match_parent">
 
-            <TableRow
-                android:id="@+id/loadingLinesRow"
+                    <TextView
+                        android:id="@+id/loadingStopsLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="0"
+                        android:text="Stops" />
+
+                    <ProgressBar
+                        android:id="@+id/loadingStopsBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_row="0"
+                        android:progress="0" />
+                </TableRow>
+
+                <TableRow
+                    android:id="@+id/loadingLinesRow"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent">
+
+                    <TextView
+                        android:id="@+id/loadingLinesLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="1"
+                        android:text="Lines" />
+
+                    <ProgressBar
+                        android:id="@+id/loadingLinesBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="1" />
+
+                </TableRow>
+
+            </TableLayout>
+
+            <Button
+                android:id="@+id/chooseLineBtn"
                 android:layout_width="match_parent"
-                android:layout_height="match_parent">
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="Choose line"
+                android:visibility="gone" />
 
-                <TextView
-                    android:id="@+id/loadingLinesLabel"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_column="0"
-                    android:layout_row="1"
-                    android:text="Lines" />
+        </LinearLayout>
 
-                <ProgressBar
-                    android:id="@+id/loadingLinesBar"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_column="0"
-                    android:layout_row="1" />
-            </TableRow>
-
-        </TableLayout>
     </ScrollView>
 
 </LinearLayout>

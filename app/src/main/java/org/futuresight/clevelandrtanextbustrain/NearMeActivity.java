@@ -12,9 +12,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.view.View;
 import android.widget.Button;
-import android.widget.CheckBox;
 import android.widget.ProgressBar;
-import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -34,6 +32,7 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.google.android.gms.maps.model.Polyline;
 import com.google.android.gms.maps.model.PolylineOptions;
 
 import org.w3c.dom.Document;
@@ -82,6 +81,29 @@ public class NearMeActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
+                public void onClick(View view) {
+                    AlertDialog.Builder builder = new AlertDialog.Builder(NearMeActivity.this);
+                    builder.setTitle("Select a route").setItems(lines, new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialogInterface, int i) {
+                            int lineId = lineIdMap.get(lines[i]);
+                            System.out.println(pathsByLineId);
+                            for (int l : pathsByLineId.keySet()) {
+                                boolean visible = (l == lineId);
+                                for (Polyline path : pathsByLineId.get(l)) {
+                                    path.setVisible(visible);
+                                }
+                                //TODO: make stations visible/invisible
+                            }
+                        }
+                    });
+                    builder.create();
+                    builder.show();
+                }
+            }
+        );
     }
 
     @Override
@@ -128,18 +150,26 @@ public class NearMeActivity extends FragmentActivity
     }
 
     public static class ColoredPointList {
+        public final int lineId;
         public final List<LatLng> points = new ArrayList<>();
         public final int color;
-        public ColoredPointList(int color) {
+        public ColoredPointList(int color, int lineId) {
             this.color = color;
+            this.lineId = lineId;
         }
     }
+
+    Map<String, Integer> lineIdMap;
+    String[] lines;
+    Map<Integer, List<Polyline>> pathsByLineId = new HashMap<>();
 
     private class GetPointsTask extends AsyncTask<Void, Integer, List<NearMeActivity.ColoredPointList>> {
         public GetPointsTask() {
         }
 
         protected List<ColoredPointList> doInBackground(Void... params) {
+            lineIdMap = PersistentDataController.getLineIdMap(NearMeActivity.this);
+            lines = PersistentDataController.getLines(NearMeActivity.this);
             String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
             boolean expired = false;
             if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
@@ -157,6 +187,7 @@ public class NearMeActivity extends FragmentActivity
                     int page = 0;
                     while (more) {
                         page++;
+                        System.out.println(page);
                         String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?page=" + page + "&version=" + PersistentDataController.API_VERSION);
                         DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                         Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
@@ -170,7 +201,8 @@ public class NearMeActivity extends FragmentActivity
                                 if (pathNode.getNodeName().equals("p")) {
                                     more = true;
                                     int color = Color.rgb(Integer.parseInt(pathNode.getAttributes().getNamedItem("r").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("g").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("b").getTextContent()));
-                                    ColoredPointList path = new ColoredPointList(color);
+                                    int lineId = Integer.parseInt(pathNode.getAttributes().getNamedItem("l").getTextContent());
+                                    ColoredPointList path = new ColoredPointList(color, lineId);
                                     NodeList pointNodeList = pathNode.getChildNodes();
                                     for (int j = 0; j < pointNodeList.getLength(); j++) {
                                         Node pointNode = pointNodeList.item(j);
@@ -207,9 +239,14 @@ public class NearMeActivity extends FragmentActivity
                 polyLineOptions.addAll(path.points);
                 polyLineOptions.width(4);
                 polyLineOptions.color(path.color);
-                mMap.addPolyline(polyLineOptions);
+                Polyline newPath = mMap.addPolyline(polyLineOptions);
+                if (!pathsByLineId.containsKey(path.lineId)) {
+                    pathsByLineId.put(path.lineId, new ArrayList<Polyline>());
+                }
+                pathsByLineId.get(path.lineId).add(newPath);
             }
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
+            (findViewById(R.id.chooseLineBtn)).setVisibility(View.VISIBLE);
             loadedLines = true;
         }
     }
@@ -352,43 +389,6 @@ public class NearMeActivity extends FragmentActivity
         protected void onPostExecute(List<Object[]> stopList) {
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
 
-            TableRow showRoutesRow = new TableRow(NearMeActivity.this);
-            Button showRoutesButton = new Button(NearMeActivity.this);
-            showRoutesButton.setText("Show/hide routes"); //TODO: put this in translator
-            showRoutesButton.setOnClickListener(
-                    new Button.OnClickListener() {
-                        public void onClick(View view) {
-                            //use a dialog box to ask the user for the name of the station
-                            final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
-                            inputAlert.setTitle("Show/Hide Routes"); //TODO: put this in translator
-                            ScrollView mainLineView = new ScrollView(view.getContext());
-                            TableLayout lineLayout = new TableLayout(view.getContext());
-                            mainLineView.addView(lineLayout);
-                            inputAlert.setView(mainLineView);
-
-                            Map<String, Integer> lineIds = PersistentDataController.getLineIdMap(view.getContext());
-                            for (String name : lineIds.keySet()) {
-                                int id = lineIds.get(name);
-                                TableRow row = new TableRow(view.getContext());
-                                CheckBox box = new CheckBox(view.getContext());
-                                row.addView(box, 0);
-                                TextView caption = new TextView(view.getContext());
-                                caption.setText(name);
-                                row.addView(caption, 1);
-                                lineLayout.addView(row);
-                            }
-
-                            //create the text box and automatically populate it with the current station name
-
-                            AlertDialog alertDialog = inputAlert.create();
-                            alertDialog.setCancelable(true);
-                            alertDialog.show();
-                        }
-                    }
-            );
-            showRoutesRow.addView(showRoutesButton, 0);
-            ((TableLayout)findViewById(R.id.belowMapLayout)).addView(showRoutesRow);
-
             for (Object[] stopInfo : stopList) {
                 TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
@@ -432,6 +432,7 @@ public class NearMeActivity extends FragmentActivity
     Set<NumberPair> spotsAdded = new HashSet<>();
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
+        //TODO: only show stations if they are on the currently selected line
         if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {
             for (Marker m : markers.keySet()) {
                 //don't show the icons when zoomed out too much

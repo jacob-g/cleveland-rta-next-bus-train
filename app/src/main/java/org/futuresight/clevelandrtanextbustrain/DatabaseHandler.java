@@ -20,7 +20,7 @@ import java.util.TreeMap;
  * Created by jacob on 5/15/16.
  */
 public class DatabaseHandler extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2;
     private static final String DATABASE_NAME = "rtaNextBusTrain";
 
     //the names for the various tables
@@ -183,7 +183,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_LNG + " REAL,"
                 + FIELD_RED + " INTEGER,"
                 + FIELD_GREEN + " INTEGER,"
-                + FIELD_BLUE + " INTEGER"
+                + FIELD_BLUE + " INTEGER,"
+                + FIELD_LINE_ID + " INTEGER"
                 + ")";
         db.execSQL(CREATE_LINE_PATHS_TABLE);
 
@@ -263,6 +264,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Create tables again
+        if (oldVersion < 2) { //need to add lines to the line path table
+            db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_ID + " INTEGER");
+        }
         onCreate(db);
     }
 
@@ -738,7 +742,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + LINE_PATHS_TABLE);
 
         String sql = "INSERT INTO " + LINE_PATHS_TABLE + "(" + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," +
-                FIELD_GREEN + "," + FIELD_BLUE + ") VALUES(?,?,?,?,?,?)";
+                FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + ") VALUES(?,?,?,?,?,?,?)";
         SQLiteStatement statement = db.compileStatement(sql);
         int pathId = 0;
         for (NearMeActivity.ColoredPointList path : paths) {
@@ -750,6 +754,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 statement.bindLong(4, Color.red(path.color));
                 statement.bindLong(5, Color.green(path.color));
                 statement.bindLong(6, Color.blue(path.color));
+                statement.bindLong(7, path.lineId);
                 statement.execute();
             }
             pathId++;
@@ -763,13 +768,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public List<NearMeActivity.ColoredPointList> getAllPaths() {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
+        String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
 
         List<NearMeActivity.ColoredPointList> outList = new ArrayList<>();
         Cursor cursor = db.rawQuery(selectQuery, null);
         int lastPath = -1;
         boolean first = true;
-        NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK);
+        NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK, 0);
         if (cursor.moveToFirst()) {
             do {
                 if (lastPath != cursor.getInt(0)) {
@@ -779,7 +784,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     } else {
                         outList.add(path);
                     }
-                    path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)));
+                    path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)), cursor.getInt(6));
                 }
                 path.points.add(new LatLng(cursor.getDouble(1), cursor.getDouble(2)));
             } while (cursor.moveToNext());
