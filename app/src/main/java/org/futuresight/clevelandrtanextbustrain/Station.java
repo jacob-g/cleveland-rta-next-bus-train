@@ -92,11 +92,20 @@ public class Station {
         return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + "), LatLng: " + loc + "]";
     }
 
-    public boolean equals(Station other) {
-        return this.lineId == other.lineId && this.dirId == other.dirId && this.stationId == other.stationId;
+    public boolean equals(Object other) {
+        if (other instanceof Station) {
+            Station otherStation = (Station)other;
+            return this.lineId == otherStation.lineId && this.dirId == otherStation.dirId && this.stationId == otherStation.stationId;
+        } else {
+            return false;
+        }
     }
 
     public void setLatLng(LatLng l) {
         loc = l;
+    }
+
+    public int hashCode() {
+        return this.lineId + this.stationId + this.dirId;
     }
 }

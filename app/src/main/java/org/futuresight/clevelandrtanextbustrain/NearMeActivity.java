@@ -294,7 +294,7 @@ public class NearMeActivity extends FragmentActivity
     private int focusStationId = -1;
     Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
     Map<Marker, Station> markers = new HashMap<>();
-    Set<Integer> favIds = new HashSet<>();
+    Set<Station> favoriteStations = new HashSet<>();
     List<Station> stationList = new ArrayList<>();
     List<Station> visibleStations = new ArrayList<>();
 
@@ -320,7 +320,7 @@ public class NearMeActivity extends FragmentActivity
             List<Station> favorites = db.getFavoriteLocations();
             db.close();
             for (Station s : favorites) {
-                favIds.add(s.getStationId());
+                favoriteStations.add(s);
             }
             //add the markers to the map
             int stationId = -1;
@@ -375,7 +375,7 @@ public class NearMeActivity extends FragmentActivity
                 double d = PersistentDataController.distance(params[0], st.getLatLng());
                 if (d < MAX_STATION_BOTTOM_DISPLAY_DISTANCE) {
                     int priority;
-                    if (favIds.contains(st.getStationId())) { //prioritize favorites
+                    if (favoriteStations.contains(st)) { //prioritize favorites
                         priority = 2;
                     } else if (st.getType() == 'r') { //prioritize rail over bus
                         priority = 1;
@@ -493,7 +493,7 @@ public class NearMeActivity extends FragmentActivity
                                 m2.setZIndex(0);
                             }
 
-                            if (favIds.contains(st.getStationId())) { //mark with a star if it's a favorite
+                            if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
                                 m.setIcon(favoritePin);
                                 m.setZIndex(2);
                             } else if (st.getType() == railType) {
@@ -561,7 +561,7 @@ public class NearMeActivity extends FragmentActivity
                 if (d < MAX_STATION_CLICK_DISTANCE && m.isVisible()) {
                     Station otherStation = markers.get(m);
                     int priority;
-                    if (favIds.contains(otherStation.getStationId())) { //prioritize favorites
+                    if (favoriteStations.contains(otherStation)) { //prioritize favorites
                         priority = 2;
                     } else if (otherStation.getType() == 'r') { //prioritize rail over bus
                         priority = 1;
