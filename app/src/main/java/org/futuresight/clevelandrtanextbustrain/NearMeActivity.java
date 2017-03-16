@@ -95,7 +95,21 @@ public class NearMeActivity extends FragmentActivity
                                 for (Polyline path : pathsByLineId.get(l)) {
                                     path.setVisible(visible);
                                 }
-                                //TODO: make stations visible/invisible
+                                visibleStations.clear();
+                                for (Station st : stationList) {
+                                    if (st.getLineId() == lineId) {
+                                        visibleStations.add(st);
+                                    }
+                                }
+                                for (Marker m : markers.keySet()) {
+                                    Station st = markers.get(m);
+                                    boolean stationVisible = visibleStations.contains(st);
+                                    if (!stationVisible) {
+                                        m.setVisible(false);
+                                    } else if (alreadyVisible && stationVisible) {
+                                        m.setVisible(true);
+                                    }
+                                }
                             }
                         }
                     });
@@ -281,7 +295,8 @@ public class NearMeActivity extends FragmentActivity
     Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
     Map<Marker, Station> markers = new HashMap<>();
     Set<Integer> favIds = new HashSet<>();
-    List<Station> stationList = new ArrayList();
+    List<Station> stationList = new ArrayList<>();
+    List<Station> visibleStations = new ArrayList<>();
 
     private boolean loadedStops = false;
     private boolean loadedLines = false;
@@ -326,6 +341,7 @@ public class NearMeActivity extends FragmentActivity
                 }
                 markerSectors.get(sectorKey).add(st);
                 stationList.add(st);
+                visibleStations.add(st);
                 if (st.getStationId() == stationId) {
                     autoFocusPosition = st.getLatLng();
                     focusStationId = stationId;
@@ -432,11 +448,10 @@ public class NearMeActivity extends FragmentActivity
     Set<NumberPair> spotsAdded = new HashSet<>();
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
-        //TODO: only show stations if they are on the currently selected line
         if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {
             for (Marker m : markers.keySet()) {
                 //don't show the icons when zoomed out too much
-                m.setVisible(!alreadyVisible);
+                m.setVisible((!alreadyVisible) && visibleStations.contains(markers.get(m)));
             }
             alreadyVisible = !alreadyVisible;
         }
@@ -481,8 +496,10 @@ public class NearMeActivity extends FragmentActivity
                                 m.setZIndex(0);
                             }
                             markers.put(m, st);
-                            if (alreadyVisible) {
+                            if (alreadyVisible && visibleStations.contains(st)) {
                                 m.setVisible(true);
+                            } else {
+                                m.setVisible(false);
                             }
                         }
                     }
@@ -533,7 +550,7 @@ public class NearMeActivity extends FragmentActivity
 
             for (Marker m : markers.keySet()) {
                 double d = PersistentDataController.distance(marker.getPosition(), m.getPosition());
-                if (d < MAX_STATION_CLICK_DISTANCE) {
+                if (d < MAX_STATION_CLICK_DISTANCE && m.isVisible()) {
                     Station otherStation = markers.get(m);
                     int priority;
                     if (favIds.contains(otherStation.getStationId())) { //prioritize favorites

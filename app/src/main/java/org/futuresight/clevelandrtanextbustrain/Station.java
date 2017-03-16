@@ -92,6 +92,10 @@ public class Station {
         return "[Name: " + name + ", Station: " + stationName + " (" + stationId + "), Direction: " + dirName + " (" + dirId + "), Line: " + lineName + " (" + lineId + "), LatLng: " + loc + "]";
     }
 
+    public boolean equals(Station other) {
+        return this.lineId == other.lineId && this.dirId == other.dirId && this.stationId == other.stationId;
+    }
+
     public void setLatLng(LatLng l) {
         loc = l;
     }
