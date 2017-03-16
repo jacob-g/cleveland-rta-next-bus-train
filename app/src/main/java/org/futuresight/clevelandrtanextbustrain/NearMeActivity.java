@@ -388,57 +388,65 @@ public class NearMeActivity extends FragmentActivity
 
             Set<NumberPair> usedLines = new TreeSet<>();
             List<Object[]> stopList = new ArrayList<>();
-            int i = 0;
-            while (!closeStations.isEmpty() && i < STATION_LIST_LIMIT) {
-                i++;
-                ObjectByDistance<Station> o = closeStations.remove();
-                Station st = o.getObj();
-                NumberPair linePair = new NumberPair(st.getLineId(), st.getDirId());
-                if (usedLines.add(linePair)) { //only add one station for each line-direction combination
-                    List<String[]> arrivalInfo = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
-                    stopList.add(new Object[]{st.getStationName(), st.getLineName() + " (" + st.getDirName() + ")", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[2] : "N/A", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[1] : "N/A", st});
+            try {
+                int i = 0;
+                while (!closeStations.isEmpty() && i < STATION_LIST_LIMIT) {
+                    i++;
+                    ObjectByDistance<Station> o = closeStations.remove();
+                    Station st = o.getObj();
+                    NumberPair linePair = new NumberPair(st.getLineId(), st.getDirId());
+                    if (usedLines.add(linePair)) { //only add one station for each line-direction combination
+                        List<String[]> arrivalInfo = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                        stopList.add(new Object[]{st.getStationName(), st.getLineName() + " (" + st.getDirName() + ")", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[2] : "N/A", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[1] : "N/A", st});
+                    }
                 }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
             return stopList;
         }
 
         protected void onPostExecute(List<Object[]> stopList) {
-            ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
+            try {
+                ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
 
-            for (Object[] stopInfo : stopList) {
-                TableRow arrivalRow = new TableRow(NearMeActivity.this);
+                for (Object[] stopInfo : stopList) {
+                    TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
-                TextView stationNameView = new TextView(NearMeActivity.this);
-                String stopName = ((String)stopInfo[0]).replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
-                stationNameView.setText(stopName + "\n" + stopInfo[1]);
-                stationNameView.setTextColor(Color.BLUE);
-                final Station station = (Station)stopInfo[4];
-                stationNameView.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
-                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                        intent.putExtra("lineId", station.getLineId());
-                        intent.putExtra("lineName", station.getLineName());
-                        intent.putExtra("dirId", station.getDirId());
-                        intent.putExtra("stopId", station.getStationId());
-                        intent.putExtra("stopName", station.getStationName());
-                        startActivity(intent);
-                        if (apiClient != null) {
-                            apiClient.disconnect();
+                    TextView stationNameView = new TextView(NearMeActivity.this);
+                    String stopName = ((String) stopInfo[0]).replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
+                    stationNameView.setText(stopName + "\n" + stopInfo[1]);
+                    stationNameView.setTextColor(Color.BLUE);
+                    final Station station = (Station) stopInfo[4];
+                    stationNameView.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
+                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                            intent.putExtra("lineId", station.getLineId());
+                            intent.putExtra("lineName", station.getLineName());
+                            intent.putExtra("dirId", station.getDirId());
+                            intent.putExtra("stopId", station.getStationId());
+                            intent.putExtra("stopName", station.getStationName());
+                            startActivity(intent);
+                            if (apiClient != null) {
+                                apiClient.disconnect();
+                            }
+                            finish();
+                            startActivity(intent);
                         }
-                        finish();
-                        startActivity(intent);
-                    }
-                });
-                arrivalRow.addView(stationNameView, 0);
+                    });
+                    arrivalRow.addView(stationNameView, 0);
 
-                TextView stationLineView = new TextView(NearMeActivity.this);
-                stationLineView.setMaxWidth(250);
-                stationLineView.setText(stopInfo[3] + "\n" + stopInfo[2]);
-                arrivalRow.addView(stationLineView, 1);
+                    TextView stationLineView = new TextView(NearMeActivity.this);
+                    stationLineView.setMaxWidth(250);
+                    stationLineView.setText(stopInfo[3] + "\n" + stopInfo[2]);
+                    arrivalRow.addView(stationLineView, 1);
 
-                ((TableLayout)findViewById(R.id.belowMapLayout)).addView(arrivalRow);
+                    ((TableLayout) findViewById(R.id.belowMapLayout)).addView(arrivalRow);
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
     }
