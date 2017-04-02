@@ -71,11 +71,31 @@ public class NearMeActivity extends FragmentActivity
         System.out.println("Connection suspended!");
     }
 
+    private void alertDialog(String title, String msg, final boolean die) {
+        AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
+        alertDialog.setTitle(title);
+        alertDialog.setMessage(msg);
+        alertDialog.setButton(AlertDialog.BUTTON_NEUTRAL, "OK",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.dismiss();
+                        if (die) {
+                            finish();
+                        }
+                    }
+                });
+        alertDialog.show();
+    }
+
     private String[] linesWithAllOption;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_near_me);
+
+        if (!NetworkController.connected(this)) {
+            alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), true);
+        }
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
