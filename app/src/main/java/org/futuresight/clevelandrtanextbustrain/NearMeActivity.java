@@ -71,11 +71,10 @@ public class NearMeActivity extends FragmentActivity
         System.out.println("Connection suspended!");
     }
 
-
+    private String[] linesWithAllOption;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        System.out.println("CREATED MAP");
         setContentView(R.layout.activity_near_me);
         // Obtain the SupportMapFragment and get notified when the map is ready to be used.
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
@@ -84,30 +83,52 @@ public class NearMeActivity extends FragmentActivity
 
         (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
                 public void onClick(View view) {
+                    if (linesWithAllOption == null) {
+                        linesWithAllOption = new String[lines.length + 1];
+                        linesWithAllOption[0] = "All routes";
+                        for (int i = 0; i < lines.length; i++) {
+                            linesWithAllOption[i + 1] = lines[i];
+                        }
+                    }
                     AlertDialog.Builder builder = new AlertDialog.Builder(NearMeActivity.this);
-                    builder.setTitle("Select a route").setItems(lines, new DialogInterface.OnClickListener() {
+                    builder.setTitle(getResources().getString(R.string.select_route)).setItems(linesWithAllOption, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            int lineId = lineIdMap.get(lines[i]);
-                            System.out.println(pathsByLineId);
-                            for (int l : pathsByLineId.keySet()) {
-                                boolean visible = (l == lineId);
-                                for (Polyline path : pathsByLineId.get(l)) {
-                                    path.setVisible(visible);
-                                }
-                                visibleStations.clear();
-                                for (Station st : stationList) {
-                                    if (st.getLineId() == lineId) {
+                            //TODO: optimize this to improve runtime
+                            if (i == 0) {
+                                for (int l : pathsByLineId.keySet()) {
+                                    for (Polyline path : pathsByLineId.get(l)) {
+                                        path.setVisible(true);
+                                    }
+                                    visibleStations.clear();
+                                    for (Station st : stationList) {
                                         visibleStations.add(st);
                                     }
+                                    for (Marker m : markers.keySet()) {
+                                        m.setVisible(alreadyVisible);
+                                    }
                                 }
-                                for (Marker m : markers.keySet()) {
-                                    Station st = markers.get(m);
-                                    boolean stationVisible = visibleStations.contains(st);
-                                    if (!stationVisible) {
-                                        m.setVisible(false);
-                                    } else if (alreadyVisible && stationVisible) {
-                                        m.setVisible(true);
+                            } else {
+                                int lineId = lineIdMap.get(lines[i - 1]);
+                                for (int l : pathsByLineId.keySet()) {
+                                    boolean visible = (l == lineId);
+                                    for (Polyline path : pathsByLineId.get(l)) {
+                                        path.setVisible(visible);
+                                    }
+                                    visibleStations = new ArrayList<>();
+                                    for (Station st : stationList) {
+                                        if (st.getLineId() == lineId) {
+                                            visibleStations.add(st);
+                                        }
+                                    }
+                                    for (Marker m : markers.keySet()) {
+                                        Station st = markers.get(m);
+                                        boolean stationVisible = visibleStations.contains(st);
+                                        if (!stationVisible) {
+                                            m.setVisible(false);
+                                        } else if (alreadyVisible && stationVisible) {
+                                            m.setVisible(true);
+                                        }
                                     }
                                 }
                             }
@@ -201,7 +222,6 @@ public class NearMeActivity extends FragmentActivity
                     int page = 0;
                     while (more) {
                         page++;
-                        System.out.println(page);
                         String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?page=" + page + "&version=" + PersistentDataController.API_VERSION);
                         DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                         Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));

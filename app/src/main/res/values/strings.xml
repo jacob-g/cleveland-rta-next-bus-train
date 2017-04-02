@@ -69,4 +69,5 @@
     <string name="add_home_screen_icon">Add home screen icon</string>
     <string name="shortcut_text_prompt">What text do you want to appear on the homescreen for this shortcut?</string>
     <string name="choose_line">Choose line</string>
+    <string name="select_route">Select a route</string>
 </resources>
