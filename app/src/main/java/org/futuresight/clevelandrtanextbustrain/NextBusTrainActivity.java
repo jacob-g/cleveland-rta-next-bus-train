@@ -172,7 +172,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         protected void onPostExecute(LatLng pos) {
             try {
-                //TODO: on network failure, fail gracefully
                 DatabaseHandler db = new DatabaseHandler(myContext);
                 Station st;
                 if (pos == null) {
@@ -180,7 +179,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 } else {
                     st = new Station(stationName, stationId, dirName, dirId, lineName, lineId, name, pos.latitude, pos.longitude);
                 }
-                System.out.println(st);
                 db.addFavoriteLocation(st);
                 db.close();
             } catch (Exception e) {
@@ -553,11 +551,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
 
-                System.out.println("Preselected ID: " + preSelectedStopId);
-                System.out.println("Current selection: " + curSelection);
                 for (int i = 0; i < adapter.getCount(); i++) { //if there was a stop previously selected then select it again (this is to avoid resetting the spinner when changing directions), but if there is a stop sent in to the activity that overrides the previously selected stop
                     if (preSelectedStopId == stopIds.get(adapter.getItem(i)) || (preSelectedStopId == -1 && curSelection.equals(adapter.getItem(i)))) {
-                        System.out.println("Found a selection: " + i);
                         stationSpinner.setSelection(i);
                         preSelectedStopId = -1;
                         break;

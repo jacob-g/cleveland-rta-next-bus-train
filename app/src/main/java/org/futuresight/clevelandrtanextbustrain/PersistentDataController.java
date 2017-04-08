@@ -558,7 +558,6 @@ public abstract class PersistentDataController {
         String[][] arr = new String[lines.size()][2];
         int i = 0;
         for (String s : lines) {
-            System.out.println(lineIds);
             arr[i][0] = s;
             arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap(context).get(s));
             i++;

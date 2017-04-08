@@ -4,6 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:gravity="center_vertical|center_horizontal"
     android:paddingBottom="@dimen/activity_vertical_margin"
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
@@ -12,72 +13,105 @@
     tools:context="org.futuresight.clevelandrtanextbustrain.MainMenu"
     tools:showIn="@layout/activity_main_menu">
 
-    <LinearLayout
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:orientation="vertical"
-        android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:layout_alignParentStart="true"
-        android:weightSum="1">
+    <TableLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:foregroundGravity="center_horizontal"
+        android:gravity="center_horizontal"
+        android:stretchColumns="1">
 
-        <Button
-            android:id="@+id/nextBusTrainBtn"
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:drawableLeft="@android:drawable/ic_menu_recent_history"
-            android:onClick="openNextBusTrainPage"
-            android:text="@string/next_bus_train" />
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:foregroundGravity="center_horizontal">
 
-        <Button
-            android:id="@+id/serviceAlertsBtn"
+            <Button
+                android:id="@+id/nextBusTrainBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:drawableTop="@android:drawable/ic_menu_recent_history"
+                android:onClick="openNextBusTrainPage"
+                android:text="@string/next_bus_train" />
+
+            <Button
+                android:id="@+id/serviceAlertsBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@android:drawable/ic_dialog_alert"
+                android:onClick="openServiceAlertsPage"
+                android:text="Alerts" />
+        </TableRow>
+
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:drawableLeft="@android:drawable/ic_dialog_alert"
-            android:onClick="openServiceAlertsPage"
-            android:text="@string/service_alerts" />
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:foregroundGravity="center_horizontal">
 
-        <Button
-            android:id="@+id/manageLocationsBtn"
+            <Button
+                android:id="@+id/manageLocationsBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:drawableTop="@android:drawable/ic_input_get"
+                android:onClick="openManageLocationsPage"
+                android:text="Favorites" />
+
+            <Button
+                android:id="@+id/nearMeBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@android:drawable/ic_menu_compass"
+                android:onClick="openNearMe"
+                android:text="@string/near_me" />
+        </TableRow>
+
+        <TableRow
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_horizontal"
+            android:foregroundGravity="center_horizontal">
+
+            <Button
+                android:id="@+id/mapBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:clickable="true"
+                android:drawableTop="@android:drawable/ic_dialog_map"
+                android:onClick="openMap"
+                android:text="@string/map" />
+
+            <Button
+                android:id="@+id/creditsBtn"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:drawableTop="@android:drawable/ic_dialog_alert"
+                android:onClick="openCredits"
+                android:text="Credits" />
+        </TableRow>
+
+        <TableRow
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:clickable="true"
-            android:drawableLeft="@android:drawable/ic_input_get"
-            android:onClick="openManageLocationsPage"
-            android:text="@string/favorite_locations" />
+            android:layout_height="match_parent">
 
-        <Button
-            android:id="@+id/nearMeBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:drawableLeft="@android:drawable/ic_menu_compass"
-            android:onClick="openNearMe"
-            android:text="@string/near_me" />
+            <Button
+                android:id="@+id/button7"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_span="2"
+                android:drawableTop="@android:drawable/ic_menu_preferences"
+                android:text="@string/settings"
+                android:onClick="openSettings"/>
+        </TableRow>
 
-        <Button
-            android:id="@+id/mapBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:drawableLeft="@android:drawable/ic_dialog_map"
-            android:onClick="openMap"
-            android:text="@string/map" />
+    </TableLayout>
 
-        <Button
-            android:id="@+id/settingsBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:drawableLeft="@android:drawable/ic_menu_preferences"
-            android:onClick="openSettings"
-            android:text="@string/settings" />
-
-        <Button
-            android:id="@+id/creditsBtn"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:drawableLeft="@android:drawable/ic_menu_help"
-            android:onClick="openCredits"
-            android:text="Credits" />
-
-    </LinearLayout>
 </RelativeLayout>

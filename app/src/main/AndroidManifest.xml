@@ -82,7 +82,8 @@
 
         <activity
             android:name=".NearMeActivity"
-            android:label="@string/title_activity_near_me">
+            android:label="@string/title_activity_near_me"
+            android:screenOrientation="portrait">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="org.futuresight.clevelandrtanextbustrain.MainMenu" />

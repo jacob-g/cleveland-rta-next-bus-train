@@ -234,10 +234,11 @@
                 </TableLayout>
 
                 <Button
+                    android:id="@+id/serviceAlertsBtn"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:id="@+id/serviceAlertsBtn"
-                    android:visibility="invisible" />
+                    android:drawableLeft="@android:drawable/ic_dialog_alert"
+                    android:visibility="gone" />
 
                 <LinearLayout
                     android:orientation="vertical"

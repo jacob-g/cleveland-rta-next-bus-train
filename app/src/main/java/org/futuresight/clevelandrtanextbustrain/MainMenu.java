@@ -88,6 +88,12 @@ public class MainMenu extends AppCompatActivity {
     }
 
     @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        new GetServiceAlertsTask(this).execute();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.menu_main_menu, menu);
@@ -96,28 +102,28 @@ public class MainMenu extends AppCompatActivity {
 
    public void openNextBusTrainPage(View v) {
        Intent intent = new Intent(this, NextBusTrainActivity.class);
-       startActivity(intent);
+       startActivityForResult(intent, 1);
    }
 
     public void openManageLocationsPage(View v) {
         Intent intent = new Intent(this, ManageLocationsActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 1);
     }
 
     public void openServiceAlertsPage(View v) {
         Intent intent = new Intent(this, ServiceAlertsActivity.class);
-        ((Button)v).getBackground().clearColorFilter();
+        v.getBackground().clearColorFilter();
         startActivity(intent);
     }
 
     public void openMap(View v) {
         Intent intent = new Intent(this, MapTypeListActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 1);
     }
 
     public void openNearMe(View v) {
         Intent intent = new Intent(this, NearMeActivity.class);
-        startActivity(intent);
+        startActivityForResult(intent, 1);
     }
 
     public void openSettings(View v) {
