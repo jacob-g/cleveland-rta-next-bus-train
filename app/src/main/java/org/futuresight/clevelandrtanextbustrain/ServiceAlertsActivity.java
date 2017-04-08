@@ -31,21 +31,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).getSelectedItem().toString();
                 if (selectedRouteStr == "Favorites") {
-                    DatabaseHandler db = new DatabaseHandler(ServiceAlertsActivity.this);
-                    List<Station> favoriteStations = db.getFavoriteLocations();
-                    Set<String> lines = new HashSet<>();
-                    for (Station st : favoriteStations) {
-                        lines.add(st.getLineName());
-                    }
-                    db.close();
-                    String[][] arr = new String[lines.size()][2];
-                    int i = 0;
-                    for (String s : lines) {
-                        arr[i][0] = s;
-                        arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(s));
-                        i++;
-                    }
-                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(arr);
+                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(PersistentDataController.getFavoriteLines(ServiceAlertsActivity.this));
                 } else {
                     new GetServiceAlertsTask(view.getContext(), createDialog()).execute(new String[][]{{selectedRouteStr, Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(selectedRouteStr))}});
                 }
@@ -105,7 +91,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         return true;
     }
 
-    //task to get the times of the bus/train
+    //task to get the service alerts
     private class GetServiceAlertsTask extends AsyncTask<String[][], Void, List<Map<String, String>>> {
         private Context myContext;
         private String[] routes;
@@ -116,7 +102,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             myProgressDialog = pdlg;
         }
         protected List<Map<String, String>> doInBackground(String[][]... params) {
-            String returnData = "";
             routes = new String[params[0].length];
             routeIds = new int[params[0].length];
             int i = 0;

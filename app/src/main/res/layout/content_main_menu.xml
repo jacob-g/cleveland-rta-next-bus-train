@@ -22,71 +22,62 @@
         android:weightSum="1">
 
         <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/next_bus_train"
             android:id="@+id/nextBusTrainBtn"
-            android:clickable="true"
-            android:onClick="openNextBusTrainPage"/>
-
-        <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/service_alerts"
+            android:clickable="true"
+            android:drawableLeft="@android:drawable/ic_menu_recent_history"
+            android:onClick="openNextBusTrainPage"
+            android:text="@string/next_bus_train" />
+
+        <Button
             android:id="@+id/serviceAlertsBtn"
-            android:onClick="openServiceAlertsPage"/>
-
-        <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/favorite_locations"
+            android:drawableLeft="@android:drawable/ic_dialog_alert"
+            android:onClick="openServiceAlertsPage"
+            android:text="@string/service_alerts" />
+
+        <Button
             android:id="@+id/manageLocationsBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
             android:clickable="true"
-            android:onClick="openManageLocationsPage"/>
+            android:drawableLeft="@android:drawable/ic_input_get"
+            android:onClick="openManageLocationsPage"
+            android:text="@string/favorite_locations" />
 
         <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/map"
-            android:id="@+id/mapBtn"
-            android:onClick="openMap"/>
-
-        <Button
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/near_me"
             android:id="@+id/nearMeBtn"
-            android:onClick="openNearMe" />
-
-        <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings"
+            android:drawableLeft="@android:drawable/ic_menu_compass"
+            android:onClick="openNearMe"
+            android:text="@string/near_me" />
+
+        <Button
+            android:id="@+id/mapBtn"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:drawableLeft="@android:drawable/ic_dialog_map"
+            android:onClick="openMap"
+            android:text="@string/map" />
+
+        <Button
             android:id="@+id/settingsBtn"
-            android:onClick="openSettings" />
-
-        <Button
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Credits"
+            android:drawableLeft="@android:drawable/ic_menu_preferences"
+            android:onClick="openSettings"
+            android:text="@string/settings" />
+
+        <Button
             android:id="@+id/creditsBtn"
-            android:onClick="openCredits" />
-
-        <TextView
-            android:layout_width="wrap_content"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textAppearance="?android:attr/textAppearanceLarge"
-            android:text="@string/warning"
-            android:id="@+id/textView9"
-            android:layout_gravity="center_horizontal" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="@string/prototypewarning"
-            android:id="@+id/textView10"
-            android:layout_gravity="center_horizontal"
-            android:gravity="center_horizontal" />
+            android:drawableLeft="@android:drawable/ic_menu_help"
+            android:onClick="openCredits"
+            android:text="Credits" />
 
     </LinearLayout>
 </RelativeLayout>

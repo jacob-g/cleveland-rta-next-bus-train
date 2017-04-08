@@ -1,7 +1,7 @@
 <resources>
     <string name="app_name">CLE Transit</string>
     <string name="action_settings">Settings</string>
-    <string name="next_bus_train">Next Bus/Train</string>
+    <string name="next_bus_train">Arrivals</string>
     <string name="service_alerts">Service Alerts</string>
     <string name="manage_locations">Manage Locations</string>
     <string name="line">Line</string>
@@ -10,7 +10,7 @@
     <string name="direction">Direction</string>
     <string name="time">Time</string>
     <string name="no_destination">No Destination</string>
-    <string name="map">Map</string>
+    <string name="map">System Map</string>
     <string name="no_time">No Time</string>
     <string name="select_favorite">Select Favorite</string>
     <string name="add_favorite">Add favorite</string>
@@ -61,7 +61,7 @@
     <string name="view_on_map">View on map</string>
     <string name="nearbystations">Nearby stations (within %d meters of where you clicked)</string>
     <string name="confirmfrydb">Are you sure you want to erase everything? This means you will lose all of your settings and saved locations.</string>
-    <string name="imageCredits">The icons used in the &quot;Near Me&quot; section app were taken from Flaticon.com. The base GPS pin and bus icons are by Freepik, the train icon is by Scott de Jonge, and the star icon is by Madebyoliver. Many thanks to them!</string>
+    <string name="image_credits">The icons used in the &quot;Near Me&quot; section app were taken from Flaticon.com. The base GPS pin and bus icons are by Freepik, the train icon is by Scott de Jonge, and the star icon is by Madebyoliver. Many thanks to them!</string>
     <string name="nextconnectdown">It appears that the source of the arrival information is temporarily down. Please come back later. We apologize for the inconvenience.</string>
     <string name="favorite_pin">Favorite pin</string>
     <string name="rail_pin">Rail pin</string>

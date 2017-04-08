@@ -18,8 +18,10 @@ import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -543,5 +545,25 @@ public abstract class PersistentDataController {
         }
 
         return new ArrayList<>();
+    }
+
+    public static String[][] getFavoriteLines(Context context) {
+        DatabaseHandler db = new DatabaseHandler(context);
+        List<Station> favoriteStations = db.getFavoriteLocations();
+        Set<String> lines = new HashSet<>();
+        for (Station st : favoriteStations) {
+            lines.add(st.getLineName());
+        }
+        db.close();
+        String[][] arr = new String[lines.size()][2];
+        int i = 0;
+        for (String s : lines) {
+            System.out.println(lineIds);
+            arr[i][0] = s;
+            arr[i][1] = Integer.toString(PersistentDataController.getLineIdMap(context).get(s));
+            i++;
+        }
+        db.close();
+        return arr;
     }
 }

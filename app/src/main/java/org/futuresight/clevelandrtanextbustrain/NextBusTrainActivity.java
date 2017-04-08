@@ -670,9 +670,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 serviceAlertsBtn.setText(String.format(getResources().getString(R.string.there_are_n_service_alerts), alertCount));
                 if (params[1] == 1) {
                     serviceAlertsBtn.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
+                } else {
+                    serviceAlertsBtn.getBackground().clearColorFilter();
                 }
             } else {
-                serviceAlertsBtn.setVisibility(View.INVISIBLE);
+                serviceAlertsBtn.setVisibility(View.GONE);
             }
         }
     }
