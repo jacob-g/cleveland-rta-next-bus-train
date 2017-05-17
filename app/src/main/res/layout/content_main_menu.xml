@@ -93,7 +93,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:drawableTop="@android:drawable/ic_dialog_alert"
+                android:drawableTop="@android:drawable/ic_dialog_info"
                 android:onClick="openCredits"
                 android:text="Credits" />
         </TableRow>
@@ -103,13 +103,13 @@
             android:layout_height="match_parent">
 
             <Button
-                android:id="@+id/button7"
+                android:id="@+id/settingsBtn"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_span="2"
                 android:drawableTop="@android:drawable/ic_menu_preferences"
-                android:text="@string/settings"
-                android:onClick="openSettings"/>
+                android:onClick="openSettings"
+                android:text="@string/settings" />
         </TableRow>
 
     </TableLayout>

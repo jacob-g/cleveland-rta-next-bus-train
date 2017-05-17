@@ -44,7 +44,7 @@ public class MainMenu extends AppCompatActivity {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
 
-        new GetServiceAlertsTask(this).execute();
+        //new GetServiceAlertsTask(this).execute(); //TODO: reimplement this once the relevant bugs are fixed
     }
 
     //task to get the times of the bus/train
@@ -58,6 +58,9 @@ public class MainMenu extends AppCompatActivity {
         protected int[] doInBackground(Void... params) {
             PersistentDataController.getLineIdMap(myContext); //pre-load the line ID map just in case
             String[][] faves = PersistentDataController.getFavoriteLines(myContext);
+            if (faves.length == 0) {
+                return new int[]{0, 0};
+            }
             routes = new String[faves[0].length];
             routeIds = new int[faves[0].length];
             int i = 0;
@@ -90,7 +93,7 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        new GetServiceAlertsTask(this).execute();
+        //new GetServiceAlertsTask(this).execute(); //TODO: put this back once the bug is fixed
     }
 
     @Override

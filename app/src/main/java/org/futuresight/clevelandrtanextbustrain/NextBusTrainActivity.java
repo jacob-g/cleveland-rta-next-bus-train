@@ -188,13 +188,34 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //listener that runs when the "select favorite" button is clicked
-    private Button.OnClickListener serviceAlertsClickedClickedListener = new AdapterView.OnClickListener() {
+    private Button.OnClickListener serviceAlertsClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
             Button myBtn = (Button) view;
             myBtn.getBackground().clearColorFilter();
             Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
             intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
             intent.putExtra("routeId", PersistentDataController.getLineIdMap(view.getContext()).get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
+            startActivity(intent);
+        }
+    };
+
+    //listener that runs when the "full schedule" button is clicked
+    private Button.OnClickListener scheduleClickedListener = new AdapterView.OnClickListener() {
+        public void onClick(View view) {
+            Intent intent = new Intent(view.getContext(), ScheduleActivity.class);
+            final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+            final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+            final int stationId = stopIds.get(stationName);
+            final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
+            final int dirId = dirIds.get(dirName);
+
+            intent.putExtra("stationId", stationId);
+            intent.putExtra("dirId", dirId);
+            intent.putExtra("lineId", lineId);
+            intent.putExtra("station", stationName);
+            intent.putExtra("dir", dirName);
+            intent.putExtra("line", lineName);
             startActivity(intent);
         }
     };
@@ -373,7 +394,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
         ImageButton selectFavoriteBtn = (ImageButton) findViewById(R.id.selectFavoriteBtn); //this is for when the "add favorite" button is clicked
         selectFavoriteBtn.setOnClickListener(selectFavoriteClickedListener);
         Button serviceAlertsBtn = (Button)findViewById(R.id.serviceAlertsBtn);
-        serviceAlertsBtn.setOnClickListener(serviceAlertsClickedClickedListener);
+        serviceAlertsBtn.setOnClickListener(serviceAlertsClickedListener);
+        Button scheduleBtn = (Button)findViewById(R.id.scheduleBtn);
+        scheduleBtn.setOnClickListener(scheduleClickedListener);
         ImageButton viewOnMapBtn = (ImageButton)findViewById(R.id.viewOnMapBtn);
         viewOnMapBtn.setOnClickListener(viewOnMapClickedListener);
         ImageButton addToHomeScreenButton = (ImageButton)findViewById(R.id.addToHomeScreenButton);
@@ -627,6 +650,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (myProgressDlg != null) {
                     myProgressDlg.dismiss();
                 }
+                //show the schedule button
+                findViewById(R.id.scheduleBtn).setVisibility(View.VISIBLE);
             } catch (Exception e) {
                 myProgressDlg.dismiss();
                 blankAll();

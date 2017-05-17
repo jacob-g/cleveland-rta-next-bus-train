@@ -234,6 +234,12 @@
                 </TableLayout>
 
                 <Button
+                    android:id="@+id/scheduleBtn"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="See full schedule" />
+
+                <Button
                     android:id="@+id/serviceAlertsBtn"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"

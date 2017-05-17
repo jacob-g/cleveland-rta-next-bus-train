@@ -9,12 +9,12 @@
     <string name="destination">Destination</string>
     <string name="direction">Direction</string>
     <string name="time">Time</string>
-    <string name="no_destination">No Destination</string>
+    <string name="no_destination">---</string>
     <string name="map">System Map</string>
-    <string name="no_time">No Time</string>
+    <string name="no_time">---</string>
     <string name="select_favorite">Select Favorite</string>
     <string name="add_favorite">Add favorite</string>
-    <string name="not_available">Not available</string>
+    <string name="not_available">---</string>
     <string name="appwidget_text">EXAMPLE</string>
     <string name="add_widget">Add widget</string>
     <string name="favorite_locations">Favorite Locations</string>
@@ -70,4 +70,5 @@
     <string name="shortcut_text_prompt">What text do you want to appear on the homescreen for this shortcut?</string>
     <string name="choose_line">Choose line</string>
     <string name="select_route">Select a route</string>
+    <string name="no_schedule">Unfortunately, no schedule is available for this stop. We apologize for the inconvenience.</string>
 </resources>

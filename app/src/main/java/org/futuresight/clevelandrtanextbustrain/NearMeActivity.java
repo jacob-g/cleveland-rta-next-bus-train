@@ -405,6 +405,7 @@ public class NearMeActivity extends FragmentActivity
     final Map<Integer, Boolean> shownLines = new HashMap<>();
     final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
     final int STATION_LIST_LIMIT = 15;
+    //the task to populate the list of nearby stops shown below the map
     private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, List<Object[]>> {
         public GetStopsNearMeTask() {
         }
@@ -451,6 +452,7 @@ public class NearMeActivity extends FragmentActivity
                 ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
 
                 for (Object[] stopInfo : stopList) {
+                    //TODO: show a warning icon if there are service alerts
                     TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
                     TextView stationNameView = new TextView(NearMeActivity.this);
@@ -461,6 +463,8 @@ public class NearMeActivity extends FragmentActivity
                     stationNameView.setOnClickListener(new View.OnClickListener() {
                         @Override
                         public void onClick(View v) {
+                            //TODO: focus the map on the location
+
                             Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
                             intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                             intent.putExtra("lineId", station.getLineId());
@@ -666,6 +670,7 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
+    //TODO: make the updating of nearby arrivals be on a timer instead of with the location update in order to facilitate easier manipulation of the location
     boolean hasLocation = false;
     long lastCheckedStops = 0;
     final int getStopsNearMeInterval = 10;

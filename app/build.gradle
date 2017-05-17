@@ -6,10 +6,10 @@ android {
 
     defaultConfig {
         applicationId "org.futuresight.clevelandrtanextbustrain"
-        minSdkVersion 17
+        minSdkVersion 24
         targetSdkVersion 25
-        versionCode 9
-        versionName "1.0.0.0.8"
+        versionCode 12
+        versionName "1.0.0.0.11"
 
         multiDexEnabled true
     }
@@ -27,13 +27,15 @@ android {
     }
 }
 
+
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    testCompile 'junit:junit:4.12'
     compile 'com.android.support:appcompat-v7:25.2.0'
     compile 'com.android.support:design:25.2.0'
     compile 'com.android.support:support-v4:25.2.0'
     compile 'com.android.support:recyclerview-v7:25.2.0'
     compile 'com.google.android.gms:play-services:10.2.0'
     compile 'com.android.support:multidex:1.0.1'
+    compile 'com.android.support.constraint:constraint-layout:+'
+    testCompile 'junit:junit:4.12'
 }
