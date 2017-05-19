@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.TableLayout;
@@ -68,7 +69,7 @@ public class ScheduleActivity extends AppCompatActivity {
             finish();
         }
 
-        ((Button)findViewById(R.id.selectDateBtn)).setOnClickListener(onDatePickerClickedListener);
+        (findViewById(R.id.selectDateBtn)).setOnClickListener(onDatePickerClickedListener);
         new GetScheduleTask(ScheduleActivity.this, createDialog(), true).execute();
     }
 
@@ -152,7 +153,8 @@ public class ScheduleActivity extends AppCompatActivity {
             } else {
                 for (String[] arr : result) {
                     TableRow newRow = new TableRow(myContext);
-                    newRow.setLayoutParams(new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT));
+                    ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT);
+                    newRow.setLayoutParams(params);
                     String[] timeParts = arr[1].split(":");
                     int hours = Integer.parseInt(timeParts[0]);
                     String period;

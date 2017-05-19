@@ -71,4 +71,6 @@
     <string name="choose_line">Choose line</string>
     <string name="select_route">Select a route</string>
     <string name="no_schedule">Unfortunately, no schedule is available for this stop. We apologize for the inconvenience.</string>
+    <string name="schedule">Schedule</string>
+    <string name="full_schedule">See full schedule</string>
 </resources>

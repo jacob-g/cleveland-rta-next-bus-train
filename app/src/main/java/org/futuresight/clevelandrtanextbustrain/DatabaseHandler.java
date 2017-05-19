@@ -664,7 +664,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 alertInfo.put("info", cursor.getString(3));
                 alertInfo.put("new", cursor.getInt(4) == 0 ? "true" : "false");
                 outList.add(alertInfo);
-                System.out.println(alertInfo);
             } while (cursor.moveToNext());
         }
         db.close();
