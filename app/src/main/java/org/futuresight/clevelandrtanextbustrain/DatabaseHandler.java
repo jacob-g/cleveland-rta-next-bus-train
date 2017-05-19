@@ -20,7 +20,7 @@ import java.util.TreeMap;
  * Created by jacob on 5/15/16.
  */
 public class DatabaseHandler extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 2;
+    private static final int DATABASE_VERSION = 3;
     private static final String DATABASE_NAME = "rtaNextBusTrain";
 
     //the names for the various tables
@@ -52,6 +52,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_URL = "url";
 
     private static final String CACHED_LINE_ALERTS_TABLE = "cached_line_alerts";
+
+    private static final String LINE_ALERTS_TABLE = "line_alerts";
+        private static final String FIELD_ALERT_ID = "alert_id";
 
     private static final String ESCEL_STATUSES_TABLE = "escel_statuses";
         private static final String FIELD_STATUS = "status";
@@ -145,6 +148,12 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_EXPIRES + " INTEGER"
                 + ")";
         db.execSQL(CREATE_ALERTS_TABLE);
+
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + LINE_ALERTS_TABLE + "("
+                + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_ALERT_ID + " INTEGER,"
+                + FIELD_EXPIRES + " INTEGER)");
 
         String CREATE_CACHED_LINE_ALERTS_TABLE = "CREATE TABLE IF NOT EXISTS " + CACHED_LINE_ALERTS_TABLE + "("
                 + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -266,6 +275,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         // Create tables again
         if (oldVersion < 2) { //need to add lines to the line path table
             db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_ID + " INTEGER");
+        }
+        if (oldVersion < 3) { //create a table for line-specific alerts
+            db.execSQL("CREATE TABLE IF NOT EXISTS " + LINE_ALERTS_TABLE + "("
+                    + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + FIELD_LINE_ID + " INTEGER,"
+                    + FIELD_ALERT_ID + " INTEGER,"
+                    + FIELD_EXPIRES + " INTEGER)");
         }
         onCreate(db);
     }
@@ -549,6 +565,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     //save an alert, returns true if it's new and false if it's an update
     public boolean saveAlert(int alertId, int lineId, String title, String url, String text) {
         SQLiteDatabase db = this.getWritableDatabase();
+        //PROBLEM: cache it for the LINE instead of just the alert as a whole (probably need a separate table for this)
         Cursor cursor = db.rawQuery("SELECT 1 FROM " + ALERTS_TABLE + " WHERE " + ID + "=" + alertId, null);
         if (cursor.getCount() > 0) {
             ContentValues values = new ContentValues();
@@ -556,21 +573,37 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_DESCRIPTION, text);
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
             db.update(ALERTS_TABLE, values, ID + "=" + alertId, null);
+            cursor.close();
+            cursor = db.rawQuery("SELECT 1 FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_ALERT_ID + "=" + alertId + " AND " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + PersistentDataController.getCurTime(), null);
+            if (cursor.getCount() == 0) {
+                values = new ContentValues();
+                values.put(FIELD_LINE_ID, lineId);
+                values.put(FIELD_ALERT_ID, alertId);
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+                db.insert(LINE_ALERTS_TABLE, null, values);
+            }
             return false;
         } else {
             //insert the alert
             ContentValues values = new ContentValues();
             values.put(ID, alertId);
             values.put(FIELD_READ, 0);
-            values.put(FIELD_LINE_ID, lineId);
+            //values.put(FIELD_LINE_ID, lineId);
             values.put(FIELD_TITLE, title);
             values.put(FIELD_URL, url);
             values.put(FIELD_DESCRIPTION, text);
             values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
             db.insert(ALERTS_TABLE, null, values);
 
+            values = new ContentValues();
+            values.put(FIELD_LINE_ID, lineId);
+            values.put(FIELD_ALERT_ID, alertId);
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            db.insert(LINE_ALERTS_TABLE, null, values);
+
             //delete old alerts, start with the alert entry linking the line with the alert
             db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
+            db.execSQL("DELETE FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             db.close();
             return true;
         }
@@ -618,7 +651,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         //otherwise get the results
         List<Map<String, String>> outList = new ArrayList<>();
 
-        selectQuery = "SELECT " + ID + "," + FIELD_URL + "," + FIELD_TITLE + "," + FIELD_DESCRIPTION + "," + FIELD_READ + " FROM " + ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
+        //selectQuery = "SELECT " + ID + "," + FIELD_URL + "," + FIELD_TITLE + "," + FIELD_DESCRIPTION + "," + FIELD_READ + " FROM " + ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
+        selectQuery = "SELECT a." + ID + ",a." + FIELD_URL + ",a." + FIELD_TITLE + ",a." + FIELD_DESCRIPTION + ",a." + FIELD_READ + " FROM " + LINE_ALERTS_TABLE + " AS l LEFT JOIN " + ALERTS_TABLE + " AS a ON a.id=l." + FIELD_ALERT_ID + " WHERE l." + FIELD_LINE_ID + "=" + lineId + " AND l." + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_TITLE + " ASC";
 
         Cursor cursor = db.rawQuery(selectQuery, null);
         if (cursor.moveToFirst()) {
