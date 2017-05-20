@@ -582,6 +582,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
                 db.insert(LINE_ALERTS_TABLE, null, values);
             }
+            db.execSQL("DELETE FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             return false;
         } else {
             //insert the alert
@@ -602,7 +603,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             db.insert(LINE_ALERTS_TABLE, null, values);
 
             //delete old alerts, start with the alert entry linking the line with the alert
-            db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
+            //db.execSQL("DELETE FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             db.execSQL("DELETE FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
             db.close();
             return true;

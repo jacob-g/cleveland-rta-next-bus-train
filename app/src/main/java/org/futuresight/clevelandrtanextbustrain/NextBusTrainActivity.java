@@ -421,6 +421,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
             }
             new GetLinesTask(this, createDialog()).execute();
 
+            if (savedInstanceState != null) {
+                preSelectedLineId = savedInstanceState.getInt("lineId");
+                preSelectedDirId = savedInstanceState.getInt("dirId");
+                preSelectedStopId = savedInstanceState.getInt("stationId");
+            }
+
             getSupportActionBar().setDisplayHomeAsUpEnabled(true);
 
             //create a timer to get the list of stops as appropriate
@@ -430,6 +436,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Save the user's current state
+        final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+        final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+        final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+        final int stationId = stopIds.containsKey(stationName) ? stopIds.get(stationName) : -1;
+        final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).containsKey(lineName) ? PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName) : -1;
+        final int dirId = dirIds.containsKey(dirName) ? dirIds.get(dirName) : -1;
+
+        savedInstanceState.putInt("stationId", stationId);
+        savedInstanceState.putInt("dirId", dirId);
+        savedInstanceState.putInt("lineId", lineId);
+
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
     }
 
     @Override
