@@ -1,7 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -58,7 +57,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectedRouteStr.equals("") || selectedDirStr.equals("") || selectedStopStr.equals("")) {
                 //nothing is selected, so try again later
             } else {
-                new GetTimesTask(view.getContext(), null).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                new GetTimesTask(view.getContext(), false).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
             }
         }
     }
@@ -68,8 +67,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-                new GetDirectionsTask(view.getContext(), createDialog()).execute(selectedRouteStr);
-                new GetServiceAlertsTask(view.getContext()).execute(selectedRouteStr);
+                if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
+                    new GetDirectionsTask(view.getContext()).execute(selectedRouteStr);
+                    new GetServiceAlertsTask(view.getContext()).execute(selectedRouteStr);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -334,7 +335,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-                new GetStopsTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr);
+                if (!selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedRouteStr.equals("") &&
+                        !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedDirStr.equals("")) {
+                    new GetStopsTask(view.getContext()).execute(selectedRouteStr, selectedDirStr);
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -345,15 +349,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     };
 
-    private ProgressDialog createDialog() {
-        ProgressDialog dlg = new ProgressDialog(NextBusTrainActivity.this);
-        dlg.setTitle("Loading");
-        dlg.setMessage("Please wait...");
-        dlg.setCancelable(false);
-        dlg.show();
-        return dlg;
-    }
-
     //listener that runs when a direction is selected (loads the appropriate stops)
     private Spinner.OnItemSelectedListener stopSelectedSpinner = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
@@ -362,10 +357,14 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
 
-                //TODO: change the color of the homescreen button as appropriate
+                //TODO: change the color of the homescreen button as appropriate for alerts
 
-                new GetTimesTask(view.getContext(), createDialog()).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
-                new GetEscalatorElevatorStatus(view.getContext()).execute(stopIds.get(selectedStopStr));
+                if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) &&
+                        !selectedDirStr.equals("") && !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) &&
+                        !selectedStopStr.equals("") && !selectedStopStr.equals(getResources().getString(R.string.loadingellipsis))) {
+                    new GetTimesTask(view.getContext(), true).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                    new GetEscalatorElevatorStatus(view.getContext()).execute(stopIds.get(selectedStopStr));
+                }
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -419,7 +418,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (getIntent().hasExtra("stopId")) {
                 preSelectedStopId = getIntent().getExtras().getInt("stopId");
             }
-            new GetLinesTask(this, createDialog()).execute();
+            new GetLinesTask(this).execute();
 
             if (savedInstanceState != null) {
                 preSelectedLineId = savedInstanceState.getInt("lineId");
@@ -465,21 +464,24 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetLinesTask extends AsyncTask<Void, Void, String[]> {
         private Context myContext;
-        private ProgressDialog myProgressDialog;
-        public GetLinesTask(Context context, ProgressDialog pdlg) {
+        public GetLinesTask(Context context) {
             myContext = context;
-            myProgressDialog = pdlg;
+
+            Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
+            lineSpinner.setAdapter(adapter);
+            lineSpinner.setEnabled(false);
         }
         protected String[] doInBackground(Void... params) {
             return PersistentDataController.getLines(myContext);
         }
 
         protected void onPostExecute(String[] lineNames) {
+            Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             if (lineNames.length == 0) {
                 alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
             }
             //put that into the spinner
-            Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
             lineSpinner.setAdapter(adapter);
             if (preSelectedLineId != -1) {
@@ -490,7 +492,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
                 }
             }
-            myProgressDialog.dismiss();
+            lineSpinner.setEnabled(true);
         }
     }
 
@@ -501,23 +503,32 @@ public class NextBusTrainActivity extends AppCompatActivity {
             preSelectedStopId = data.getExtras().getInt("stopId");
             preSelectedDirId = data.getExtras().getInt("dirId");
             preSelectedLineId = data.getExtras().getInt("lineId");
-            new GetLinesTask(this, createDialog()).execute();
+            new GetLinesTask(this).execute();
         }
     }
 
     private class GetDirectionsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
-        private ProgressDialog myProgressDialog;
+        //private ProgressDialog myProgressDialog;
         private Map<String, Integer> dirs;
         private int route;
-        public GetDirectionsTask(Context context, ProgressDialog pdlg) {
+        public GetDirectionsTask(Context context) {
             myContext = context;
-            myProgressDialog = pdlg;
+            Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
+            dirSpinner.setClickable(false);
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
+            dirSpinner.setAdapter(adapter);
+            //myProgressDialog = pdlg;
         }
         protected Map<String, Integer> doInBackground(String... params) {
-            route = PersistentDataController.getLineIdMap(myContext).get(params[0]);
-            dirs = PersistentDataController.getDirIds(myContext, route);
-            return dirIds = dirs;
+            try {
+                route = PersistentDataController.getLineIdMap(myContext).get(params[0]);
+                dirs = PersistentDataController.getDirIds(myContext, route);
+                return dirIds = dirs;
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
             /*if (dirs.isEmpty()) {
                 return NetworkController.performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getDirections", "{routeID: " + route + "}");
             } else {
@@ -528,8 +539,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
+                Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 if (result == null) { //connection failed
-                    myProgressDialog.dismiss();
+                    dirSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
+                    dirSpinner.setClickable(true);
                     return;
                 } else if (result.isEmpty()) {
                     alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
@@ -538,7 +551,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 directions = new String[dirSet.size()];
                 dirSet.toArray(directions);
                 //put that into the spinner
-                Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
+
                 ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, directions);
                 dirSpinner.setAdapter(adapter);
 
@@ -550,10 +563,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         }
                     }
                 }
+                dirSpinner.setClickable(true);
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            myProgressDialog.dismiss();
         }
     }
 
@@ -561,27 +574,35 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Context myContext;
         private Map<String, Integer> stations;
         private int myRouteId, myDirId;
-        private ProgressDialog myProgressDialog;
-        public GetStopsTask(Context context, ProgressDialog pdlg) {
+        public GetStopsTask(Context context) {
             myContext = context;
-            myProgressDialog = pdlg;
+            Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
+            stationSpinner.setAdapter(adapter);
+            stationSpinner.setEnabled(false);
         }
         protected Map<String, Integer> doInBackground(String... params) {
-            myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
-            myDirId = dirIds.get(params[1]);
-            stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
-            return PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
+            try {
+                myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
+                myDirId = dirIds.get(params[1]);
+                stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
+                return PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
         }
 
         protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
+                Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) {
-                    myProgressDialog.dismiss();
+                    stationSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{""}));
+                    stationSpinner.setEnabled(true);
                     return;
                 }
 
-                Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 int selectPos = -1;
 
                 stopIds = result;
@@ -606,27 +627,30 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         break;
                     }
                 }
+                stationSpinner.setEnabled(true);
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
-            myProgressDialog.dismiss();
         }
     }
 
     //task to get the times of the bus/train
     private class GetTimesTask extends AsyncTask<String, Void, List<String[]>> {
         private Context myContext;
-        private ProgressDialog myProgressDlg;
         private int stopId;
-        public GetTimesTask(Context context, ProgressDialog pdlg) {
+        public GetTimesTask(Context context, boolean showLoading) {
             myContext = context;
-            myProgressDlg = pdlg;
+            if (showLoading) {
+                blankAll();
+                ((TextView) findViewById(R.id.train1destbox)).setText(getResources().getString(R.string.loadingellipsis));
+            }
         }
         protected List<String[]> doInBackground(String... params) {
             if (params[0] == null || params[1] == null || params[2] == null) {
                 blankAll();
             }
+
             int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             if (dirIds == null || stopIds == null) {
                 return null;
@@ -672,13 +696,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     ((TextView) findViewById(R.id.train3destbox)).setText(R.string.no_destination);
                     ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
                 }
-                if (myProgressDlg != null) {
-                    myProgressDlg.dismiss();
-                }
                 //show the schedule button
                 findViewById(R.id.scheduleBtn).setVisibility(View.VISIBLE);
             } catch (Exception e) {
-                myProgressDlg.dismiss();
                 blankAll();
                 System.err.println("Error in parsing JSON or XML");
                 e.printStackTrace();
