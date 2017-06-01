@@ -115,6 +115,13 @@
                 android:layout_height="wrap_content"
                 android:orientation="vertical">
 
+                <TextView
+                    android:id="@+id/noScheduleBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/no_schedule"
+                    android:visibility="gone" />
+
                 <TableLayout
                     android:id="@+id/scheduleListTable"
                     android:layout_width="match_parent"
