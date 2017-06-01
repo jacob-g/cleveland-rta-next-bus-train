@@ -1,7 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.DatePickerDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -31,15 +30,6 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 
 public class ScheduleActivity extends AppCompatActivity {
-    private ProgressDialog createDialog() {
-        ProgressDialog dlg = new ProgressDialog(ScheduleActivity.this);
-        dlg.setTitle("Loading");
-        dlg.setMessage("Please wait...");
-        dlg.setCancelable(false);
-        dlg.show();
-        return dlg;
-    }
-
     private Button.OnClickListener onDatePickerClickedListener = new Button.OnClickListener() {
         public void onClick(View v) {
             int day = Integer.parseInt(new SimpleDateFormat("dd").format(selectedDate));
@@ -53,7 +43,7 @@ public class ScheduleActivity extends AppCompatActivity {
                     SimpleDateFormat df = new SimpleDateFormat("MMM dd, YYYY");
                     String formattedDate = df.format(selectedDate);
                     ((Button)findViewById(R.id.selectDateBtn)).setText(formattedDate);
-                    new GetScheduleTask(ScheduleActivity.this, createDialog(), false).execute();
+                    new GetScheduleTask(ScheduleActivity.this, false).execute();
                 }
             }, year, month - 1, day).show();
         }
@@ -70,7 +60,7 @@ public class ScheduleActivity extends AppCompatActivity {
         }
 
         (findViewById(R.id.selectDateBtn)).setOnClickListener(onDatePickerClickedListener);
-        new GetScheduleTask(ScheduleActivity.this, createDialog(), true).execute();
+        new GetScheduleTask(ScheduleActivity.this, true).execute();
     }
 
     @Override
@@ -83,12 +73,12 @@ public class ScheduleActivity extends AppCompatActivity {
 
     private class GetScheduleTask extends AsyncTask<Void, List<String[]>, List<String[]>> {
         private final Context myContext;
-        private final ProgressDialog myProgressDialog;
         private final boolean starting;
-        public GetScheduleTask(Context context, ProgressDialog pdlg, boolean starting) {
+        public GetScheduleTask(Context context, boolean starting) {
             myContext = context;
-            myProgressDialog = pdlg;
             this.starting = starting;
+            findViewById(R.id.noScheduleBox).setVisibility(View.GONE);
+            findViewById(R.id.loadingBox).setVisibility(View.VISIBLE);
         }
         protected List<String[]> doInBackground(Void... params) {
             int lineId = getIntent().getExtras().getInt("lineId");
@@ -142,6 +132,7 @@ public class ScheduleActivity extends AppCompatActivity {
                 ((Button) findViewById(R.id.selectDateBtn)).setText(formattedDate);
             }
 
+            findViewById(R.id.loadingBox).setVisibility(View.GONE);
 
             ((TableLayout)findViewById(R.id.scheduleListTable)).removeAllViews();
             if (result.isEmpty()) {
@@ -182,7 +173,6 @@ public class ScheduleActivity extends AppCompatActivity {
                     ((TableLayout) findViewById(R.id.scheduleListTable)).addView(newRow);
                 }
             }
-            myProgressDialog.dismiss();
         }
     }
 

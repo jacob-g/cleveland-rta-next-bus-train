@@ -203,21 +203,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
     //listener that runs when the "full schedule" button is clicked
     private Button.OnClickListener scheduleClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
-            Intent intent = new Intent(view.getContext(), ScheduleActivity.class);
-            final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
-            final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-            final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-            final int stationId = stopIds.get(stationName);
-            final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
-            final int dirId = dirIds.get(dirName);
+            try {
+                Intent intent = new Intent(view.getContext(), ScheduleActivity.class);
+                final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+                final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+                final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+                final int stationId = stopIds.get(stationName);
+                final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
+                final int dirId = dirIds.get(dirName);
 
-            intent.putExtra("stationId", stationId);
-            intent.putExtra("dirId", dirId);
-            intent.putExtra("lineId", lineId);
-            intent.putExtra("station", stationName);
-            intent.putExtra("dir", dirName);
-            intent.putExtra("line", lineName);
-            startActivity(intent);
+                intent.putExtra("stationId", stationId);
+                intent.putExtra("dirId", dirId);
+                intent.putExtra("lineId", lineId);
+                intent.putExtra("station", stationName);
+                intent.putExtra("dir", dirName);
+                intent.putExtra("line", lineName);
+                startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     };
 
@@ -440,16 +444,20 @@ public class NextBusTrainActivity extends AppCompatActivity {
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
         // Save the user's current state
-        final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
-        final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-        final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-        final int stationId = stopIds.containsKey(stationName) ? stopIds.get(stationName) : -1;
-        final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).containsKey(lineName) ? PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName) : -1;
-        final int dirId = dirIds.containsKey(dirName) ? dirIds.get(dirName) : -1;
+        try {
+            final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+            final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+            final int stationId = stopIds.containsKey(stationName) ? stopIds.get(stationName) : -1;
+            final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).containsKey(lineName) ? PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName) : -1;
+            final int dirId = dirIds.containsKey(dirName) ? dirIds.get(dirName) : -1;
 
-        savedInstanceState.putInt("stationId", stationId);
-        savedInstanceState.putInt("dirId", dirId);
-        savedInstanceState.putInt("lineId", lineId);
+            savedInstanceState.putInt("stationId", stationId);
+            savedInstanceState.putInt("dirId", dirId);
+            savedInstanceState.putInt("lineId", lineId);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
 
         // Always call the superclass so it can save the view hierarchy state
@@ -509,16 +517,14 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetDirectionsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
-        //private ProgressDialog myProgressDialog;
         private Map<String, Integer> dirs;
         private int route;
         public GetDirectionsTask(Context context) {
             myContext = context;
             Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
-            dirSpinner.setClickable(false);
+            dirSpinner.setEnabled(false);
             ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
             dirSpinner.setAdapter(adapter);
-            //myProgressDialog = pdlg;
         }
         protected Map<String, Integer> doInBackground(String... params) {
             try {
@@ -542,7 +548,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 if (result == null) { //connection failed
                     dirSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
-                    dirSpinner.setClickable(true);
+                    dirSpinner.setEnabled(true);
                     return;
                 } else if (result.isEmpty()) {
                     alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
@@ -563,7 +569,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         }
                     }
                 }
-                dirSpinner.setClickable(true);
+                dirSpinner.setEnabled(true);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -572,12 +578,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     private class GetStopsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
-        private Map<String, Integer> stations;
         private int myRouteId, myDirId;
+        private Map<String, Integer> stations;
         public GetStopsTask(Context context) {
             myContext = context;
             Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
             stationSpinner.setAdapter(adapter);
             stationSpinner.setEnabled(false);
         }
@@ -602,8 +608,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     stationSpinner.setEnabled(true);
                     return;
                 }
-
-                int selectPos = -1;
 
                 stopIds = result;
                 Set<String> stopSet = result.keySet();

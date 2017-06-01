@@ -1,7 +1,6 @@
 package org.futuresight.clevelandrtanextbustrain;
 
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
@@ -30,10 +29,12 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.serviceAlertsLineSpinner)).getSelectedItem().toString();
-                if (selectedRouteStr == "Favorites") {
-                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(PersistentDataController.getFavoriteLines(ServiceAlertsActivity.this));
-                } else {
-                    new GetServiceAlertsTask(view.getContext(), createDialog()).execute(new String[][]{{selectedRouteStr, Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(selectedRouteStr))}});
+                if (!selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedRouteStr.equals("")) {
+                    if (selectedRouteStr == "Favorites") {
+                        new GetServiceAlertsTask(view.getContext()).execute(PersistentDataController.getFavoriteLines(ServiceAlertsActivity.this));
+                    } else {
+                        new GetServiceAlertsTask(view.getContext()).execute(new String[][]{{selectedRouteStr, Integer.toString(PersistentDataController.getLineIdMap(view.getContext()).get(selectedRouteStr))}});
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -44,15 +45,6 @@ public class ServiceAlertsActivity extends AppCompatActivity {
 
         }
     };
-
-    private ProgressDialog createDialog() {
-        ProgressDialog dlg = new ProgressDialog(this);
-        dlg.setTitle("Loading");
-        dlg.setMessage("Please wait...");
-        dlg.setCancelable(false);
-        dlg.show();
-        return dlg;
-    }
 
     private void alertDialog(String title, String msg, final boolean die) {
         AlertDialog alertDialog = new AlertDialog.Builder(ServiceAlertsActivity.this).create();
@@ -82,7 +74,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
             return;
         }
 
-        new GetLinesTask(this, createDialog()).execute();
+        new GetLinesTask(this).execute();
     }
 
     @Override
@@ -96,10 +88,14 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         private Context myContext;
         private String[] routes;
         private int[] routeIds;
-        private ProgressDialog myProgressDialog;
-        public GetServiceAlertsTask(Context context, ProgressDialog pdlg) {
+        public GetServiceAlertsTask(Context context) {
             myContext = context;
-            myProgressDialog = pdlg;
+
+            LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
+            serviceAlertsLayout.removeAllViews();
+            TextView noAlertsNotice = new TextView(myContext);
+            noAlertsNotice.setText(getResources().getString(R.string.loadingellipsis));
+            serviceAlertsLayout.addView(noAlertsNotice);
         }
         protected List<Map<String, String>> doInBackground(String[][]... params) {
             routes = new String[params[0].length];
@@ -153,16 +149,17 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     serviceAlertsLayout.addView(contentView);
                 }
             }
-            myProgressDialog.dismiss();
         }
     }
 
     private class GetLinesTask extends AsyncTask<Void, Void, String[]> {
         private Context myContext;
-        private ProgressDialog myProgressDialog;
-        public GetLinesTask(Context context, ProgressDialog pdlg) {
+        public GetLinesTask(Context context) {
             myContext = context;
-            myProgressDialog = pdlg;
+            Spinner lineSpinner = (Spinner) findViewById(R.id.serviceAlertsLineSpinner);
+            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
+            lineSpinner.setAdapter(adapter);
+            lineSpinner.setEnabled(false);
         }
         protected String[] doInBackground(Void... params) {
             return PersistentDataController.getLines(myContext);
@@ -223,7 +220,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                     }
                 }
             }
-            myProgressDialog.dismiss();
+            lineSpinner.setEnabled(true);
 
             try {
                 String[][] routeList = new String[selectedRoutes.length][2];

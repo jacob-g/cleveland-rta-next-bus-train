@@ -122,6 +122,13 @@
                     android:text="@string/no_schedule"
                     android:visibility="gone" />
 
+                <TextView
+                    android:id="@+id/loadingBox"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="@string/loadingellipsis"
+                    android:visibility="gone" />
+
                 <TableLayout
                     android:id="@+id/scheduleListTable"
                     android:layout_width="match_parent"
