@@ -6,6 +6,7 @@ import android.content.Context;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.Layout;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -146,7 +147,10 @@ public class ScheduleActivity extends AppCompatActivity {
             ((TableLayout)findViewById(R.id.scheduleListTable)).removeAllViews();
             if (result.isEmpty()) {
                 TableRow newRow = new TableRow(myContext);
+                ViewGroup.LayoutParams params = new ViewGroup.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT);
+                newRow.setLayoutParams(params);
                 TextView noSchedView = new TextView(myContext);
+                noSchedView.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
                 noSchedView.setText(getResources().getString(R.string.no_schedule));
                 newRow.addView(noSchedView);
                 ((TableLayout) findViewById(R.id.scheduleListTable)).addView(newRow); //TODO: make this wrap properly

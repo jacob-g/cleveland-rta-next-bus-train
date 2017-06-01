@@ -26,14 +26,17 @@
                     android:id="@+id/textView10"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_weight="0"
                     android:paddingRight="15dp"
                     android:text="@string/line"
                     android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/lineBox"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:breakStrategy="simple"
                     android:textSize="18sp" />
             </TableRow>
 
@@ -45,14 +48,17 @@
                     android:id="@+id/textView25"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_weight="0"
                     android:paddingRight="15dp"
                     android:text="@string/direction"
                     android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/directionBox"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:breakStrategy="simple"
                     android:textSize="18sp" />
             </TableRow>
 
@@ -64,14 +70,17 @@
                     android:id="@+id/textView27"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_weight="0"
                     android:paddingRight="15dp"
                     android:text="@string/station"
                     android:textSize="18sp" />
 
                 <TextView
                     android:id="@+id/stationBox"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:breakStrategy="simple"
                     android:textSize="18sp" />
             </TableRow>
 
@@ -83,14 +92,16 @@
                     android:id="@+id/textView28"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
+                    android:layout_weight="0"
                     android:paddingRight="15dp"
                     android:text="Date"
                     android:textSize="18sp" />
 
                 <Button
                     android:id="@+id/selectDateBtn"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content" />
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1" />
 
             </TableRow>
         </TableLayout>
