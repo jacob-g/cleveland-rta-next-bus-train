@@ -10,8 +10,11 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.support.v4.content.res.ResourcesCompat;
 import android.view.View;
 import android.widget.Button;
+import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import android.widget.ProgressBar;
 import android.widget.TableLayout;
 import android.widget.TableRow;
@@ -159,6 +162,21 @@ public class NearMeActivity extends FragmentActivity
                 }
             }
         );
+
+        (findViewById(R.id.showHideBtn)).setOnClickListener(new Button.OnClickListener() {
+                                                                  public void onClick(View view) {
+                                                                      View belowMapLayout = findViewById(R.id.belowMapLayout);
+                                                                      ImageButton sender = (ImageButton)view;
+                                                                      if (belowMapLayout.getVisibility() == View.VISIBLE) {
+                                                                          belowMapLayout.setVisibility(View.GONE);
+                                                                          sender.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.arrow_up_float, null));
+                                                                      } else {
+                                                                          belowMapLayout.setVisibility(View.VISIBLE);
+                                                                          sender.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.arrow_down_float, null));
+                                                                      }
+                                                                  }
+                                                              }
+        );
     }
 
     @Override
@@ -300,7 +318,7 @@ public class NearMeActivity extends FragmentActivity
                 pathsByLineId.get(path.lineId).add(newPath);
             }
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
-            (findViewById(R.id.chooseLineBtn)).setVisibility(View.VISIBLE);
+            (findViewById(R.id.topButtonsLayout)).setVisibility(View.VISIBLE);
             loadedLines = true;
         }
     }
@@ -449,7 +467,8 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<Object[]> stopList) {
             try {
-                ((TableLayout)findViewById(R.id.belowMapLayout)).removeAllViews();
+                TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
+                belowMapLayout.removeAllViews();
 
                 for (Object[] stopInfo : stopList) {
                     //TODO: show a warning icon if there are service alerts
@@ -487,7 +506,12 @@ public class NearMeActivity extends FragmentActivity
                     stationLineView.setText(stopInfo[3] + "\n" + stopInfo[2]);
                     arrivalRow.addView(stationLineView, 1);
 
-                    ((TableLayout) findViewById(R.id.belowMapLayout)).addView(arrivalRow);
+                    belowMapLayout.addView(arrivalRow);
+                }
+                //TODO: adjust height
+                FrameLayout mapFrame = (FrameLayout)findViewById(R.id.map);
+                if (belowMapLayout.getHeight() > mapFrame.getHeight()) {
+                    belowMapLayout.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, (findViewById(R.id.mapParentLayout)).getHeight() / 2));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -674,17 +698,21 @@ public class NearMeActivity extends FragmentActivity
     boolean hasLocation = false;
     long lastCheckedStops = 0;
     final int getStopsNearMeInterval = 10;
+    boolean followingUser = false;
     @Override
     public void onLocationChanged(Location location) {
+        if (followingUser) {
+            mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
+        }
         if (!hasLocation) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
             hasLocation = true;
+            followingUser = true;
         }
         if (loadedLines && loadedStops && lastCheckedStops < PersistentDataController.getCurTime() - getStopsNearMeInterval) {
             lastCheckedStops = PersistentDataController.getCurTime();
             new GetStopsNearMeTask().execute(new LatLng(location.getLatitude(), location.getLongitude()));
         }
-        //mMap.animateCamera(CameraUpdateFactory.newLatLng(new LatLng(location.getLatitude(), location.getLongitude())));
     }
 
 

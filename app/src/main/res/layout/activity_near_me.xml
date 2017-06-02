@@ -1,5 +1,7 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/mapParentLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:gravity="top|bottom"
@@ -19,7 +21,7 @@
         android:layout_alignParentBottom="false"
         android:layout_alignParentEnd="false"
         android:layout_gravity="top|left|right"
-        android:layout_weight="2"
+        android:layout_weight="1"
         tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
 
     <ScrollView
@@ -28,14 +30,38 @@
         android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
         android:layout_gravity="bottom"
-        android:layout_weight="1"
-        android:minHeight="108dp">
+        android:layout_weight="0"
+        android:minHeight="54dp">
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
             android:visibility="visible">
+
+            <LinearLayout
+                android:id="@+id/topButtonsLayout"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="horizontal"
+                android:visibility="gone">
+
+                <ImageButton
+                    android:id="@+id/showHideBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_weight="0"
+                    android:src="@android:drawable/arrow_down_float"
+                    app:srcCompat="@android:drawable/arrow_down_float" />
+
+                <Button
+                    android:id="@+id/chooseLineBtn"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="@string/choose_line"
+                    android:visibility="visible" />
+            </LinearLayout>
 
             <TableLayout
                 android:id="@+id/belowMapLayout"
@@ -89,14 +115,6 @@
                 </TableRow>
 
             </TableLayout>
-
-            <Button
-                android:id="@+id/chooseLineBtn"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:text="@string/choose_line"
-                android:visibility="gone" />
 
         </LinearLayout>
 
