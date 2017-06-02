@@ -580,9 +580,17 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Context myContext;
         private int myRouteId, myDirId;
         private Map<String, Integer> stations;
+        private String curSelection = "";
         public GetStopsTask(Context context) {
             myContext = context;
             Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
+
+            //get the current selection in case the direction is changing
+            if (stationSpinner.getSelectedItem() != null) {
+                curSelection = stationSpinner.getSelectedItem().toString();
+            }
+
+            //replace the content of the spinner with a loading message
             ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{getResources().getString(R.string.loadingellipsis)});
             stationSpinner.setAdapter(adapter);
             stationSpinner.setEnabled(false);
@@ -614,13 +622,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 stops = new String[stopSet.size()];
                 stopSet.toArray(stops);
 
-                //get the current selection in case the direction is changing
-                String curSelection = "";
-                if (stationSpinner.getSelectedItem() != null) {
-                    curSelection = stationSpinner.getSelectedItem().toString();
-                }
-
-                //put that into the spinner
+                //put the result into the spinner
                 ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
 
@@ -632,7 +634,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     }
                 }
                 stationSpinner.setEnabled(true);
-
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -644,26 +645,36 @@ public class NextBusTrainActivity extends AppCompatActivity {
         private Context myContext;
         private int stopId;
         public GetTimesTask(Context context, boolean showLoading) {
-            myContext = context;
-            if (showLoading) {
-                blankAll();
-                ((TextView) findViewById(R.id.train1destbox)).setText(getResources().getString(R.string.loadingellipsis));
+            try {
+                myContext = context;
+                if (showLoading) {
+                    blankAll();
+                    ((TextView) findViewById(R.id.train1destbox)).setText(getResources().getString(R.string.loadingellipsis));
+                }
+                findViewById(R.id.scheduleBtn).setVisibility(View.GONE);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
         }
         protected List<String[]> doInBackground(String... params) {
-            if (params[0] == null || params[1] == null || params[2] == null) {
-                blankAll();
-            }
+            try {
+                if (params[0] == null || params[1] == null || params[2] == null) {
+                    blankAll();
+                }
 
-            int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
-            if (dirIds == null || stopIds == null) {
+                int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
+                if (dirIds == null || stopIds == null) {
+                    return null;
+                }
+                int dirId = dirIds.get(params[1]);
+                stopId = stopIds.get(params[2]);
+
+                //returns an array of {stop JSON, alerts XML}
+                return NetworkController.getStopTimes(myContext, routeId, dirId, stopId);
+            } catch (Exception e) {
+                e.printStackTrace();
                 return null;
             }
-            int dirId = dirIds.get(params[1]);
-            stopId = stopIds.get(params[2]);
-
-            //returns an array of {stop JSON, alerts XML}
-            return NetworkController.getStopTimes(myContext, routeId, dirId, stopId);
         }
 
         protected void onPostExecute(List<String[]> stopList) {
