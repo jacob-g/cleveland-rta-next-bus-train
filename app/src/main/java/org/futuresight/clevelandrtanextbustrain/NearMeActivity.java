@@ -202,11 +202,15 @@ public class NearMeActivity extends FragmentActivity
             System.out.println("Checking height");
             LinearLayout principalLayout = (LinearLayout)((NearMeActivity)view.getContext()).findViewById(R.id.mapParentLayout);
             int maxHeight = principalLayout.getHeight() / 2;
-            if (view.getHeight() > maxHeight) {
+            System.out.println(view.getHeight());
+            LinearLayout container = (LinearLayout)((NearMeActivity)view.getContext()).findViewById(R.id.belowMapContainer);
+            if (container.getHeight() > maxHeight) {
                 view.getLayoutParams().height = maxHeight;
-                view.invalidate();
-                view.requestLayout();
+            } else {
+                view.getLayoutParams().height = LinearLayout.LayoutParams.WRAP_CONTENT;
             }
+            view.invalidate();
+            view.requestLayout();
             //TODO: if the height is less than 50% of the screen height, change it back to wrap_content
         }
     }
