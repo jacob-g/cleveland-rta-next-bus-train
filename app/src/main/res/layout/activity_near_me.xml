@@ -17,9 +17,6 @@
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_above="@+id/belowMapScrollView"
-        android:layout_alignParentBottom="false"
-        android:layout_alignParentEnd="false"
         android:layout_gravity="top|left|right"
         android:layout_weight="1"
         tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
@@ -28,8 +25,7 @@
         android:id="@+id/belowMapScrollView"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentBottom="true"
-        android:layout_gravity="bottom"
+        android:layout_gravity="bottom|left|right"
         android:layout_weight="0"
         android:minHeight="54dp">
 
@@ -67,7 +63,8 @@
                 android:id="@+id/belowMapLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:stretchColumns="1">
+                android:stretchColumns="1"
+                android:visibility="visible">
 
                 <TableRow
                     android:id="@+id/loadingStopsRow"

@@ -12,10 +12,12 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.res.ResourcesCompat;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.Button;
-import android.widget.FrameLayout;
 import android.widget.ImageButton;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.ScrollView;
 import android.widget.TableLayout;
 import android.widget.TableRow;
 import android.widget.TextView;
@@ -174,9 +176,39 @@ public class NearMeActivity extends FragmentActivity
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
                                                                           sender.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.arrow_down_float, null));
                                                                       }
+                                                                      //also update the height of the whole thing
+                                                                      ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
+                                                                      belowMapScrollView.getLayoutParams().height = LinearLayout.LayoutParams.WRAP_CONTENT;
+                                                                      belowMapScrollView.invalidate();
+                                                                      belowMapLayout.requestLayout();
                                                                   }
                                                               }
         );
+
+        //adjust the height to make sure that the bottom layout isn't more than 50% of the screen height
+        ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
+        belowMapScrollView.getViewTreeObserver().addOnGlobalLayoutListener(new OnViewGlobalLayoutListener(belowMapScrollView));
+    }
+
+    private static class OnViewGlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
+        private View view;
+
+        public OnViewGlobalLayoutListener(View view) {
+            this.view = view;
+        }
+
+        @Override
+        public void onGlobalLayout() {
+            System.out.println("Checking height");
+            LinearLayout principalLayout = (LinearLayout)((NearMeActivity)view.getContext()).findViewById(R.id.mapParentLayout);
+            int maxHeight = principalLayout.getHeight() / 2;
+            if (view.getHeight() > maxHeight) {
+                view.getLayoutParams().height = maxHeight;
+                view.invalidate();
+                view.requestLayout();
+            }
+            //TODO: if the height is less than 50% of the screen height, change it back to wrap_content
+        }
     }
 
     @Override
@@ -507,11 +539,6 @@ public class NearMeActivity extends FragmentActivity
                     arrivalRow.addView(stationLineView, 1);
 
                     belowMapLayout.addView(arrivalRow);
-                }
-                //TODO: adjust height
-                FrameLayout mapFrame = (FrameLayout)findViewById(R.id.map);
-                if (belowMapLayout.getHeight() > mapFrame.getHeight()) {
-                    belowMapLayout.setLayoutParams(new TableLayout.LayoutParams(TableLayout.LayoutParams.MATCH_PARENT, (findViewById(R.id.mapParentLayout)).getHeight() / 2));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
