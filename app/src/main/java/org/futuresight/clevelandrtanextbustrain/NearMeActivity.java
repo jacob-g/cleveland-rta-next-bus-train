@@ -199,10 +199,8 @@ public class NearMeActivity extends FragmentActivity
 
         @Override
         public void onGlobalLayout() {
-            System.out.println("Checking height");
             LinearLayout principalLayout = (LinearLayout)((NearMeActivity)view.getContext()).findViewById(R.id.mapParentLayout);
             int maxHeight = principalLayout.getHeight() / 2;
-            System.out.println(view.getHeight());
             LinearLayout container = (LinearLayout)((NearMeActivity)view.getContext()).findViewById(R.id.belowMapContainer);
             if (container.getHeight() > maxHeight) {
                 view.getLayoutParams().height = maxHeight;
@@ -483,6 +481,7 @@ public class NearMeActivity extends FragmentActivity
 
             Set<NumberPair> usedLines = new TreeSet<>();
             List<Object[]> stopList = new ArrayList<>();
+            Set<String> lineNames = new HashSet<>();
             try {
                 int i = 0;
                 while (!closeStations.isEmpty() && i < STATION_LIST_LIMIT) {
@@ -490,9 +489,30 @@ public class NearMeActivity extends FragmentActivity
                     ObjectByDistance<Station> o = closeStations.remove();
                     Station st = o.getObj();
                     NumberPair linePair = new NumberPair(st.getLineId(), st.getDirId());
+
                     if (usedLines.add(linePair)) { //only add one station for each line-direction combination
                         List<String[]> arrivalInfo = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
-                        stopList.add(new Object[]{st.getStationName(), st.getLineName() + " (" + st.getDirName() + ")", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[2] : "N/A", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[1] : "N/A", st});
+                        stopList.add(new Object[]{st.getStationName(), st.getLineName() + " (" + st.getDirName() + ")", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[2] : "N/A", arrivalInfo.size() > 0 ? arrivalInfo.get(0)[1] : "N/A", st, st.getLineId(), 0, false});
+                        lineNames.add(st.getLineName());
+                    }
+                }
+                System.out.println(lineNames);
+                String[] lineNamesArray = lineNames.toArray(new String[lineNames.size()]);
+                int[] routeIds = new int[lineNamesArray.length];
+                for (int j = 0; j < lineNamesArray.length; j++) {
+                    System.out.println(lineNamesArray[j]);
+                    routeIds[j] = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineNamesArray[j]);
+                    List<Map<String, String>> serviceAlerts = ServiceAlertsController.getAlertsByLine(NearMeActivity.this, new String[]{lineNamesArray[j]}, null);
+                    for (Object[] entry : stopList) {
+                        if ((entry[5]).equals(routeIds[j])) {
+                            entry[6] = serviceAlerts.size();
+                        }
+                        for (Map<String, String> alert : serviceAlerts) {
+                            if (alert.get("new").equals("true")) {
+                                entry[7] = true;
+                                break;
+                            }
+                        }
                     }
                 }
             } catch (Exception e) {
@@ -537,9 +557,17 @@ public class NearMeActivity extends FragmentActivity
                     });
                     arrivalRow.addView(stationNameView, 0);
 
+
                     TextView stationLineView = new TextView(NearMeActivity.this);
                     stationLineView.setMaxWidth(250);
-                    stationLineView.setText(stopInfo[3] + "\n" + stopInfo[2]);
+                    String arrivalText = stopInfo[3] + "\n" + stopInfo[2];
+                    if ((Integer)stopInfo[6] > 0) {
+                        arrivalText += "\n" + stopInfo[6] + " alert" + (((Integer)stopInfo[6] > 1) ? "s" : "");
+                        if ((Boolean)stopInfo[7]) {
+                            stationLineView.setTextColor(Color.RED);
+                        }
+                    }
+                    stationLineView.setText(arrivalText);
                     arrivalRow.addView(stationLineView, 1);
 
                     belowMapLayout.addView(arrivalRow);
