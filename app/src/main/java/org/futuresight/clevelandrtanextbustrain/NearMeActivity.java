@@ -64,7 +64,7 @@ import javax.xml.parsers.DocumentBuilderFactory;
 //https://developer.android.com/training/location/retrieve-current.html#play-services
 
 public class NearMeActivity extends FragmentActivity
-        implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnCameraChangeListener {
+        implements OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, LocationListener, GoogleMap.OnMarkerClickListener, GoogleMap.OnCameraChangeListener, GoogleMap.OnCameraMoveStartedListener {
 
     private GoogleMap mMap;
     private GoogleApiClient apiClient;
@@ -245,6 +245,7 @@ public class NearMeActivity extends FragmentActivity
         try {
             mMap.setOnMarkerClickListener(this);
             mMap.setOnCameraChangeListener(this);
+            mMap.setOnCameraMoveStartedListener(this);
 
             //Get the points and stops
             new GetStopsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
@@ -392,6 +393,7 @@ public class NearMeActivity extends FragmentActivity
 
     private boolean loadedStops = false;
     private boolean loadedLines = false;
+    boolean autoFocused = false;
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -446,6 +448,8 @@ public class NearMeActivity extends FragmentActivity
                 shouldFocusOnCleveland = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, 17));
                 hasLocation = true;
+                followingUser = false;
+                autoFocused = true;
             }
             onCameraChange(mMap.getCameraPosition());
 
@@ -577,6 +581,16 @@ public class NearMeActivity extends FragmentActivity
             }
         }
     }
+
+    @Override
+    public void onCameraMoveStarted(int reason) {
+
+        if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
+            System.out.println("The user moved the map");
+            followingUser = false;
+        }
+    }
+
 
     private boolean alreadyVisible = false;
     private final double minZoomLevel = 14;
@@ -766,14 +780,15 @@ public class NearMeActivity extends FragmentActivity
         if (!hasLocation) {
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(location.getLatitude(), location.getLongitude()), 15));
             hasLocation = true;
-            followingUser = true;
+            if (!autoFocused) {
+                followingUser = true;
+            }
         }
         if (loadedLines && loadedStops && lastCheckedStops < PersistentDataController.getCurTime() - getStopsNearMeInterval) {
             lastCheckedStops = PersistentDataController.getCurTime();
             new GetStopsNearMeTask().execute(new LatLng(location.getLatitude(), location.getLongitude()));
         }
     }
-
 
     //call this once we have permission to track the current user's location
     boolean mapInitialized = false;
@@ -784,6 +799,15 @@ public class NearMeActivity extends FragmentActivity
                 mapInitialized = true;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(new LatLng(41.4975, -81.6939), 10)); //focus on Cleveland
             }
+
+            //make it so that when the user hits the "go to my location" button it resumes following
+            mMap.setOnMyLocationButtonClickListener(new GoogleMap.OnMyLocationButtonClickListener(){
+                @Override
+                public boolean onMyLocationButtonClick() {
+                    followingUser = true;
+                    return false;
+                }
+            });
         } catch (SecurityException e) {
             e.printStackTrace();
         }
