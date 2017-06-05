@@ -55,6 +55,8 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -394,6 +396,7 @@ public class NearMeActivity extends FragmentActivity
     private boolean loadedStops = false;
     private boolean loadedLines = false;
     boolean autoFocused = false;
+    private int updateInterval = 15; //the interval to update the display of stops below the map
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -455,6 +458,11 @@ public class NearMeActivity extends FragmentActivity
 
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
             loadedStops = true;
+
+            //TODO: make it trigger also when the camera is moved, but not too frequently
+            Timer timer = new Timer();
+            TimerTask updateStopsNearMe = new GetStopsNearMeTimerTask();
+            timer.scheduleAtFixedRate(updateStopsNearMe, 0, updateInterval * 1000);
         }
     }
 
@@ -500,11 +508,9 @@ public class NearMeActivity extends FragmentActivity
                         lineNames.add(st.getLineName());
                     }
                 }
-                System.out.println(lineNames);
                 String[] lineNamesArray = lineNames.toArray(new String[lineNames.size()]);
                 int[] routeIds = new int[lineNamesArray.length];
                 for (int j = 0; j < lineNamesArray.length; j++) {
-                    System.out.println(lineNamesArray[j]);
                     routeIds[j] = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineNamesArray[j]);
                     List<Map<String, String>> serviceAlerts = ServiceAlertsController.getAlertsByLine(NearMeActivity.this, new String[]{lineNamesArray[j]}, null);
                     for (Object[] entry : stopList) {
@@ -586,7 +592,6 @@ public class NearMeActivity extends FragmentActivity
     public void onCameraMoveStarted(int reason) {
 
         if (reason == GoogleMap.OnCameraMoveStartedListener.REASON_GESTURE) {
-            System.out.println("The user moved the map");
             followingUser = false;
         }
     }
@@ -595,8 +600,23 @@ public class NearMeActivity extends FragmentActivity
     private boolean alreadyVisible = false;
     private final double minZoomLevel = 14;
     Set<NumberPair> spotsAdded = new HashSet<>();
+    private Marker mapCenterMarker;
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
+        if (!followingUser) {
+            if (mapCenterMarker != null) {
+                mapCenterMarker.remove();
+            }
+            MarkerOptions options = new MarkerOptions();
+            options.position(cameraPosition.target);
+            options.icon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add));
+            options.anchor(0.5f, 0.5f);
+            mapCenterMarker = mMap.addMarker(options);
+        } else if (mapCenterMarker != null) {
+            mapCenterMarker.remove();
+            mapCenterMarker = null;
+        }
+
         if (alreadyVisible && cameraPosition.zoom <= minZoomLevel || !alreadyVisible && cameraPosition.zoom > minZoomLevel) {
             for (Marker m : markers.keySet()) {
                 //don't show the icons when zoomed out too much
@@ -629,7 +649,7 @@ public class NearMeActivity extends FragmentActivity
                             Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
                             if (st.getStationId() == focusStationId) {
                                 Marker m2 = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add));
+                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon (like an arrow or something)
                                 m2.setAnchor(0.5f, 0.5f); //center the icon
                                 m2.setZIndex(0);
                             }
@@ -769,7 +789,6 @@ public class NearMeActivity extends FragmentActivity
 
     //TODO: make the updating of nearby arrivals be on a timer instead of with the location update in order to facilitate easier manipulation of the location
     boolean hasLocation = false;
-    long lastCheckedStops = 0;
     final int getStopsNearMeInterval = 10;
     boolean followingUser = false;
     @Override
@@ -784,9 +803,21 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if (loadedLines && loadedStops && lastCheckedStops < PersistentDataController.getCurTime() - getStopsNearMeInterval) {
-            lastCheckedStops = PersistentDataController.getCurTime();
-            new GetStopsNearMeTask().execute(new LatLng(location.getLatitude(), location.getLongitude()));
+    }
+
+    //the task to update the nearby stops
+    class GetStopsNearMeTimerTask extends TimerTask {
+        public GetStopsNearMeTimerTask(){
+        }
+
+        public void run() {
+            //in order to access the map, this has to run on the UI thread
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    new GetStopsNearMeTask().execute(mMap.getCameraPosition().target);
+                }
+            });
         }
     }
 
@@ -805,6 +836,8 @@ public class NearMeActivity extends FragmentActivity
                 @Override
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
+                    mapCenterMarker.remove();
+                    mapCenterMarker = null;
                     return false;
                 }
             });
