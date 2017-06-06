@@ -836,8 +836,10 @@ public class NearMeActivity extends FragmentActivity
                 @Override
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
-                    mapCenterMarker.remove();
-                    mapCenterMarker = null;
+                    if (mapCenterMarker != null) {
+                        mapCenterMarker.remove();
+                        mapCenterMarker = null;
+                    }
                     return false;
                 }
             });
