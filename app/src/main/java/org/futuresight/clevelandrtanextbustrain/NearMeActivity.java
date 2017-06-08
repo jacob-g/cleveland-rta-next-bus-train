@@ -211,7 +211,6 @@ public class NearMeActivity extends FragmentActivity
             }
             view.invalidate();
             view.requestLayout();
-            //TODO: if the height is less than 50% of the screen height, change it back to wrap_content
         }
     }
 
@@ -458,11 +457,6 @@ public class NearMeActivity extends FragmentActivity
 
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
             loadedStops = true;
-
-            //TODO: make it trigger also when the camera is moved, but not too frequently
-            Timer timer = new Timer();
-            TimerTask updateStopsNearMe = new GetStopsNearMeTimerTask();
-            timer.scheduleAtFixedRate(updateStopsNearMe, 0, updateInterval * 1000);
         }
     }
 
@@ -510,6 +504,7 @@ public class NearMeActivity extends FragmentActivity
                 }
                 String[] lineNamesArray = lineNames.toArray(new String[lineNames.size()]);
                 int[] routeIds = new int[lineNamesArray.length];
+                ServiceAlertsController.getAlertsByLine(NearMeActivity.this, lineNamesArray, null); //pre-fetch all service alerts to speed things up
                 for (int j = 0; j < lineNamesArray.length; j++) {
                     routeIds[j] = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineNamesArray[j]);
                     List<Map<String, String>> serviceAlerts = ServiceAlertsController.getAlertsByLine(NearMeActivity.this, new String[]{lineNamesArray[j]}, null);
@@ -537,7 +532,6 @@ public class NearMeActivity extends FragmentActivity
                 belowMapLayout.removeAllViews();
 
                 for (Object[] stopInfo : stopList) {
-                    //TODO: show a warning icon if there are service alerts
                     TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
                     TextView stationNameView = new TextView(NearMeActivity.this);
@@ -649,9 +643,9 @@ public class NearMeActivity extends FragmentActivity
                             Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
                             if (st.getStationId() == focusStationId) {
                                 Marker m2 = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.ic_menu_add)); //TODO: use a better icon (like an arrow or something)
-                                m2.setAnchor(0.5f, 0.5f); //center the icon
-                                m2.setZIndex(0);
+                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                                //m2.setAnchor(0.5f, 0.0f); //center the icon
+                                m2.setZIndex(3);
                             }
 
                             if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
@@ -787,10 +781,9 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    //TODO: make the updating of nearby arrivals be on a timer instead of with the location update in order to facilitate easier manipulation of the location
     boolean hasLocation = false;
-    final int getStopsNearMeInterval = 10;
     boolean followingUser = false;
+    boolean startedLocationUpdateTask = false;
     @Override
     public void onLocationChanged(Location location) {
         if (followingUser) {
@@ -802,6 +795,12 @@ public class NearMeActivity extends FragmentActivity
             if (!autoFocused) {
                 followingUser = true;
             }
+        }
+        if (!startedLocationUpdateTask && loadedStops) {
+            Timer timer = new Timer();
+            TimerTask updateStopsNearMe = new GetStopsNearMeTimerTask();
+            timer.scheduleAtFixedRate(updateStopsNearMe, 0, updateInterval * 1000);
+            startedLocationUpdateTask = true;
         }
     }
 

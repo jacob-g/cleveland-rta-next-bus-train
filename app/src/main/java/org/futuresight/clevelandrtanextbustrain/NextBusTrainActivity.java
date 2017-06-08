@@ -51,13 +51,19 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
         public void run() {
             //if anything here is null, then don't update the times
-            String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-            String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
-            String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
+            final String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+            final String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+            final String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem() == null ? "" : ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             if (selectedRouteStr.equals("") || selectedDirStr.equals("") || selectedStopStr.equals("")) {
                 //nothing is selected, so try again later
             } else {
-                new GetTimesTask(view.getContext(), false).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                //run on the UI thread in order to avoid problems
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        new GetTimesTask(NextBusTrainActivity.this, false).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                    }
+                });
             }
         }
     }
@@ -68,8 +74,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
-                    new GetDirectionsTask(view.getContext()).execute(selectedRouteStr);
-                    new GetServiceAlertsTask(view.getContext()).execute(selectedRouteStr);
+                    new GetDirectionsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
+                    new GetServiceAlertsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -106,7 +112,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 final int stationId = stopIds.get(stationName);
-                final int lineId = PersistentDataController.getLineIdMap(view.getContext()).get(lineName);
+                final int lineId = PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(lineName);
                 final int dirId = dirIds.get(dirName);
 
                 //check if there's already a station
@@ -118,12 +124,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 db.close();
 
                 //use a dialog box to ask the user for the name of the station
-                final AlertDialog.Builder inputAlert = new AlertDialog.Builder(view.getContext());
+                final AlertDialog.Builder inputAlert = new AlertDialog.Builder(NextBusTrainActivity.this);
                 inputAlert.setTitle(R.string.add_favorite);
                 inputAlert.setMessage(R.string.favorite_save_name_prompt);
 
                 //create the text box and automatically populate it with the current station name
-                final EditText userInput = new EditText(view.getContext());
+                final EditText userInput = new EditText(NextBusTrainActivity.this);
                 userInput.setText(stationName + " (" + dirName + ")");
                 inputAlert.setView(userInput);
 
@@ -193,9 +199,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
         public void onClick(View view) {
             Button myBtn = (Button) view;
             myBtn.getBackground().clearColorFilter();
-            Intent intent = new Intent(view.getContext(), ServiceAlertsActivity.class);
+            Intent intent = new Intent(NextBusTrainActivity.this, ServiceAlertsActivity.class);
             intent.putExtra("route", ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString());
-            intent.putExtra("routeId", PersistentDataController.getLineIdMap(view.getContext()).get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
+            intent.putExtra("routeId", PersistentDataController.getLineIdMap(NextBusTrainActivity.this).get(((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString()));
             startActivity(intent);
         }
     };
@@ -204,7 +210,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     private Button.OnClickListener scheduleClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
             try {
-                Intent intent = new Intent(view.getContext(), ScheduleActivity.class);
+                Intent intent = new Intent(NextBusTrainActivity.this, ScheduleActivity.class);
                 final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
                 final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
@@ -228,7 +234,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     //listener that runs when the "select favorite" button is clicked
     private Button.OnClickListener selectFavoriteClickedListener = new AdapterView.OnClickListener() {
         public void onClick(View view) {
-            Intent intent = new Intent(view.getContext(), ManageLocationsActivity.class);
+            Intent intent = new Intent(NextBusTrainActivity.this, ManageLocationsActivity.class);
             intent.putExtra("return", true);
             startActivityForResult(intent, 1);
         }
@@ -341,7 +347,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 if (!selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedRouteStr.equals("") &&
                         !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedDirStr.equals("")) {
-                    new GetStopsTask(view.getContext()).execute(selectedRouteStr, selectedDirStr);
+                    new GetStopsTask(NextBusTrainActivity.this).execute(selectedRouteStr, selectedDirStr); //NextBusTrainActivity.this sometimes results in nullpointerexception
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -366,8 +372,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedDirStr.equals("") && !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedStopStr.equals("") && !selectedStopStr.equals(getResources().getString(R.string.loadingellipsis))) {
-                    new GetTimesTask(view.getContext(), true).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
-                    new GetEscalatorElevatorStatus(view.getContext()).execute(stopIds.get(selectedStopStr));
+                    new GetTimesTask(NextBusTrainActivity.this, true).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                    new GetEscalatorElevatorStatus(NextBusTrainActivity.this).execute(stopIds.get(selectedStopStr));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
