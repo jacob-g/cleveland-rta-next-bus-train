@@ -10,7 +10,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
-import android.support.v4.content.res.ResourcesCompat;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
@@ -173,10 +172,10 @@ public class NearMeActivity extends FragmentActivity
                                                                       ImageButton sender = (ImageButton)view;
                                                                       if (belowMapLayout.getVisibility() == View.VISIBLE) {
                                                                           belowMapLayout.setVisibility(View.GONE);
-                                                                          sender.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.arrow_up_float, null));
+                                                                          sender.setImageResource(R.drawable.ic_collapse);
                                                                       } else {
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
-                                                                          sender.setImageDrawable(ResourcesCompat.getDrawable(getResources(), android.R.drawable.arrow_down_float, null));
+                                                                          sender.setImageResource(R.drawable.ic_expand);
                                                                       }
                                                                       //also update the height of the whole thing
                                                                       ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -463,6 +462,7 @@ public class NearMeActivity extends FragmentActivity
     final Map<Integer, Boolean> shownLines = new HashMap<>();
     final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
     final int STATION_LIST_LIMIT = 15;
+    int deltaIndex;
     //the task to populate the list of nearby stops shown below the map
     private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, List<Object[]>> {
         public GetStopsNearMeTask() {
@@ -528,9 +528,11 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<Object[]> stopList) {
             try {
-                TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
+                final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
                 belowMapLayout.removeAllViews();
 
+                int index = 0;
+                deltaIndex = 0;
                 for (Object[] stopInfo : stopList) {
                     TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
@@ -539,24 +541,90 @@ public class NearMeActivity extends FragmentActivity
                     stationNameView.setText(stopName + "\n" + stopInfo[1]);
                     stationNameView.setTextColor(Color.BLUE);
                     final Station station = (Station) stopInfo[4];
+                    final int myIndex = index;
                     stationNameView.setOnClickListener(new View.OnClickListener() {
+                        private boolean opened = false;
                         @Override
                         public void onClick(View v) {
-                            //TODO: focus the map on the location
-
-                            Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
-                            intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                            intent.putExtra("lineId", station.getLineId());
-                            intent.putExtra("lineName", station.getLineName());
-                            intent.putExtra("dirId", station.getDirId());
-                            intent.putExtra("stopId", station.getStationId());
-                            intent.putExtra("stopName", station.getStationName());
-                            startActivity(intent);
-                            if (apiClient != null) {
-                                apiClient.disconnect();
+                            if (opened) {
+                                return;
                             }
-                            finish();
-                            startActivity(intent);
+                            opened = true;
+
+                            LinearLayout.LayoutParams optionButtonParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+
+                            if (updateStopsNearMeTimer != null) {
+                                updateStopsNearMeTimer.cancel();
+                            }
+
+                            //show a new table row below the one containing the station that was selected with a button to show the location of the station and a button to view arrivals information for it
+                            final TableRow optionsRow = new TableRow(NearMeActivity.this);
+                            LinearLayout optionsLayout = new LinearLayout(NearMeActivity.this);
+                            optionsLayout.setOrientation(LinearLayout.HORIZONTAL);
+
+                            //the button to focus on the station on the map
+                            ImageButton viewBtn = new ImageButton(NearMeActivity.this);
+                            viewBtn.setImageResource(R.drawable.places_ic_search);
+                            viewBtn.setLayoutParams(optionButtonParams);
+                            viewBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    if (locationArrowMarker != null) {
+                                        locationArrowMarker.remove();
+                                    }
+                                    locationArrowMarker = mMap.addMarker(new MarkerOptions().position(station.getLatLng()));
+                                    locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                                    locationArrowMarker.setZIndex(3);
+
+                                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(station.getLatLng(), 17));
+                                    followingUser = false;
+                                }
+                            });
+                            optionsLayout.addView(viewBtn);
+
+                            //the button to open the arrivals page
+                            ImageButton arrivalsBtn = new ImageButton(NearMeActivity.this);
+                            arrivalsBtn.setImageResource(android.R.drawable.ic_menu_recent_history);
+                            arrivalsBtn.setLayoutParams(optionButtonParams);
+                            arrivalsBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                    intent.putExtra("lineId", station.getLineId());
+                                    intent.putExtra("lineName", station.getLineName());
+                                    intent.putExtra("dirId", station.getDirId());
+                                    intent.putExtra("stopId", station.getStationId());
+                                    intent.putExtra("stopName", station.getStationName());
+                                    startActivity(intent);
+                                    if (apiClient != null) {
+                                        apiClient.disconnect();
+                                    }
+                                    finish();
+                                    startActivity(intent);
+                                }
+                            });
+                            optionsLayout.addView(arrivalsBtn);
+
+                            //the button to collapse this display
+                            ImageButton collapseBtn = new ImageButton(NearMeActivity.this);
+                            collapseBtn.setImageResource(R.drawable.ic_collapse);
+                            collapseBtn.setLayoutParams(optionButtonParams);
+                            collapseBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    deltaIndex--;
+                                    belowMapLayout.removeView(optionsRow);
+                                    opened = false;
+                                }
+                            });
+                            optionsLayout.addView(collapseBtn);
+
+
+                            optionsRow.addView(optionsLayout);
+
+                            belowMapLayout.addView(optionsRow, myIndex + deltaIndex + 1);
+                            updateStopsNearMeTimer = new Timer();
+                            updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), updateInterval * 1000, updateInterval * 1000);
+
+                            deltaIndex++;
                         }
                     });
                     arrivalRow.addView(stationNameView, 0);
@@ -575,6 +643,7 @@ public class NearMeActivity extends FragmentActivity
                     arrivalRow.addView(stationLineView, 1);
 
                     belowMapLayout.addView(arrivalRow);
+                    index++;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -595,6 +664,7 @@ public class NearMeActivity extends FragmentActivity
     private final double minZoomLevel = 14;
     Set<NumberPair> spotsAdded = new HashSet<>();
     private Marker mapCenterMarker;
+    private Marker locationArrowMarker;
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         if (!followingUser) {
@@ -642,10 +712,9 @@ public class NearMeActivity extends FragmentActivity
                         for (Station st: markerSectors.get(pos)) {
                             Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
                             if (st.getStationId() == focusStationId) {
-                                Marker m2 = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                                m2.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
-                                //m2.setAnchor(0.5f, 0.0f); //center the icon
-                                m2.setZIndex(3);
+                                locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                                locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                                locationArrowMarker.setZIndex(3);
                             }
 
                             if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
@@ -783,7 +852,6 @@ public class NearMeActivity extends FragmentActivity
 
     boolean hasLocation = false;
     boolean followingUser = false;
-    boolean startedLocationUpdateTask = false;
     @Override
     public void onLocationChanged(Location location) {
         if (followingUser) {
@@ -796,13 +864,13 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if (!startedLocationUpdateTask && loadedStops) {
-            Timer timer = new Timer();
-            TimerTask updateStopsNearMe = new GetStopsNearMeTimerTask();
-            timer.scheduleAtFixedRate(updateStopsNearMe, 0, updateInterval * 1000);
-            startedLocationUpdateTask = true;
+        if (updateStopsNearMeTimer == null && loadedStops) {
+            updateStopsNearMeTimer = new Timer();
+            updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), 0, updateInterval * 1000);
         }
     }
+
+    private Timer updateStopsNearMeTimer;
 
     //the task to update the nearby stops
     class GetStopsNearMeTimerTask extends TimerTask {
