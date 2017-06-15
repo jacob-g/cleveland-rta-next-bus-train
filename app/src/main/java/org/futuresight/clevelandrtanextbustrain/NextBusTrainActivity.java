@@ -693,7 +693,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (stopList.size() > 0) {
                     ((TextView) findViewById(R.id.train1timebox)).setText(stopList.get(0)[0]);
                     ((TextView) findViewById(R.id.train1destbox)).setText(stopList.get(0)[1]);
-                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2]);
+                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2] + "\n" + stopList.get(0)[3]); //TODO: make this a resource string
                 } else {
                     ((TextView) findViewById(R.id.train1timebox)).setText(R.string.no_time);
                     ((TextView) findViewById(R.id.train1destbox)).setText(R.string.no_destination);
@@ -702,7 +702,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (stopList.size() > 1) {
                     ((TextView) findViewById(R.id.train2timebox)).setText(stopList.get(1)[0]);
                     ((TextView) findViewById(R.id.train2destbox)).setText(stopList.get(1)[1]);
-                    ((TextView) findViewById(R.id.train2timeLeftBox)).setText(stopList.get(1)[2]);
+                    ((TextView) findViewById(R.id.train2timeLeftBox)).setText(stopList.get(1)[2] + "\n" + stopList.get(1)[3]);
                 } else {
                     ((TextView) findViewById(R.id.train2timebox)).setText(R.string.no_time);
                     ((TextView) findViewById(R.id.train2destbox)).setText(R.string.no_destination);
@@ -711,7 +711,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (stopList.size() > 2) {
                     ((TextView) findViewById(R.id.train3timebox)).setText(stopList.get(2)[0]);
                     ((TextView) findViewById(R.id.train3destbox)).setText(stopList.get(2)[1]);
-                    ((TextView) findViewById(R.id.train3timeLeftBox)).setText(stopList.get(2)[2]);
+                    ((TextView) findViewById(R.id.train3timeLeftBox)).setText(stopList.get(2)[2] + "\n" + stopList.get(2)[3]);
                 } else {
                     ((TextView) findViewById(R.id.train3timebox)).setText(R.string.no_time);
                     ((TextView) findViewById(R.id.train3destbox)).setText(R.string.no_destination);

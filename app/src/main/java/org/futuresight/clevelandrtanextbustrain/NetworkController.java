@@ -21,8 +21,11 @@ import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -156,14 +159,19 @@ public abstract class NetworkController {
         return out;
     }
 
-    private static int getTimeLeft(String time, String period) { //get the amount of time until a specified arrival
-        String[] timeParts = time.split(":");
-        int minOfDay = Integer.parseInt(timeParts[0]) * 60 + Integer.parseInt(timeParts[1]) + (period.equals("pm") && !timeParts[0].equals("12") ? 720 : 0) - (period.equals("am") && timeParts[0].equals("12") ? 720 : 0);
-        int curTime = Calendar.getInstance().getTime().getHours() * 60 + Calendar.getInstance().getTime().getMinutes();
-        if (minOfDay < curTime) {
-            minOfDay += 1440;
+    private static int getTimeLeft(String time1, String period1, String time2, String period2, boolean correctNegative) { //get the difference between two times, with the earlier one coming first
+        String[] time1Parts = time1.split(":");
+        int time1MinOfDay = Integer.parseInt(time1Parts[0]) * 60 + Integer.parseInt(time1Parts[1]) + (period1.equals("pm") && !time1Parts[0].equals("12") ? 720 : 0) - (period1.equals("am") && time1Parts[0].equals("12") ? 720 : 0);
+        String[] time2Parts = time2.split(":");
+        int time2MinOfDay = Integer.parseInt(time2Parts[0]) * 60 + Integer.parseInt(time2Parts[1]) + (period2.equals("pm") && !time2Parts[0].equals("12") ? 720 : 0) - (period2.equals("am") && time2Parts[0].equals("12") ? 720 : 0);
+
+        int result = time2MinOfDay - time1MinOfDay;
+        if (result > 1440) {
+            result -= 1440;
+        } else if (result < 0 && correctNegative) {
+            result += 1440;
         }
-        return minOfDay - curTime;
+        return result;
     }
 
     public static List<String[]> getStopTimes(Context context, int routeId, int dirId, int stopId) {
@@ -175,6 +183,9 @@ public abstract class NetworkController {
         //it's d->stops->0->crossings, then an array with the stop information
         List<String[]> stopList = new ArrayList<>();
         try {
+            DateFormat df1 = new SimpleDateFormat("hh:mm");
+            DateFormat df2 = new SimpleDateFormat("aa");
+
             JSONObject json = new JSONObject(result);
             JSONObject root = json.getJSONObject("d");
             JSONArray stopsJson = root.getJSONArray("stops");
@@ -184,19 +195,46 @@ public abstract class NetworkController {
 
                 for (int i = 0; i < stopsListJson.length(); i++) {
                     JSONObject curStopJson = stopsListJson.getJSONObject(i);
-                    String time, period;
+                    String time, period, schedTime, schedPeriod;
+                    boolean realTime;
                     if (!curStopJson.getBoolean("cancelled")) { //make sure the train isn't cancelled
                         if (curStopJson.getString("predTime").equals("null")) { //if we don't have an actual time (i.e. for trains that haven't left yet), use the scheduled time
+                            realTime = false;
                             time = curStopJson.getString("schedTime");
+                            schedTime = time;
                             period = curStopJson.getString("schedPeriod");
+                            schedPeriod = period;
                         } else {
+                            realTime = true;
                             time = curStopJson.getString("predTime");
+                            schedTime = curStopJson.getString("schedTime");
                             period = curStopJson.getString("predPeriod");
+                            schedPeriod = curStopJson.getString("schedPeriod");
                         }
-                        int timeLeft = getTimeLeft(time, period); //get the time left
+                        Calendar c = Calendar.getInstance();
+                        Date curDate = c.getTime();
+
+                        int timeLeft = getTimeLeft(df1.format(curDate), df2.format(curDate).toLowerCase(), time, period, true); //get the time left
+                        String schedInfo;
+                        if (realTime) {
+                            if (schedTime.equals(time)) {
+                                schedInfo = "On time";
+                            } else {
+                                //TODO: get exact time and specify early/late
+                                int lateness = getTimeLeft(schedTime, schedPeriod, time, period, true);
+                                schedInfo = lateness + " ";
+                                if (lateness >= 0) {
+                                    schedInfo += "late";
+                                } else {
+                                    schedInfo += "early";
+                                }
+                            }
+                        } else {
+                            schedInfo = "Scheduled";
+                        }
                         String dest = curStopJson.getString("destination");
                         dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest; //use the destination mapping
-                        String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s")};
+                        String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s"), schedInfo};
                         stopList.add(stopInfo);
                     }
                 }
