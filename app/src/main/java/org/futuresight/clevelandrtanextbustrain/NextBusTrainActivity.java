@@ -69,13 +69,20 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //listener that runs when a route is selected (loads the appropriate directions)
-    private Spinner.OnItemSelectedListener routeSelectedListener = new AdapterView.OnItemSelectedListener() {
+    private RouteSelectedListener routeSelectedListener = new RouteSelectedListener();
+    private class RouteSelectedListener implements Spinner.OnItemSelectedListener {
+        private int lastSelectedPos = -1;
+
+        @Override
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
-                String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-                if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
-                    new GetDirectionsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
-                    new GetServiceAlertsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
+                if (lastSelectedPos != pos) { //if the current route is being selected again, ignore it
+                    String selectedRouteStr = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+                    if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
+                        new GetDirectionsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
+                        new GetServiceAlertsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
+                    }
+                    lastSelectedPos = pos;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -495,17 +502,24 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (lineNames.length == 0) {
                 alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
             }
-            //put that into the spinner
-            ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, lineNames);
-            lineSpinner.setAdapter(adapter);
+            //see if there is a pre-selected line sent in from elsewhere
+            int preSelectIndex = 0;
             if (preSelectedLineId != -1) {
                 for (int i = 0; i < lineNames.length; i++) {
-                    if (preSelectedLineId == PersistentDataController.getLineIdMap(myContext).get(adapter.getItem(i))) {
-                        lineSpinner.setSelection(i);
+                    if (preSelectedLineId == PersistentDataController.getLineIdMap(myContext).get(lineNames[i])) {
+                        preSelectIndex = i;
                         break;
                     }
                 }
             }
+            //put everything into the spinner
+            ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item);
+            lineSpinner.setAdapter(adapter);
+            adapter.addAll(lineNames);
+            if (preSelectIndex > 0) {
+                lineSpinner.setSelection(preSelectIndex);
+            }
+
             lineSpinner.setEnabled(true);
         }
     }
