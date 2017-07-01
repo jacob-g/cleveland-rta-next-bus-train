@@ -94,6 +94,9 @@ public class NearMeActivity extends FragmentActivity
     }
 
     private String[] linesWithAllOption;
+    private boolean reloading = false;
+    private LatLng reloadingPosition;
+    private float reloadingZoom;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -106,6 +109,15 @@ public class NearMeActivity extends FragmentActivity
         SupportMapFragment mapFragment = (SupportMapFragment) getSupportFragmentManager()
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
+
+        if (savedInstanceState != null) {
+            hasLocation = true;
+            reloading = true;
+            followingUser = savedInstanceState.getBoolean("followingUser");
+            double[] latLngArray = savedInstanceState.getDoubleArray("latlng");
+            reloadingPosition = new LatLng(latLngArray[0], latLngArray[1]);
+            reloadingZoom = savedInstanceState.getFloat("zoom");
+        }
 
         (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
                 public void onClick(View view) {
@@ -189,6 +201,24 @@ public class NearMeActivity extends FragmentActivity
         //adjust the height to make sure that the bottom layout isn't more than 50% of the screen height
         ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
         belowMapScrollView.getViewTreeObserver().addOnGlobalLayoutListener(new OnViewGlobalLayoutListener(belowMapScrollView));
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        // Save the user's current state
+        try {
+            CameraPosition pos = mMap.getCameraPosition();
+            savedInstanceState.putDoubleArray("latlng", new double[]{pos.target.latitude, pos.target.longitude});
+            savedInstanceState.putDouble("bearing", pos.bearing);
+            savedInstanceState.putFloat("zoom", pos.zoom);
+            savedInstanceState.putBoolean("followingUser", followingUser);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+        // Always call the superclass so it can save the view hierarchy state
+        super.onSaveInstanceState(savedInstanceState);
     }
 
     private static class OnViewGlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
@@ -394,7 +424,7 @@ public class NearMeActivity extends FragmentActivity
     private boolean loadedStops = false;
     private boolean loadedLines = false;
     boolean autoFocused = false;
-    private int updateInterval = 15; //the interval to update the display of stops below the map
+    private final int updateInterval = 15; //the interval to update the display of stops below the map
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -426,6 +456,7 @@ public class NearMeActivity extends FragmentActivity
             markers = new HashMap<>(stops.size(), 0.5f);
             stationList = new ArrayList<>(stops.size());
             int size = stops.size();
+            float autoZoom = 17f; //the default automatic zoom
             for (int i = 0; i < size; i++) {
                 Station st = stops.get(i);
                 int sectorLat = (int)Math.floor(st.getLatLng().latitude / sectorSize);
@@ -437,20 +468,23 @@ public class NearMeActivity extends FragmentActivity
                 markerSectors.get(sectorKey).add(st);
                 stationList.add(st);
                 visibleStations.add(st);
-                if (st.getStationId() == stationId) {
+                if (reloading) {
+                    //TODO: make this also restore the heading
+                    autoFocusPosition = reloadingPosition;
+                    autoZoom = reloadingZoom;
+                } else if (st.getStationId() == stationId) {
                     autoFocusPosition = st.getLatLng();
                     focusStationId = stationId;
+                    followingUser = false;
+                    autoFocused = true;
                 }
             }
-            boolean shouldBeVisible = mMap.getCameraPosition().zoom > minZoomLevel; //see if the stations should be visible
-            alreadyVisible = shouldBeVisible;
+            alreadyVisible = mMap.getCameraPosition().zoom > minZoomLevel;
 
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;
-                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, 17));
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, autoZoom));
                 hasLocation = true;
-                followingUser = false;
-                autoFocused = true;
             }
             onCameraChange(mMap.getCameraPosition());
 

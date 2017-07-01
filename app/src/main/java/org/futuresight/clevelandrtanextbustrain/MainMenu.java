@@ -82,10 +82,12 @@ public class MainMenu extends AppCompatActivity {
 
         protected void onPostExecute(int[] params) {
             Button serviceAlertsBtn = (Button) findViewById(R.id.serviceAlertsBtn);
-            if (params[1] == 1) {
-                serviceAlertsBtn.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
-            } else {
-                serviceAlertsBtn.getBackground().clearColorFilter();
+            if (serviceAlertsBtn != null) {
+                if (params[1] == 1) {
+                    serviceAlertsBtn.getBackground().setColorFilter(Color.RED, PorterDuff.Mode.MULTIPLY);
+                } else {
+                    serviceAlertsBtn.getBackground().clearColorFilter();
+                }
             }
         }
     }
@@ -93,7 +95,8 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //new GetServiceAlertsTask(this).execute(); //TODO: put this back once the bug is fixed
+        //new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); //TODO: put this back once the bug is fixed
+        //it appears that the bug is that the database is being locked while this is running and if any other pages are opened while this is running, this will result in a database crash
     }
 
     @Override

@@ -61,7 +61,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        new GetTimesTask(NextBusTrainActivity.this, false).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
+                        new GetTimesTask(NextBusTrainActivity.this, false).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
                     }
                 });
             }
@@ -76,13 +76,17 @@ public class NextBusTrainActivity extends AppCompatActivity {
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
-                if (lastSelectedPos != pos) { //if the current route is being selected again, ignore it
-                    String selectedRouteStr = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
-                    if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
-                        new GetDirectionsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
-                        new GetServiceAlertsTask(NextBusTrainActivity.this).execute(selectedRouteStr);
+                String selectedRouteStr = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
+                if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
+                    System.out.println("Line selected!");
+                    if (lastSelectedPos != pos) { //if the current route is being selected again, ignore it
+                        System.out.println(" -> (" + selectedRouteStr + ")");
+                        new GetDirectionsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr);
+                        new GetServiceAlertsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr);
+                        lastSelectedPos = pos;
+                    } else {
+                        System.out.println(" -> Ignored");
                     }
-                    lastSelectedPos = pos;
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -348,13 +352,23 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     //listener that runs when a direction is selected (loads the appropriate stops)
     private Spinner.OnItemSelectedListener dirSelectedListener = new AdapterView.OnItemSelectedListener() {
+        String lastRoute = "";
+        String lastDirection = "";
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
+                System.out.println("Direction selected");
                 if (!selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedRouteStr.equals("") &&
                         !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedDirStr.equals("")) {
-                    new GetStopsTask(NextBusTrainActivity.this).execute(selectedRouteStr, selectedDirStr); //NextBusTrainActivity.this sometimes results in nullpointerexception
+                    if (!selectedRouteStr.equals(lastRoute) || !selectedDirStr.equals(lastDirection)) { //ignore re-selections
+                        new GetStopsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr); //NextBusTrainActivity.this sometimes results in nullpointerexception
+                        lastRoute = selectedRouteStr;
+                        lastDirection = selectedDirStr;
+                        System.out.println(" -> (" + selectedRouteStr + ", " + selectedDirStr + ")");
+                    } else {
+                        System.out.println(" -> (Ignored)");
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -374,13 +388,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 String selectedStopStr = ((Spinner)findViewById(R.id.stationSpinner)).getSelectedItem().toString();
 
+                System.out.println("Stop selected (" + selectedRouteStr + ", " + selectedDirStr + ", " + selectedStopStr + ")");
+
                 //TODO: change the color of the homescreen button as appropriate for alerts
 
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedDirStr.equals("") && !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedStopStr.equals("") && !selectedStopStr.equals(getResources().getString(R.string.loadingellipsis))) {
-                    new GetTimesTask(NextBusTrainActivity.this, true).execute(selectedRouteStr, selectedDirStr, selectedStopStr);
-                    new GetEscalatorElevatorStatus(NextBusTrainActivity.this).execute(stopIds.get(selectedStopStr));
+                    new GetTimesTask(NextBusTrainActivity.this, true).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
+                    new GetEscalatorElevatorStatus(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, stopIds.get(selectedStopStr));
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -397,6 +413,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_next_bus_train);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+
+        System.out.println("Starting activity");
 
         //give listeners to the appropriate actions
         Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner); //this is for finding directions after a line is selected
@@ -435,7 +453,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (getIntent().hasExtra("stopId")) {
                 preSelectedStopId = getIntent().getExtras().getInt("stopId");
             }
-            new GetLinesTask(this).execute();
+            new GetLinesTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
             if (savedInstanceState != null) {
                 preSelectedLineId = savedInstanceState.getInt("lineId");
@@ -458,6 +476,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle savedInstanceState) {
         // Save the user's current state
         try {
+            System.out.println("Saving activity state");
+
             final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
             final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
@@ -498,6 +518,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(String[] lineNames) {
+            System.out.println("Got lines");
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             if (lineNames.length == 0) {
                 alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
@@ -531,7 +552,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             preSelectedStopId = data.getExtras().getInt("stopId");
             preSelectedDirId = data.getExtras().getInt("dirId");
             preSelectedLineId = data.getExtras().getInt("lineId");
-            new GetLinesTask(this).execute();
+            new GetLinesTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
@@ -565,6 +586,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
+                System.out.println("Got directions");
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 if (result == null) { //connection failed
                     dirSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
@@ -630,6 +652,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         protected void onPostExecute(Map<String, Integer> result) {
             //parse the result as JSON
             try {
+                System.out.println("Got stations");
                 Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) {
                     stationSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{""}));
@@ -643,7 +666,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 stopSet.toArray(stops);
 
                 //put the result into the spinner
-                ArrayAdapter<String> adapter = new ArrayAdapter<String>(myContext, android.R.layout.simple_spinner_item, stops);
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, stops);
                 stationSpinner.setAdapter(adapter);
 
                 for (int i = 0; i < adapter.getCount(); i++) { //if there was a stop previously selected then select it again (this is to avoid resetting the spinner when changing directions), but if there is a stop sent in to the activity that overrides the previously selected stop
@@ -836,7 +859,9 @@ public class NextBusTrainActivity extends AppCompatActivity {
         ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
     }
 
-
+    public void markTime(View v) {
+        System.out.println(" >>> TIME MARKED <<< ");
+    }
 
 }
 

@@ -25,6 +25,15 @@
             android:gravity="right">
 
             <ImageButton
+                android:id="@+id/markButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:contentDescription="@string/view_on_map"
+                android:onClick="markTime"
+                android:src="@android:drawable/stat_sys_warning" />
+
+            <ImageButton
                 android:id="@+id/viewOnMapBtn"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"

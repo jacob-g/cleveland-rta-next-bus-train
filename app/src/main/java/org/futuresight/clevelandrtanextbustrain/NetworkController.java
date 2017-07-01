@@ -220,9 +220,8 @@ public abstract class NetworkController {
                             if (schedTime.equals(time)) {
                                 schedInfo = "On time";
                             } else {
-                                //TODO: get exact time and specify early/late
-                                int lateness = getTimeLeft(schedTime, schedPeriod, time, period, true);
-                                schedInfo = lateness + " ";
+                                int lateness = getTimeLeft(schedTime, schedPeriod, time, period, false);
+                                schedInfo = Math.abs(lateness) + " ";
                                 if (lateness >= 0) {
                                     schedInfo += "late";
                                 } else {
