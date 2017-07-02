@@ -97,6 +97,7 @@ public class NearMeActivity extends FragmentActivity
     private boolean reloading = false;
     private LatLng reloadingPosition;
     private float reloadingZoom;
+    private float reloadingBearing;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -117,6 +118,7 @@ public class NearMeActivity extends FragmentActivity
             double[] latLngArray = savedInstanceState.getDoubleArray("latlng");
             reloadingPosition = new LatLng(latLngArray[0], latLngArray[1]);
             reloadingZoom = savedInstanceState.getFloat("zoom");
+            reloadingBearing = savedInstanceState.getFloat("bearing");
         }
 
         (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
@@ -209,7 +211,7 @@ public class NearMeActivity extends FragmentActivity
         try {
             CameraPosition pos = mMap.getCameraPosition();
             savedInstanceState.putDoubleArray("latlng", new double[]{pos.target.latitude, pos.target.longitude});
-            savedInstanceState.putDouble("bearing", pos.bearing);
+            savedInstanceState.putFloat("bearing", pos.bearing);
             savedInstanceState.putFloat("zoom", pos.zoom);
             savedInstanceState.putBoolean("followingUser", followingUser);
         } catch (Exception e) {
@@ -457,6 +459,7 @@ public class NearMeActivity extends FragmentActivity
             stationList = new ArrayList<>(stops.size());
             int size = stops.size();
             float autoZoom = 17f; //the default automatic zoom
+            float autoRotate = 0f;
             for (int i = 0; i < size; i++) {
                 Station st = stops.get(i);
                 int sectorLat = (int)Math.floor(st.getLatLng().latitude / sectorSize);
@@ -472,6 +475,7 @@ public class NearMeActivity extends FragmentActivity
                     //TODO: make this also restore the heading
                     autoFocusPosition = reloadingPosition;
                     autoZoom = reloadingZoom;
+                    autoRotate = reloadingBearing;
                 } else if (st.getStationId() == stationId) {
                     autoFocusPosition = st.getLatLng();
                     focusStationId = stationId;
@@ -484,6 +488,8 @@ public class NearMeActivity extends FragmentActivity
             if (autoFocusPosition != null) {
                 shouldFocusOnCleveland = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(autoFocusPosition, autoZoom));
+                CameraPosition pos = CameraPosition.builder(mMap.getCameraPosition()).bearing(autoRotate).build();
+                mMap.moveCamera(CameraUpdateFactory.newCameraPosition(pos));
                 hasLocation = true;
             }
             onCameraChange(mMap.getCameraPosition());
