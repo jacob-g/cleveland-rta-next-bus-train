@@ -98,6 +98,8 @@ public class NearMeActivity extends FragmentActivity
     private LatLng reloadingPosition;
     private float reloadingZoom;
     private float reloadingBearing;
+    private int selectedLine = 0;
+    private boolean belowMapDisplayShown = true;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -119,6 +121,8 @@ public class NearMeActivity extends FragmentActivity
             reloadingPosition = new LatLng(latLngArray[0], latLngArray[1]);
             reloadingZoom = savedInstanceState.getFloat("zoom");
             reloadingBearing = savedInstanceState.getFloat("bearing");
+            selectedLine = savedInstanceState.getInt("selectedLine");
+            belowMapDisplayShown = savedInstanceState.getBoolean("belowMapDisplayShown");
         }
 
         (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
@@ -134,44 +138,8 @@ public class NearMeActivity extends FragmentActivity
                     builder.setTitle(getResources().getString(R.string.select_route)).setItems(linesWithAllOption, new DialogInterface.OnClickListener() {
                         @Override
                         public void onClick(DialogInterface dialogInterface, int i) {
-                            //TODO: optimize this to improve runtime
-                            if (i == 0) {
-                                for (int l : pathsByLineId.keySet()) {
-                                    for (Polyline path : pathsByLineId.get(l)) {
-                                        path.setVisible(true);
-                                    }
-                                    visibleStations.clear();
-                                    for (Station st : stationList) {
-                                        visibleStations.add(st);
-                                    }
-                                    for (Marker m : markers.keySet()) {
-                                        m.setVisible(alreadyVisible);
-                                    }
-                                }
-                            } else {
-                                int lineId = lineIdMap.get(lines[i - 1]);
-                                for (int l : pathsByLineId.keySet()) {
-                                    boolean visible = (l == lineId);
-                                    for (Polyline path : pathsByLineId.get(l)) {
-                                        path.setVisible(visible);
-                                    }
-                                    visibleStations = new ArrayList<>();
-                                    for (Station st : stationList) {
-                                        if (st.getLineId() == lineId) {
-                                            visibleStations.add(st);
-                                        }
-                                    }
-                                    for (Marker m : markers.keySet()) {
-                                        Station st = markers.get(m);
-                                        boolean stationVisible = visibleStations.contains(st);
-                                        if (!stationVisible) {
-                                            m.setVisible(false);
-                                        } else if (alreadyVisible && stationVisible) {
-                                            m.setVisible(true);
-                                        }
-                                    }
-                                }
-                            }
+                            showStationsOnLine(i);
+                            selectedLine = i;
                         }
                     });
                     builder.create();
@@ -214,6 +182,8 @@ public class NearMeActivity extends FragmentActivity
             savedInstanceState.putFloat("bearing", pos.bearing);
             savedInstanceState.putFloat("zoom", pos.zoom);
             savedInstanceState.putBoolean("followingUser", followingUser);
+            savedInstanceState.putBoolean("belowMapDisplayShown", findViewById(R.id.belowMapLayout).getVisibility() == View.VISIBLE);
+            savedInstanceState.putInt("selectedLine", selectedLine);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -221,6 +191,48 @@ public class NearMeActivity extends FragmentActivity
 
         // Always call the superclass so it can save the view hierarchy state
         super.onSaveInstanceState(savedInstanceState);
+    }
+
+    //only show the stations on a given line, and in this case i is the index number in the line list (not the line ID) since it is triggered by the dropdown
+    private void showStationsOnLine(int i) {
+        //TODO: optimize this to improve runtime
+        if (i == 0) {
+            for (int l : pathsByLineId.keySet()) {
+                for (Polyline path : pathsByLineId.get(l)) {
+                    path.setVisible(true);
+                }
+                visibleStations.clear();
+                for (Station st : stationList) {
+                    visibleStations.add(st);
+                }
+                for (Marker m : markers.keySet()) {
+                    m.setVisible(alreadyVisible);
+                }
+            }
+        } else {
+            int lineId = lineIdMap.get(lines[i - 1]);
+            for (int l : pathsByLineId.keySet()) {
+                boolean visible = (l == lineId);
+                for (Polyline path : pathsByLineId.get(l)) {
+                    path.setVisible(visible);
+                }
+                visibleStations = new ArrayList<>();
+                for (Station st : stationList) {
+                    if (st.getLineId() == lineId) {
+                        visibleStations.add(st);
+                    }
+                }
+                for (Marker m : markers.keySet()) {
+                    Station st = markers.get(m);
+                    boolean stationVisible = visibleStations.contains(st);
+                    if (!stationVisible) {
+                        m.setVisible(false);
+                    } else if (alreadyVisible && stationVisible) {
+                        m.setVisible(true);
+                    }
+                }
+            }
+        }
     }
 
     private static class OnViewGlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
@@ -373,6 +385,7 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
+            //put the paths on the map
             for (ColoredPointList path : paths) {
                 PolylineOptions polyLineOptions = new PolylineOptions();
                 polyLineOptions.addAll(path.points);
@@ -384,8 +397,15 @@ public class NearMeActivity extends FragmentActivity
                 }
                 pathsByLineId.get(path.lineId).add(newPath);
             }
+            //mark the task as done by removing the progress bar
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
+            //show the buttons that go below the map
             (findViewById(R.id.topButtonsLayout)).setVisibility(View.VISIBLE);
+            //if restoring the map and the display was hidden before, hide it again
+            if (!belowMapDisplayShown) {
+                findViewById(R.id.belowMapLayout).setVisibility(View.GONE);
+                ((ImageButton)findViewById(R.id.showHideBtn)).setImageResource(R.drawable.ic_collapse);
+            }
             loadedLines = true;
         }
     }
@@ -470,9 +490,7 @@ public class NearMeActivity extends FragmentActivity
                 }
                 markerSectors.get(sectorKey).add(st);
                 stationList.add(st);
-                visibleStations.add(st);
                 if (reloading) {
-                    //TODO: make this also restore the heading
                     autoFocusPosition = reloadingPosition;
                     autoZoom = reloadingZoom;
                     autoRotate = reloadingBearing;
@@ -493,6 +511,7 @@ public class NearMeActivity extends FragmentActivity
                 hasLocation = true;
             }
             onCameraChange(mMap.getCameraPosition());
+            showStationsOnLine(selectedLine); //TODO: make sure that this only runs once the paths are ALSO already loaded, as this may trigger errors
 
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
             loadedStops = true;
