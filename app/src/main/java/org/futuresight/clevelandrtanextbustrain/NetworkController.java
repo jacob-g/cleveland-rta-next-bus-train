@@ -14,9 +14,7 @@ import org.w3c.dom.NodeList;
 import org.xml.sax.InputSource;
 
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.InputStreamReader;
-import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.StringReader;
 import java.net.HttpURLConnection;
@@ -42,10 +40,10 @@ public abstract class NetworkController {
 
         URL url;
         String response = "";
+        HttpURLConnection conn = null;
         try {
             url = new URL(requestURL);
-
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setReadTimeout(15000);
             conn.setConnectTimeout(15000);
             conn.setRequestMethod("POST");
@@ -54,16 +52,11 @@ public abstract class NetworkController {
             conn.setRequestProperty("Content-Type", "application/json; charset=utf-8");
             conn.setRequestProperty("Cookie", "gali=edit-facility-select&has_js=1");
 
+            OutputStreamWriter wr = new OutputStreamWriter(conn.getOutputStream());
+            wr.write( postData );
+            wr.flush();
+            wr.close();
 
-
-            OutputStream os = conn.getOutputStream();
-            BufferedWriter writer = new BufferedWriter(
-                    new OutputStreamWriter(os, "UTF-8"));
-            writer.write(postData);
-
-            writer.flush();
-            writer.close();
-            os.close();
             int responseCode=conn.getResponseCode();
 
             if (responseCode == HttpURLConnection.HTTP_OK) {
@@ -72,14 +65,16 @@ public abstract class NetworkController {
                 while ((line=br.readLine()) != null) {
                     response+=line;
                 }
-            }
-            else {
+            } else {
                 response="";
-
             }
+            conn.disconnect();
         } catch (Exception e) {
             if (!e.getMessage().contains("Unable to resolve host")) {
                 e.printStackTrace();
+            }
+            if (conn != null) {
+                conn.disconnect();
             }
             response = null;
         }
@@ -90,10 +85,11 @@ public abstract class NetworkController {
     public static String basicHTTPRequest(String requestURL) {
         URL url;
         String response = "";
+        HttpURLConnection conn = null;
         try {
             url = new URL(requestURL);
 
-            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn = (HttpURLConnection) url.openConnection();
             conn.setReadTimeout(15000);
             conn.setConnectTimeout(15000);
             conn.setRequestMethod("GET");
@@ -112,7 +108,11 @@ public abstract class NetworkController {
             } else {
                 response="";
             }
+            conn.disconnect();
         } catch (Exception e) {
+            if (conn != null) {
+                conn.disconnect();
+            }
             if (!e.getMessage().contains("Unable to resolve host")) {
                 e.printStackTrace();
             }

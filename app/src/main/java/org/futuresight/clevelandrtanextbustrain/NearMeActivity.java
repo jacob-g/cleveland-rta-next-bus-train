@@ -158,10 +158,10 @@ public class NearMeActivity extends FragmentActivity
                                                                       ImageButton sender = (ImageButton)view;
                                                                       if (belowMapLayout.getVisibility() == View.VISIBLE) {
                                                                           belowMapLayout.setVisibility(View.GONE);
-                                                                          sender.setImageResource(R.drawable.ic_collapse);
+                                                                          sender.setImageResource(R.drawable.mr_group_collapse);
                                                                       } else {
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
-                                                                          sender.setImageResource(R.drawable.ic_expand);
+                                                                          sender.setImageResource(R.drawable.mr_group_expand);
                                                                       }
                                                                       //also update the height of the whole thing
                                                                       ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -175,11 +175,12 @@ public class NearMeActivity extends FragmentActivity
         //handle events related to the search bar
         final PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
                 getFragmentManager().findFragmentById(R.id.autocomplete);
+        autocompleteFragment.setBoundsBias(new LatLngBounds(
+                new LatLng(41.301, -82.023),
+                new LatLng(41.686, -81.339))); //roughly the bounds for the RTA's service area
         autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
             @Override
             public void onPlaceSelected(Place place) {
-                // TODO: Get info about the selected place.
-                autocompleteFragment.setText("");
                 followingUser = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
             }
@@ -426,7 +427,7 @@ public class NearMeActivity extends FragmentActivity
             //if restoring the map and the display was hidden before, hide it again
             if (!belowMapDisplayShown) {
                 findViewById(R.id.belowMapLayout).setVisibility(View.GONE);
-                ((ImageButton)findViewById(R.id.showHideBtn)).setImageResource(R.drawable.ic_collapse);
+                ((ImageButton)findViewById(R.id.showHideBtn)).setImageResource(R.drawable.mr_group_collapse);
             }
             loadedLines = true;
 
@@ -694,7 +695,7 @@ public class NearMeActivity extends FragmentActivity
 
                             //the button to collapse this display
                             ImageButton collapseBtn = new ImageButton(NearMeActivity.this);
-                            collapseBtn.setImageResource(R.drawable.ic_collapse);
+                            collapseBtn.setImageResource(R.drawable.mr_group_collapse);
                             collapseBtn.setLayoutParams(optionButtonParams);
                             collapseBtn.setOnClickListener(new Button.OnClickListener() {
                                 public void onClick(View v) {

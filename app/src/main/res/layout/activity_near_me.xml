@@ -21,10 +21,15 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity">
-        <LinearLayout
-            android:orientation="horizontal"
+
+        <android.support.v7.widget.CardView
+            android:id="@+id/searchcard"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content">
+            android:layout_height="wrap_content"
+            android:layout_marginTop="5dp"
+            android:layout_marginLeft="5dp"
+            android:layout_marginBottom="0dp"
+            android:layout_marginRight="60dp"><!-- TODO: make this resize appropriately so that it doesn't cover up the my location button and looks appropriate -->
             <fragment
                 android:id="@+id/autocomplete"
                 android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
@@ -32,10 +37,7 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
-            <android.support.v4.widget.Space
-                android:layout_width="42dp"
-                android:layout_height="42dp" />
-        </LinearLayout>
+        </android.support.v7.widget.CardView>
 
     </fragment>
 
@@ -66,8 +68,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_weight="0"
-                    android:src="@drawable/ic_expand"
-                    app:srcCompat="@drawable/ic_expand" />
+                    android:src="@drawable/mr_group_expand"
+                    app:srcCompat="@drawable/mr_group_expand" />
 
                 <Button
                     android:id="@+id/chooseLineBtn"
