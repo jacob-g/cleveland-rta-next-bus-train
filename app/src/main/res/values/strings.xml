@@ -74,4 +74,8 @@
     <string name="schedule">Schedule</string>
     <string name="full_schedule">See full schedule</string>
     <string name="loadingellipsis">Loading...</string>
+
+    <string name="title_activity_near_me_search">NearMeSearchActivity</string>
+    <string name="dummy_button">Dummy Button</string>
+    <string name="dummy_content">DUMMY\nCONTENT</string>
 </resources>

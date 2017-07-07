@@ -755,7 +755,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                     ((TextView) findViewById(R.id.train3timeLeftBox)).setText(R.string.not_available);
                 }
                 //show the schedule button
-                findViewById(R.id.scheduleBtn).setVisibility(View.VISIBLE);
+                //findViewById(R.id.scheduleBtn).setVisibility(View.VISIBLE); //TODO: uncomment this once the server backend issues have been resolved to re-enable showing schedules
             } catch (Exception e) {
                 blankAll();
                 System.err.println("Error in parsing JSON or XML");

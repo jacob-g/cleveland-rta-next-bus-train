@@ -12,14 +12,32 @@
     android:paddingTop="0dp"
     tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity">
 
+
+
     <fragment
         android:id="@+id/map"
         android:name="com.google.android.gms.maps.SupportMapFragment"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|left|right"
         android:layout_weight="1"
-        tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
+        tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity">
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+            <fragment
+                android:id="@+id/autocomplete"
+                android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                tools:context="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
+            <android.support.v4.widget.Space
+                android:layout_width="42dp"
+                android:layout_height="42dp" />
+        </LinearLayout>
+
+    </fragment>
 
     <ScrollView
         android:id="@+id/belowMapScrollView"

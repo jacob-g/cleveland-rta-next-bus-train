@@ -80,6 +80,10 @@
             android:name="com.google.android.geo.API_KEY"
             android:value="@string/google_maps_key" />
 
+        <meta-data
+            android:name="com.google.android.places.API_KEY"
+            android:value="@string/google_maps_key" />
+
         <activity
             android:name=".NearMeActivity"
             android:label="@string/title_activity_near_me"
@@ -92,8 +96,19 @@
             android:name=".SettingsActivity"
             android:label="@string/settings" />
         <activity android:name=".CreditsActivity" />
-        <activity android:name=".ScheduleActivity"
-            android:label="@string/schedule"></activity>
+        <activity
+            android:name=".ScheduleActivity"
+            android:label="@string/schedule" />
+        <activity
+            android:name=".NearMeSearchActivity"
+            android:configChanges="orientation|keyboardHidden|screenSize"
+            android:label="@string/title_activity_near_me_search"
+            android:parentActivityName=".NearMeActivity"
+            android:theme="@style/FullscreenTheme">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
+        </activity>
     </application>
 
 </manifest>

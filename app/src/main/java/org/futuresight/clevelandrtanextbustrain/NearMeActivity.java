@@ -22,9 +22,13 @@ import android.widget.TableRow;
 import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.Status;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
+import com.google.android.gms.location.places.Place;
+import com.google.android.gms.location.places.ui.PlaceAutocompleteFragment;
+import com.google.android.gms.location.places.ui.PlaceSelectionListener;
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
@@ -167,6 +171,24 @@ public class NearMeActivity extends FragmentActivity
                                                                   }
                                                               }
         );
+
+        //handle events related to the search bar
+        final PlaceAutocompleteFragment autocompleteFragment = (PlaceAutocompleteFragment)
+                getFragmentManager().findFragmentById(R.id.autocomplete);
+        autocompleteFragment.setOnPlaceSelectedListener(new PlaceSelectionListener() {
+            @Override
+            public void onPlaceSelected(Place place) {
+                // TODO: Get info about the selected place.
+                autocompleteFragment.setText("");
+                followingUser = false;
+                mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
+            }
+
+            @Override
+            public void onError(Status status) {
+                System.err.println("An error occurred: " + status);
+            }
+        });
 
         //adjust the height to make sure that the bottom layout isn't more than 50% of the screen height
         ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -407,6 +429,10 @@ public class NearMeActivity extends FragmentActivity
                 ((ImageButton)findViewById(R.id.showHideBtn)).setImageResource(R.drawable.ic_collapse);
             }
             loadedLines = true;
+
+            if (loadedStops && loadedLines) {
+                showStationsOnLine(selectedLine);
+            }
         }
     }
 
@@ -511,10 +537,13 @@ public class NearMeActivity extends FragmentActivity
                 hasLocation = true;
             }
             onCameraChange(mMap.getCameraPosition());
-            showStationsOnLine(selectedLine); //TODO: make sure that this only runs once the paths are ALSO already loaded, as this may trigger errors
 
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
             loadedStops = true;
+
+            if (loadedStops && loadedLines) {
+                showStationsOnLine(selectedLine);
+            }
         }
     }
 
