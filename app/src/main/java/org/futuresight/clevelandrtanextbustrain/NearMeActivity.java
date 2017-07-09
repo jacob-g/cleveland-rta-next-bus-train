@@ -227,19 +227,18 @@ public class NearMeActivity extends FragmentActivity
 
     //only show the stations on a given line, and in this case i is the index number in the line list (not the line ID) since it is triggered by the dropdown
     private void showStationsOnLine(int i) {
-        //TODO: optimize this to improve runtime
         if (i == 0) {
             for (int l : pathsByLineId.keySet()) {
                 for (Polyline path : pathsByLineId.get(l)) {
                     path.setVisible(true);
                 }
-                visibleStations.clear();
-                for (Station st : stationList) {
-                    visibleStations.add(st);
-                }
-                for (Marker m : markers.keySet()) {
-                    m.setVisible(alreadyVisible);
-                }
+            }
+            visibleStations.clear();
+            for (Station st : stationList) {
+                visibleStations.add(st);
+            }
+            for (Marker m : markers.keySet()) {
+                m.setVisible(alreadyVisible);
             }
         } else {
             int lineId = lineIdMap.get(lines[i - 1]);
@@ -248,20 +247,20 @@ public class NearMeActivity extends FragmentActivity
                 for (Polyline path : pathsByLineId.get(l)) {
                     path.setVisible(visible);
                 }
-                visibleStations = new ArrayList<>();
-                for (Station st : stationList) {
-                    if (st.getLineId() == lineId) {
-                        visibleStations.add(st);
-                    }
+            }
+            visibleStations = new HashSet<>();
+            for (Station st : stationList) {
+                if (st.getLineId() == lineId) {
+                    visibleStations.add(st);
                 }
-                for (Marker m : markers.keySet()) {
-                    Station st = markers.get(m);
-                    boolean stationVisible = visibleStations.contains(st);
-                    if (!stationVisible) {
-                        m.setVisible(false);
-                    } else if (alreadyVisible && stationVisible) {
-                        m.setVisible(true);
-                    }
+            }
+            for (Marker m : markers.keySet()) {
+                Station st = markers.get(m);
+                boolean stationVisible = visibleStations.contains(st);
+                if (!stationVisible) {
+                    m.setVisible(false);
+                } else if (alreadyVisible && stationVisible) {
+                    m.setVisible(true);
                 }
             }
         }
@@ -477,7 +476,7 @@ public class NearMeActivity extends FragmentActivity
     Map<Marker, Station> markers = new HashMap<>();
     Set<Station> favoriteStations = new HashSet<>();
     List<Station> stationList = new ArrayList<>();
-    List<Station> visibleStations = new ArrayList<>();
+    Set<Station> visibleStations = new HashSet<>();
 
     private boolean loadedStops = false;
     private boolean loadedLines = false;
