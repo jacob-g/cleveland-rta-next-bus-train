@@ -39,7 +39,7 @@ public abstract class NetworkController {
     public static String  performPostCall(String requestURL, String postData) {
 
         URL url;
-        String response = "";
+        StringBuilder response = new StringBuilder();
         HttpURLConnection conn = null;
         try {
             url = new URL(requestURL);
@@ -63,10 +63,8 @@ public abstract class NetworkController {
                 String line;
                 BufferedReader br=new BufferedReader(new InputStreamReader(conn.getInputStream()));
                 while ((line=br.readLine()) != null) {
-                    response+=line;
+                    response.append(line);
                 }
-            } else {
-                response="";
             }
             conn.disconnect();
         } catch (Exception e) {
@@ -79,7 +77,7 @@ public abstract class NetworkController {
             response = null;
         }
 
-        return response;
+        return response == null ? null : response.toString();
     }
 
     public static String basicHTTPRequest(String requestURL) {

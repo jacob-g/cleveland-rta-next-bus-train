@@ -104,6 +104,7 @@ public class NearMeActivity extends FragmentActivity
     private float reloadingBearing;
     private int selectedLine = 0;
     private boolean belowMapDisplayShown = true;
+    private Marker lastSearchedMarker = null;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -183,6 +184,14 @@ public class NearMeActivity extends FragmentActivity
             public void onPlaceSelected(Place place) {
                 followingUser = false;
                 mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(place.getLatLng(), 17));
+                //add a marker to the map for where the user searched
+                if (lastSearchedMarker != null) {
+                    lastSearchedMarker.remove();
+                }
+                lastSearchedMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng()).snippet(place.getName().toString()));
+                //reset the timer so that the stops near the searched location show up immediately
+                cancelTimer();
+                startTimer(0);
             }
 
             @Override
@@ -642,9 +651,7 @@ public class NearMeActivity extends FragmentActivity
 
                             LinearLayout.LayoutParams optionButtonParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
 
-                            if (updateStopsNearMeTimer != null) {
-                                updateStopsNearMeTimer.cancel();
-                            }
+                            cancelTimer();
 
                             //show a new table row below the one containing the station that was selected with a button to show the location of the station and a button to view arrivals information for it
                             final TableRow optionsRow = new TableRow(NearMeActivity.this);
@@ -710,8 +717,7 @@ public class NearMeActivity extends FragmentActivity
                             optionsRow.addView(optionsLayout);
 
                             belowMapLayout.addView(optionsRow, myIndex + deltaIndex + 1);
-                            updateStopsNearMeTimer = new Timer();
-                            updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), updateInterval * 1000, updateInterval * 1000);
+                            startTimer(updateInterval * 1000);
 
                             deltaIndex++;
                         }
@@ -738,6 +744,17 @@ public class NearMeActivity extends FragmentActivity
                 e.printStackTrace();
             }
         }
+    }
+
+    private void cancelTimer() {
+        if (updateStopsNearMeTimer != null) {
+            updateStopsNearMeTimer.cancel();
+        }
+    }
+
+    private void startTimer(int delay) {
+        updateStopsNearMeTimer = new Timer();
+        updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), delay, updateInterval * 1000);
     }
 
     @Override
@@ -954,8 +971,7 @@ public class NearMeActivity extends FragmentActivity
             }
         }
         if (updateStopsNearMeTimer == null && loadedStops) {
-            updateStopsNearMeTimer = new Timer();
-            updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), 0, updateInterval * 1000);
+            startTimer(0);
         }
     }
 
