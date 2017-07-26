@@ -730,7 +730,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 if (stopList.size() > 0) {
                     ((TextView) findViewById(R.id.train1timebox)).setText(stopList.get(0)[0]);
                     ((TextView) findViewById(R.id.train1destbox)).setText(stopList.get(0)[1]);
-                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2] + "\n" + stopList.get(0)[3]); //TODO: make this a resource string
+                    ((TextView) findViewById(R.id.train1timeLeftBox)).setText(stopList.get(0)[2] + "\n" + stopList.get(0)[3]);
                 } else {
                     ((TextView) findViewById(R.id.train1timebox)).setText(R.string.no_time);
                     ((TextView) findViewById(R.id.train1destbox)).setText(R.string.no_destination);

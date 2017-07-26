@@ -136,13 +136,14 @@
                             android:layout_marginRight="25dp" />
 
                         <TextView
+                            android:id="@+id/textView6"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceMedium"
-                            android:text="@string/destination"
-                            android:id="@+id/textView6"
                             android:layout_column="2"
-                            android:layout_marginRight="50dp" />
+                            android:layout_marginRight="50dp"
+                            android:layout_weight="1"
+                            android:text="@string/destination"
+                            android:textAppearance="?android:attr/textAppearanceMedium" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -166,14 +167,15 @@
                             android:layout_column="1" />
 
                         <TextView
+                            android:id="@+id/train1destbox"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="@string/no_destination"
-                            android:id="@+id/train1destbox"
                             android:layout_column="2"
+                            android:layout_marginRight="10dp"
                             android:layout_span="4"
-                            android:layout_marginRight="10dp" />
+                            android:layout_weight="1"
+                            android:text="@string/no_destination"
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -196,13 +198,14 @@
                             android:layout_column="1" />
 
                         <TextView
+                            android:id="@+id/train2destbox"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="@string/no_destination"
-                            android:id="@+id/train2destbox"
                             android:layout_column="2"
-                            android:layout_marginRight="10dp" />
+                            android:layout_marginRight="10dp"
+                            android:layout_weight="1"
+                            android:text="@string/no_destination"
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:layout_width="wrap_content"
@@ -225,13 +228,14 @@
                             android:layout_column="1" />
 
                         <TextView
+                            android:id="@+id/train3destbox"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:textAppearance="?android:attr/textAppearanceSmall"
-                            android:text="@string/no_destination"
-                            android:id="@+id/train3destbox"
                             android:layout_column="2"
-                            android:layout_marginRight="10dp" />
+                            android:layout_marginRight="10dp"
+                            android:layout_weight="1"
+                            android:text="@string/no_destination"
+                            android:textAppearance="?android:attr/textAppearanceSmall" />
 
                         <TextView
                             android:layout_width="wrap_content"

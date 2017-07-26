@@ -216,18 +216,17 @@ public abstract class NetworkController {
                         String schedInfo;
                         if (realTime) {
                             if (schedTime.equals(time)) {
-                                schedInfo = "On time";
+                                schedInfo = context.getResources().getString(R.string.ontime);
                             } else {
                                 int lateness = getTimeLeft(schedTime, schedPeriod, time, period, false);
-                                schedInfo = Math.abs(lateness) + " ";
                                 if (lateness >= 0) {
-                                    schedInfo += "late";
+                                    schedInfo = String.format(context.getResources().getString(R.string.xlate), Math.abs(lateness));
                                 } else {
-                                    schedInfo += "early";
+                                    schedInfo = String.format(context.getResources().getString(R.string.xearly), Math.abs(lateness));
                                 }
                             }
                         } else {
-                            schedInfo = "Scheduled";
+                            schedInfo = context.getResources().getString(R.string.scheduled);
                         }
                         String dest = curStopJson.getString("destination");
                         dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest; //use the destination mapping

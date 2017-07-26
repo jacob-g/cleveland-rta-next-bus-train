@@ -118,6 +118,7 @@ public class NearMeActivity extends FragmentActivity
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        //restore saved data if necessary
         if (savedInstanceState != null) {
             hasLocation = true;
             reloading = true;
@@ -130,11 +131,12 @@ public class NearMeActivity extends FragmentActivity
             belowMapDisplayShown = savedInstanceState.getBoolean("belowMapDisplayShown");
         }
 
+        //set the event for the "choose line" button
         (findViewById(R.id.chooseLineBtn)).setOnClickListener(new Button.OnClickListener() {
                 public void onClick(View view) {
                     if (linesWithAllOption == null) {
                         linesWithAllOption = new String[lines.length + 1];
-                        linesWithAllOption[0] = "All routes";
+                        linesWithAllOption[0] = getResources().getString(R.string.allroutes);
                         for (int i = 0; i < lines.length; i++) {
                             linesWithAllOption[i + 1] = lines[i];
                         }
@@ -153,16 +155,20 @@ public class NearMeActivity extends FragmentActivity
             }
         );
 
+        //set the event for the show/hide below map display button
         (findViewById(R.id.showHideBtn)).setOnClickListener(new Button.OnClickListener() {
                                                                   public void onClick(View view) {
                                                                       View belowMapLayout = findViewById(R.id.belowMapLayout);
                                                                       ImageButton sender = (ImageButton)view;
                                                                       if (belowMapLayout.getVisibility() == View.VISIBLE) {
+                                                                          //hide the below map display
                                                                           belowMapLayout.setVisibility(View.GONE);
                                                                           sender.setImageResource(R.drawable.mr_group_collapse);
+                                                                          cancelTimer(); //since the display isn't showing, don't bother updating it
                                                                       } else {
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
                                                                           sender.setImageResource(R.drawable.mr_group_expand);
+                                                                          startTimer(0); //immediately start updating the display again
                                                                       }
                                                                       //also update the height of the whole thing
                                                                       ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -721,9 +727,12 @@ public class NearMeActivity extends FragmentActivity
                             deltaIndex++;
                         }
                     });
+                    TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+                    params.weight = 1;
+                    stationNameView.setLayoutParams(params);
                     arrivalRow.addView(stationNameView, 0);
 
-
+                    //TODO: force the part on the right to have its width (set weight as 1?)
                     TextView stationLineView = new TextView(NearMeActivity.this);
                     stationLineView.setMaxWidth(250);
                     String arrivalText = stopInfo[3] + "\n" + stopInfo[2];
@@ -734,6 +743,9 @@ public class NearMeActivity extends FragmentActivity
                         }
                     }
                     stationLineView.setText(arrivalText);
+                    params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+                    params.weight = 0;
+                    stationLineView.setLayoutParams(params);
                     arrivalRow.addView(stationLineView, 1);
 
                     belowMapLayout.addView(arrivalRow);

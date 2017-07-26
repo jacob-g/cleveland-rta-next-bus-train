@@ -78,4 +78,9 @@
     <string name="title_activity_near_me_search">NearMeSearchActivity</string>
     <string name="dummy_button">Dummy Button</string>
     <string name="dummy_content">DUMMY\nCONTENT</string>
+    <string name="allroutes">All routes</string>
+    <string name="xearly">%d early</string>
+    <string name="xlate">%d late</string>
+    <string name="ontime">On time</string>
+    <string name="scheduled">Scheduled</string>
 </resources>
