@@ -319,7 +319,7 @@ public abstract class PersistentDataController {
         Map<String, Integer> out = db.getStations(lineId, dirId);
         db.close();
         if (out.isEmpty()) {
-            loadStationIds(context, lineId, dirId);
+            out = loadStationIds(context, lineId, dirId);
         }
         return out;
     }

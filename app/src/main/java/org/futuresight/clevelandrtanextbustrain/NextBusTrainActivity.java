@@ -69,13 +69,15 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     //listener that runs when a route is selected (loads the appropriate directions)
-    private RouteSelectedListener routeSelectedListener = new RouteSelectedListener();
-    private class RouteSelectedListener implements Spinner.OnItemSelectedListener {
-        private int lastSelectedPos = -1;
+    private Spinner.OnItemSelectedListener routeSelectedListener = new Spinner.OnItemSelectedListener() {
+        int lastSelectedPos = -1;
 
         @Override
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
+                if (id == -1) {
+                    lastSelectedPos = -1;
+                }
                 String selectedRouteStr = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
                     System.out.println("Line selected!");
@@ -356,6 +358,10 @@ public class NextBusTrainActivity extends AppCompatActivity {
         String lastDirection = "";
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
+                if (id == -1) {
+                    lastRoute = "";
+                    lastDirection = "";
+                }
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 String selectedDirStr = ((Spinner)findViewById(R.id.dirSpinner)).getSelectedItem().toString();
                 System.out.println("Direction selected");
@@ -381,7 +387,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     };
 
     //listener that runs when a direction is selected (loads the appropriate stops)
-    private Spinner.OnItemSelectedListener stopSelectedSpinner = new AdapterView.OnItemSelectedListener() {
+    private Spinner.OnItemSelectedListener stopSelectedListener = new AdapterView.OnItemSelectedListener() {
         public void onItemSelected(AdapterView<?> parent, View view, int pos, long id) {
             try {
                 String selectedRouteStr = ((Spinner)findViewById(R.id.lineSpinner)).getSelectedItem().toString();
@@ -422,7 +428,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner); //this is for finding stops after a direction and line are selected
         dirSpinner.setOnItemSelectedListener(dirSelectedListener);
         Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner); //this is for finding stops after a direction and line are selected
-        stationSpinner.setOnItemSelectedListener(stopSelectedSpinner);
+        stationSpinner.setOnItemSelectedListener(stopSelectedListener);
         ImageButton addFavoriteBtn = (ImageButton) findViewById(R.id.addFavoriteBtn); //this is for when the "add favorite" button is clicked
         addFavoriteBtn.setOnClickListener(addFavoriteClickedListener);
         ImageButton selectFavoriteBtn = (ImageButton) findViewById(R.id.selectFavoriteBtn); //this is for when the "add favorite" button is clicked
@@ -588,9 +594,33 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 System.out.println("Got directions");
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
+                Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) { //connection failed
+                    //show dialog asking to reload directions
+                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                    alertDialog.setTitle(getResources().getString(R.string.error));
+                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_directions_try_again));
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    routeSelectedListener.onItemSelected(null, null, 0, -1L);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
+
+                    //leave the dropdown blank
                     dirSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
                     dirSpinner.setEnabled(true);
+
+                    stationSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
+                    stationSpinner.setEnabled(true);
                     return;
                 } else if (result.isEmpty()) {
                     alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
@@ -621,7 +651,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
     private class GetStopsTask extends AsyncTask<String, Void, Map<String, Integer>> {
         private Context myContext;
         private int myRouteId, myDirId;
-        private Map<String, Integer> stations;
         private String curSelection = "";
         public GetStopsTask(Context context) {
             myContext = context;
@@ -641,7 +670,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 myRouteId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
                 myDirId = dirIds.get(params[1]);
-                stations = PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
                 return PersistentDataController.getStationIds(myContext, myRouteId, myDirId);
             } catch (Exception e) {
                 e.printStackTrace();
@@ -655,6 +683,26 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 System.out.println("Got stations");
                 Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) {
+                    //show dialog asking to reload if the connection failed
+                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                    alertDialog.setTitle(getResources().getString(R.string.error));
+                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    dirSelectedListener.onItemSelected(null, null, 0, -1L);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
+
+                    //leave the dropdown empty
                     stationSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{""}));
                     stationSpinner.setEnabled(true);
                     return;

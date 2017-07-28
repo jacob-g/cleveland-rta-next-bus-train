@@ -83,4 +83,7 @@
     <string name="xlate">%d late</string>
     <string name="ontime">On time</string>
     <string name="scheduled">Scheduled</string>
+    <string name="failed_to_load_try_again">Failed to load. Click here to try again.</string>
+    <string name="failed_to_load_stops_try_again">Failed to load stops. Try again?</string>
+    <string name="failed_to_load_directions_try_again">Failed to load directions. Try again?</string>
 </resources>
