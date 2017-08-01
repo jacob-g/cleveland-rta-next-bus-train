@@ -4,12 +4,16 @@ import android.app.AlertDialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.Canvas;
 import android.graphics.Color;
+import android.graphics.Paint;
 import android.location.Location;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewTreeObserver;
 import android.widget.Button;
@@ -53,6 +57,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.PriorityQueue;
@@ -196,8 +201,10 @@ public class NearMeActivity extends FragmentActivity
                 }
                 lastSearchedMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng()).snippet(place.getName().toString()));
                 //reset the timer so that the stops near the searched location show up immediately
-                cancelTimer();
-                startTimer(0);
+                if (loadedStops && loadedLines) {
+                    cancelTimer();
+                    startTimer(0);
+                }
             }
 
             @Override
@@ -232,7 +239,10 @@ public class NearMeActivity extends FragmentActivity
     }
 
     //only show the stations on a given line, and in this case i is the index number in the line list (not the line ID) since it is triggered by the dropdown
+    private int shownLine = 0;
     private void showStationsOnLine(int i) {
+        int lineId = i > 0 ? lineIdMap.get(lines[i - 1]) : 0;
+        shownLine = lineId;
         if (i == 0) {
             for (int l : pathsByLineId.keySet()) {
                 for (Polyline path : pathsByLineId.get(l)) {
@@ -247,7 +257,7 @@ public class NearMeActivity extends FragmentActivity
                 m.setVisible(alreadyVisible);
             }
         } else {
-            int lineId = lineIdMap.get(lines[i - 1]);
+            new GetTransfersTask().execute(lineId);
             for (int l : pathsByLineId.keySet()) {
                 boolean visible = (l == lineId);
                 for (Polyline path : pathsByLineId.get(l)) {
@@ -267,6 +277,62 @@ public class NearMeActivity extends FragmentActivity
                     m.setVisible(false);
                 } else if (alreadyVisible && stationVisible) {
                     m.setVisible(true);
+                }
+            }
+        }
+        for (int key : pathMarkersByLineId.keySet()) {
+            for (Marker m : pathMarkersByLineId.get(key)) {
+                m.setVisible(alreadyVisible && (shownLine == 0 || shownLine == key));
+            }
+        }
+    }
+
+    private class GetTransfersTask extends AsyncTask<Integer, Void, Map<Station, List<Station>>> {
+        protected Map<Station, List<Station>> doInBackground(Integer... params) {
+            return PersistentDataController.getTransfers(NearMeActivity.this, params[0]);
+        }
+
+        protected void onPostExecute(Map<Station, List<Station>> transfers) {
+            if (transfers != null) {
+                for (Station s1 : transfers.keySet()) {
+                    //TODO: somehow display this on the map (ideally in a text box by the stop or something)
+                    List<String> transferStrings = new LinkedList<>();
+                    for (Station s2 : transfers.get(s1)) {
+                        transferStrings.add("Route X"); //PersistentDataController.getLineIdMap(NearMeActivity.this).get();
+                    }
+                    //TODO: make all these markers disappear when changing the setting
+
+                    /*LatLng pos = null;
+                    for (Station st : visibleStations) {
+                        if (st.equals(s1)) {
+                            pos = st.getLatLng(); break;
+                        }
+                    }
+                    if (pos != null) {
+                        System.out.println("Adding marker");
+                        // add marker to Map
+                        Bitmap.Config conf = Bitmap.Config.ARGB_8888;
+                        Bitmap bmp = Bitmap.createBitmap(200, 16 * (transferStrings.size() + 2), conf);
+                        Canvas canvas = new Canvas(bmp);
+
+                        Paint paint = new Paint();
+                        paint.setColor(Color.BLACK);
+                        paint.setStrokeWidth(1);
+                        paint.setTextSize(16);
+
+                        canvas.drawText("Transfer to:", 0, 16, paint);
+                        int i = 2;
+                        for (String s : transferStrings) {
+                            canvas.drawText(s, 0, 16 * i, paint); // paint defines the text color, stroke width, size
+                            i++;
+                        }
+                        mMap.addMarker(new MarkerOptions()
+                                .position(pos)
+                                //.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker2))
+                                .icon(BitmapDescriptorFactory.fromBitmap(bmp))
+                                .anchor(0.5f, 1)
+                        );
+                    }*/
                 }
             }
         }
@@ -349,18 +415,31 @@ public class NearMeActivity extends FragmentActivity
     }
 
     Map<String, Integer> lineIdMap;
+    SparseArray<String> linesById = new SparseArray<>();;
     String[] lines;
-    Map<Integer, List<Polyline>> pathsByLineId = new HashMap<>();
+    HashMap<Integer, List<Polyline>> pathsByLineId = new HashMap<>();
+    HashMap<Integer, List<Marker>> pathMarkersByLineId = new HashMap<>();
 
     private class GetPointsTask extends AsyncTask<Void, Integer, List<NearMeActivity.ColoredPointList>> {
+        private final int pointMarkerInterval = 20;
+        private final int pointMarkerFontSize = 24;
         public GetPointsTask() {
         }
 
         protected List<ColoredPointList> doInBackground(Void... params) {
+            //get the line IDs and then assign then to the list of line names by ID
             lineIdMap = PersistentDataController.getLineIdMap(NearMeActivity.this);
+            for (String lineName : PersistentDataController.getLineIdMap(NearMeActivity.this).keySet()) {
+                int lineId = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineName);
+                linesById.put(lineId, lineName);
+            }
+
+            //get the line list
             lines = PersistentDataController.getLines(NearMeActivity.this);
             String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
             boolean expired = false;
+
+            //make sure this hasn't expired in the database, and if it has, download it from the internet anew
             if (cfgValue.equals("") || Integer.parseInt(cfgValue) < PersistentDataController.getCurTime() - PersistentDataController.getFavLocationExpiry(NearMeActivity.this)) {
                 expired = true;
             }
@@ -424,15 +503,60 @@ public class NearMeActivity extends FragmentActivity
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
             //put the paths on the map
             for (ColoredPointList path : paths) {
+                //get the path and store it
                 PolylineOptions polyLineOptions = new PolylineOptions();
                 polyLineOptions.addAll(path.points);
                 polyLineOptions.width(4);
                 polyLineOptions.color(path.color);
+                int lineColor;
+                if (Color.red(path.color) + Color.green(path.color) + Color.blue(path.color) < 384) {
+                    lineColor = Color.WHITE;
+                } else {
+                    lineColor = Color.BLACK;
+                }
+
                 Polyline newPath = mMap.addPolyline(polyLineOptions);
                 if (!pathsByLineId.containsKey(path.lineId)) {
-                    pathsByLineId.put(path.lineId, new ArrayList<Polyline>());
+                    pathsByLineId.put(path.lineId, new LinkedList<Polyline>());
                 }
                 pathsByLineId.get(path.lineId).add(newPath);
+
+                //add markers along the path to label it
+                for (int i = 0; i < path.points.size(); i += pointMarkerInterval) {
+                    String lineName = linesById.get(path.lineId);
+
+                    //paint for the background
+                    Paint bgPaint = new Paint();
+                    bgPaint.setColor(path.color);
+                    bgPaint.setStrokeWidth(1);
+
+                    //paint for the text
+                    Paint textPaint = new Paint();
+                    textPaint.setColor(lineColor);
+                    textPaint.setStrokeWidth(1);
+                    textPaint.setTextSize(pointMarkerFontSize);
+                    textPaint.setStrokeWidth(1);
+                    textPaint.setTextSize(pointMarkerFontSize);
+                    int width = (int)textPaint.measureText(lineName);
+
+                    Bitmap.Config conf = Bitmap.Config.ARGB_8888;
+                    Bitmap bmp = Bitmap.createBitmap(width, pointMarkerFontSize + 4, conf);
+                    Canvas canvas = new Canvas(bmp);
+                    canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bgPaint);
+
+                    canvas.drawText(lineName, 0, 24, textPaint); // paint defines the text color, stroke width, size
+                    //TODO: check for collisions
+                    Marker newMarker = mMap.addMarker(new MarkerOptions()
+                            .position(path.points.get(i))
+                            .icon(BitmapDescriptorFactory.fromBitmap(bmp))
+                            .anchor(0.5f, 0.5f)
+                    );
+                    newMarker.setVisible(alreadyVisible);
+                    if (!pathMarkersByLineId.containsKey(path.lineId)) {
+                        pathMarkersByLineId.put(path.lineId, new LinkedList<Marker>());
+                    }
+                    pathMarkersByLineId.get(path.lineId).add(newMarker);
+                }
             }
             //mark the task as done by removing the progress bar
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
@@ -732,7 +856,6 @@ public class NearMeActivity extends FragmentActivity
                     stationNameView.setLayoutParams(params);
                     arrivalRow.addView(stationNameView, 0);
 
-                    //TODO: force the part on the right to have its width (set weight as 1?)
                     TextView stationLineView = new TextView(NearMeActivity.this);
                     stationLineView.setMaxWidth(250);
                     String arrivalText = stopInfo[3] + "\n" + stopInfo[2];
@@ -802,6 +925,11 @@ public class NearMeActivity extends FragmentActivity
             for (Marker m : markers.keySet()) {
                 //don't show the icons when zoomed out too much
                 m.setVisible((!alreadyVisible) && visibleStations.contains(markers.get(m)));
+            }
+            for (int key : pathMarkersByLineId.keySet()) {
+                for (Marker m : pathMarkersByLineId.get(key)) {
+                    m.setVisible(!alreadyVisible && (shownLine == 0 || shownLine == key));
+                }
             }
             alreadyVisible = !alreadyVisible;
         }

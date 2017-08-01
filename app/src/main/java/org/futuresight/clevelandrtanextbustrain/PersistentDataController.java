@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -46,7 +47,7 @@ public abstract class PersistentDataController {
     public static final int escElExpiry = 60 * 30;
     public static final int favLocationExpiry = 60 * 60 * 24 * 14;
     public static final int noLocationRefreshPeriod = 60 * 60 * 12;
-    public static final int API_VERSION = 1;
+    public static final int API_VERSION = 2; //the API version when making queries on the FST server
 
     private static class LineForSorting implements Comparable<LineForSorting> {
         int id;
@@ -545,6 +546,55 @@ public abstract class PersistentDataController {
         }
 
         return new ArrayList<>();
+    }
+
+    //get the transfers for all stations on a given line
+    //TODO: cache this
+    public static Map<Station, List<Station>> getTransfers(Context context, int line) {
+        try {
+            Map<Station, List<Station>> out = new HashMap<>();
+            String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/gettransfers?line=" + line + "&version=" + PersistentDataController.API_VERSION);
+            if (httpData == null) {
+                return null;
+            }
+
+            DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
+            Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
+            Node rootNode = doc.getDocumentElement();
+
+            NodeList nl;
+            if (doc.hasChildNodes() && (nl = rootNode.getChildNodes()).getLength() > 1) {
+                for (int i = 0; i < nl.getLength(); i++) {
+                    Node curNode = nl.item(i); //<s>
+                    switch (curNode.getNodeName()) {
+                        case "s":
+                            NodeList transferNodes = curNode.getChildNodes();
+                            int id1 = Integer.parseInt(curNode.getAttributes().getNamedItem("i").getTextContent());
+                            int dir1 = Integer.parseInt(curNode.getAttributes().getNamedItem("d").getTextContent());
+                            int line1 = Integer.parseInt(curNode.getAttributes().getNamedItem("l").getTextContent());
+
+                            Station primaryStation = new Station("", id1, "", dir1, "", line1, "");
+                            List<Station> transfers = new LinkedList<>();
+                            for (int j = 0; j < transferNodes.getLength(); j++) {
+                                Node transferNode = transferNodes.item(j);
+                                if (transferNode.getNodeName().equals("t")) {
+                                    int id2 = Integer.parseInt(transferNode.getAttributes().getNamedItem("i").getTextContent());
+                                    int dir2 = Integer.parseInt(transferNode.getAttributes().getNamedItem("d").getTextContent());
+                                    int line2 = Integer.parseInt(transferNode.getAttributes().getNamedItem("l").getTextContent());
+                                    Station transferStation = new Station("", id2, "", dir2, "", line2, "");
+                                    transfers.add(transferStation);
+                                }
+                            }
+                            out.put(primaryStation, transfers);
+                            break;
+                    }
+                }
+            }
+            return out;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return null;
     }
 
     public static String[][] getFavoriteLines(Context context) {
