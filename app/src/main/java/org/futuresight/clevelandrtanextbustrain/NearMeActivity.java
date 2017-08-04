@@ -421,8 +421,9 @@ public class NearMeActivity extends FragmentActivity
     HashMap<Integer, List<Marker>> pathMarkersByLineId = new HashMap<>();
 
     private class GetPointsTask extends AsyncTask<Void, Integer, List<NearMeActivity.ColoredPointList>> {
-        private final int pointMarkerInterval = 20;
-        private final int pointMarkerFontSize = 24;
+        private final int pointMarkerInterval = 20; //how frequently to place the line labels on the paths
+        private final int pointMarkerStopInterval = pointMarkerInterval / 2; //where to stop if trying to avoid a collision
+        private final int pointMarkerFontSize = 24; //the font size for the line labels
         public GetPointsTask() {
         }
 
@@ -502,6 +503,9 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
             //put the paths on the map
+            Set<NumberPair> addedSectors = new TreeSet<>();
+            final double sectorLatSize = .001;
+            final double sectorLngSize = .002;
             for (ColoredPointList path : paths) {
                 //get the path and store it
                 PolylineOptions polyLineOptions = new PolylineOptions();
@@ -539,23 +543,41 @@ public class NearMeActivity extends FragmentActivity
                     textPaint.setTextSize(pointMarkerFontSize);
                     int width = (int)textPaint.measureText(lineName);
 
+                    //create the image
                     Bitmap.Config conf = Bitmap.Config.ARGB_8888;
                     Bitmap bmp = Bitmap.createBitmap(width, pointMarkerFontSize + 4, conf);
                     Canvas canvas = new Canvas(bmp);
                     canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bgPaint);
 
+                    //put the text on
                     canvas.drawText(lineName, 0, 24, textPaint); // paint defines the text color, stroke width, size
-                    //TODO: check for collisions
-                    Marker newMarker = mMap.addMarker(new MarkerOptions()
-                            .position(path.points.get(i))
-                            .icon(BitmapDescriptorFactory.fromBitmap(bmp))
-                            .anchor(0.5f, 0.5f)
-                    );
-                    newMarker.setVisible(alreadyVisible);
-                    if (!pathMarkersByLineId.containsKey(path.lineId)) {
-                        pathMarkersByLineId.put(path.lineId, new LinkedList<Marker>());
+
+                    //prevent collisions, and if there is one, jump to the next possible point
+                    NumberPair pos = null;
+                    LatLng coords = null;
+                    int k = 0;
+                    while ((pos == null || addedSectors.contains(pos)) && i + k < path.points.size()) {
+                        coords = path.points.get(i + k);
+                        pos = new NumberPair((int)(coords.latitude / sectorLatSize), (int)((coords.longitude) / sectorLngSize));
+                        k++;
+                        if (k > pointMarkerStopInterval) { //if we're already halfway to the next point, just skip it
+                            coords = null;
+                            break;
+                        }
                     }
-                    pathMarkersByLineId.get(path.lineId).add(newMarker);
+                    if (coords != null) {
+                        addedSectors.add(pos);
+                        Marker newMarker = mMap.addMarker(new MarkerOptions()
+                                .position(coords)
+                                .icon(BitmapDescriptorFactory.fromBitmap(bmp))
+                                .anchor(0.5f, 0.5f)
+                        );
+                        newMarker.setVisible(alreadyVisible);
+                        if (!pathMarkersByLineId.containsKey(path.lineId)) {
+                            pathMarkersByLineId.put(path.lineId, new LinkedList<Marker>());
+                        }
+                        pathMarkersByLineId.get(path.lineId).add(newMarker);
+                    }
                 }
             }
             //mark the task as done by removing the progress bar
@@ -596,6 +618,10 @@ public class NearMeActivity extends FragmentActivity
                 out = this.second - other.second;
             }
             return out;
+        }
+
+        public int hashCode() {
+            return first + second;
         }
     }
 
