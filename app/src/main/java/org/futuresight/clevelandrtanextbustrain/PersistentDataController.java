@@ -521,8 +521,9 @@ public abstract class PersistentDataController {
                                                     String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
                                                     double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
                                                     double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
+                                                    boolean transfer = stopNode.getAttributes().getNamedItem("t") != null;
 
-                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType);
+                                                    Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType, transfer);
                                                     out.add(st);
                                                 }
                                             }

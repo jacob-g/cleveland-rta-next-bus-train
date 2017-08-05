@@ -20,7 +20,7 @@ import java.util.TreeMap;
  * Created by jacob on 5/15/16.
  */
 public class DatabaseHandler extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 3;
+    private static final int DATABASE_VERSION = 4;
     private static final String DATABASE_NAME = "rtaNextBusTrain";
 
     //the names for the various tables
@@ -60,6 +60,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         private static final String FIELD_STATUS = "status";
 
     private static final String ALL_STOPS_TABLE = "all_stops";
+        private static final String FIELD_IS_TRANSFER = "is_transfer";
 
     private static final String LINE_PATHS_TABLE = "line_paths";
         private static final String FIELD_PATH_ID = "path_id";
@@ -181,7 +182,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_DIR_NAME + " TEXT,"
                 + FIELD_LAT + " REAL,"
                 + FIELD_LNG + " REAL,"
-                + FIELD_TYPE + " STRING"
+                + FIELD_TYPE + " STRING,"
+                + FIELD_IS_TRANSFER + " INTEGER"
                 + ")";
         db.execSQL(CREATE_ALL_STOPS_TABLE);
 
@@ -282,6 +284,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     + FIELD_LINE_ID + " INTEGER,"
                     + FIELD_ALERT_ID + " INTEGER,"
                     + FIELD_EXPIRES + " INTEGER)");
+        }
+        if (oldVersion < 4) { //create a table for line-specific alerts
+            db.execSQL("ALTER TABLE " + ALL_STOPS_TABLE + " ADD COLUMN " + FIELD_IS_TRANSFER + " INTEGER");
         }
         onCreate(db);
     }
@@ -722,7 +727,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.beginTransaction();
         db.execSQL("DELETE FROM " + ALL_STOPS_TABLE);
 
-        String sql = "INSERT INTO " + ALL_STOPS_TABLE + "(" + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + ") VALUES(?,?,?,?,?,?,?,?,?)";
+        String sql = "INSERT INTO " + ALL_STOPS_TABLE + "(" + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + "," + FIELD_IS_TRANSFER + ") VALUES(?,?,?,?,?,?,?,?,?,?)";
         SQLiteStatement statement = db.compileStatement(sql);
         for (Station st : stations) {
             statement.clearBindings();
@@ -735,6 +740,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             statement.bindDouble(7, st.getLatLng().latitude);
             statement.bindDouble(8, st.getLatLng().longitude);
             statement.bindString(9, Character.toString(st.getType()));
+            statement.bindLong(10, st.isTransfer() ? 1 : 0);
             statement.execute();
         }
         db.setTransactionSuccessful();
@@ -746,7 +752,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public List<Station> getCachedStopLocations() {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
+        String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + "," + FIELD_IS_TRANSFER + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
 
 
         Cursor cursor = db.rawQuery(selectQuery, null);
@@ -754,10 +760,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         if (cursor.moveToFirst()) {
             do {
                 //String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng
-                Station st = new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7));
-                if (cursor.getString(8) == null || cursor.getString(8).length() == 0) {
-                    st.setType('b');
-                } else {
+                Station st = new Station(cursor.getString(1), cursor.getInt(0), cursor.getString(4), cursor.getInt(5), cursor.getString(3), cursor.getInt(2), "", cursor.getDouble(6), cursor.getDouble(7), 'b', cursor.getInt(9) == 1);
+                if (cursor.getString(8) != null && cursor.getString(8).length() != 0) {
                     st.setType(cursor.getString(8).charAt(0));
                 }
                 outList.add(st);

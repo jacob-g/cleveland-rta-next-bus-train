@@ -255,9 +255,22 @@ public class NearMeActivity extends FragmentActivity
             }
             for (Marker m : markers.keySet()) {
                 m.setVisible(alreadyVisible);
+                Station st = markers.get(m);
+                if (st.isTransfer()) {
+                    if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
+                        m.setIcon(favoritePin);
+                        m.setZIndex(3);
+                    } else if (st.getType() == railType) {
+                        m.setIcon(railPin);
+                        m.setZIndex(1);
+                    } else {
+                        m.setIcon(busPin);
+                        m.setZIndex(0);
+                    }
+                }
             }
         } else {
-            new GetTransfersTask().execute(lineId);
+            //new GetTransfersTask().execute(lineId);
             for (int l : pathsByLineId.keySet()) {
                 boolean visible = (l == lineId);
                 for (Polyline path : pathsByLineId.get(l)) {
@@ -277,6 +290,13 @@ public class NearMeActivity extends FragmentActivity
                     m.setVisible(false);
                 } else if (alreadyVisible && stationVisible) {
                     m.setVisible(true);
+                    System.out.println(markers.get(m));
+                    if (markers.get(m).isTransfer()) { //TODO: make this show as a transfer icon
+                        System.out.println("TRANSFER");
+                        m.setIcon(transferPin);
+                    } else {
+                        System.out.println("NOT");
+                    }
                 }
             }
         }
@@ -301,7 +321,7 @@ public class NearMeActivity extends FragmentActivity
                         transferStrings.add("Route X"); //PersistentDataController.getLineIdMap(NearMeActivity.this).get();
                     }
                     //TODO: make all these markers disappear when changing the setting
-
+                    //TODO: credit for transfer icon: https://www.flaticon.com/free-icon/transfer_159791#term=transfer&page=1&position=19
                     /*LatLng pos = null;
                     for (Station st : visibleStations) {
                         if (st.equals(s1)) {
@@ -647,11 +667,11 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected void onPostExecute(List<Station> stops) {
-            //preload bitmap descriptors to improve performance
-            BitmapDescriptor favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
-            BitmapDescriptor busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
-            BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
-            char railType = 'r';
+            //initialize pins
+            favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
+            busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
+            railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
+            transferPin = BitmapDescriptorFactory.fromAsset("icons/blacktransferpin.png");
 
             //get favorites
             DatabaseHandler db = new DatabaseHandler(NearMeActivity.this);
@@ -931,6 +951,10 @@ public class NearMeActivity extends FragmentActivity
     Set<NumberPair> spotsAdded = new HashSet<>();
     private Marker mapCenterMarker;
     private Marker locationArrowMarker;
+    private BitmapDescriptor favoritePin;
+    private BitmapDescriptor busPin;
+    private BitmapDescriptor railPin;
+    private BitmapDescriptor transferPin;
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
         if (!followingUser) {
@@ -969,9 +993,7 @@ public class NearMeActivity extends FragmentActivity
             minLng -= sectorSize;
             maxLng += sectorSize;
 
-            BitmapDescriptor favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
-            BitmapDescriptor busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
-            BitmapDescriptor railPin = BitmapDescriptorFactory.fromAsset("icons/blackrailpin.png");
+
             int minLatInt = (int)Math.floor(minLat / sectorSize);
             int maxLatInt = (int)Math.ceil(maxLat / sectorSize);
             int minLngInt = (int)Math.floor(minLng / sectorSize);
@@ -990,6 +1012,9 @@ public class NearMeActivity extends FragmentActivity
 
                             if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
                                 m.setIcon(favoritePin);
+                                m.setZIndex(3);
+                            } else if (shownLine == st.getLineId() && st.isTransfer()) { //if only showing one line, mark transfers
+                                m.setIcon(transferPin);
                                 m.setZIndex(2);
                             } else if (st.getType() == railType) {
                                 m.setIcon(railPin);

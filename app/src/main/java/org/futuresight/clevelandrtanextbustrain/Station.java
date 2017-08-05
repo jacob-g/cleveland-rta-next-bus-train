@@ -10,6 +10,7 @@ public class Station {
     private int stationId, dirId, lineId;
     private LatLng loc;
     public char type = 'b';
+    private boolean transfer = false;
 
     public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
         this.stationName = stationName;
@@ -42,6 +43,19 @@ public class Station {
         this.name = name;
         this.type = type;
         loc = new LatLng(lat, lng);
+    }
+
+    public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name, double lat, double lng, char type, boolean transfer) {
+        this.stationName = stationName;
+        this.stationId = stationId;
+        this.dirName = dirName;
+        this.dirId = dirId;
+        this.lineName = lineName;
+        this.lineId = lineId;
+        this.name = name;
+        this.type = type;
+        loc = new LatLng(lat, lng);
+        this.transfer = transfer;
     }
 
     public String getStationName() {
@@ -86,6 +100,10 @@ public class Station {
 
     public char getType() {
         return type;
+    }
+
+    public boolean isTransfer() {
+        return transfer;
     }
 
     public String toString() {
