@@ -27,7 +27,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="5dp"
-            android:layout_marginLeft="5dp"
+            android:layout_marginLeft="60dp"
             android:layout_marginBottom="0dp"
             android:layout_marginRight="60dp"><!-- TODO: make this resize appropriately so that it doesn't cover up the my location button and looks appropriate -->
             <fragment
