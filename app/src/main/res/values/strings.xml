@@ -86,4 +86,5 @@
     <string name="failed_to_load_try_again">Failed to load. Click here to try again.</string>
     <string name="failed_to_load_stops_try_again">Failed to load stops. Try again?</string>
     <string name="failed_to_load_directions_try_again">Failed to load directions. Try again?</string>
+    <string name="line_not_found">The line you were searching for was not found. That probably means it is not running today.</string>
 </resources>

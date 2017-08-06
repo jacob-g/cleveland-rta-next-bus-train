@@ -542,7 +542,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 }
             }
             if (preSelectedLineId != -1 && !foundLine) {
-                alertDialog("Error", "The line you were searching for was not found. That probably means it is not running today.", true);
+                alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.line_not_found), true);
             }
             //put everything into the spinner
             ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item);
