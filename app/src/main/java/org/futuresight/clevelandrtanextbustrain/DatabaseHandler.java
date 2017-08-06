@@ -20,7 +20,7 @@ import java.util.TreeMap;
  * Created by jacob on 5/15/16.
  */
 public class DatabaseHandler extends SQLiteOpenHelper {
-    private static final int DATABASE_VERSION = 4;
+    private static final int DATABASE_VERSION = 5;
     private static final String DATABASE_NAME = "rtaNextBusTrain";
 
     //the names for the various tables
@@ -195,7 +195,8 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 + FIELD_RED + " INTEGER,"
                 + FIELD_GREEN + " INTEGER,"
                 + FIELD_BLUE + " INTEGER,"
-                + FIELD_LINE_ID + " INTEGER"
+                + FIELD_LINE_ID + " INTEGER,"
+                + FIELD_LINE_NAME + " TEXT"
                 + ")";
         db.execSQL(CREATE_LINE_PATHS_TABLE);
 
@@ -287,6 +288,9 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         }
         if (oldVersion < 4) { //create a table for line-specific alerts
             db.execSQL("ALTER TABLE " + ALL_STOPS_TABLE + " ADD COLUMN " + FIELD_IS_TRANSFER + " INTEGER");
+        }
+        if (oldVersion < 5) { //add the line name to the paths table
+            db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_NAME + " TEXT");
         }
         onCreate(db);
     }
@@ -780,7 +784,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DELETE FROM " + LINE_PATHS_TABLE);
 
         String sql = "INSERT INTO " + LINE_PATHS_TABLE + "(" + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," +
-                FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + ") VALUES(?,?,?,?,?,?,?)";
+                FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + ") VALUES(?,?,?,?,?,?,?,?)";
         SQLiteStatement statement = db.compileStatement(sql);
         int pathId = 0;
         for (NearMeActivity.ColoredPointList path : paths) {
@@ -793,6 +797,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 statement.bindLong(5, Color.green(path.color));
                 statement.bindLong(6, Color.blue(path.color));
                 statement.bindLong(7, path.lineId);
+                statement.bindString(8, path.lineName);
                 statement.execute();
             }
             pathId++;
@@ -806,13 +811,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public List<NearMeActivity.ColoredPointList> getAllPaths() {
         SQLiteDatabase db = this.getWritableDatabase();
 
-        String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
+        String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
 
         List<NearMeActivity.ColoredPointList> outList = new ArrayList<>();
         Cursor cursor = db.rawQuery(selectQuery, null);
         int lastPath = -1;
         boolean first = true;
-        NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK, 0);
+        NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK, 0, "");
         if (cursor.moveToFirst()) {
             do {
                 if (lastPath != cursor.getInt(0)) {
@@ -822,7 +827,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     } else {
                         outList.add(path);
                     }
-                    path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)), cursor.getInt(6));
+                    path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)), cursor.getInt(6), cursor.getString(7));
                 }
                 path.points.add(new LatLng(cursor.getDouble(1), cursor.getDouble(2)));
             } while (cursor.moveToNext());

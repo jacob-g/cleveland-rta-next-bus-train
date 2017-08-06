@@ -291,11 +291,8 @@ public class NearMeActivity extends FragmentActivity
                 } else if (alreadyVisible && stationVisible) {
                     m.setVisible(true);
                     System.out.println(markers.get(m));
-                    if (markers.get(m).isTransfer()) { //TODO: make this show as a transfer icon
-                        System.out.println("TRANSFER");
+                    if (markers.get(m).isTransfer()) {
                         m.setIcon(transferPin);
-                    } else {
-                        System.out.println("NOT");
                     }
                 }
             }
@@ -426,11 +423,13 @@ public class NearMeActivity extends FragmentActivity
 
     public static class ColoredPointList {
         public final int lineId;
+        public final String lineName;
         public final List<LatLng> points = new ArrayList<>();
         public final int color;
-        public ColoredPointList(int color, int lineId) {
+        public ColoredPointList(int color, int lineId, String lineName) {
             this.color = color;
             this.lineId = lineId;
+            this.lineName = lineName;
         }
     }
 
@@ -490,7 +489,8 @@ public class NearMeActivity extends FragmentActivity
                                     more = true;
                                     int color = Color.rgb(Integer.parseInt(pathNode.getAttributes().getNamedItem("r").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("g").getTextContent()), Integer.parseInt(pathNode.getAttributes().getNamedItem("b").getTextContent()));
                                     int lineId = Integer.parseInt(pathNode.getAttributes().getNamedItem("l").getTextContent());
-                                    ColoredPointList path = new ColoredPointList(color, lineId);
+                                    String lineName = pathNode.getAttributes().getNamedItem("n").getTextContent();
+                                    ColoredPointList path = new ColoredPointList(color, lineId, lineName);
                                     NodeList pointNodeList = pathNode.getChildNodes();
                                     for (int j = 0; j < pointNodeList.getLength(); j++) {
                                         Node pointNode = pointNodeList.item(j);
@@ -545,9 +545,14 @@ public class NearMeActivity extends FragmentActivity
                 }
                 pathsByLineId.get(path.lineId).add(newPath);
 
+                if (linesById.get(path.lineId) == null) {
+                    linesById.put(path.lineId, path.lineName);
+                }
+
                 //add markers along the path to label it
                 for (int i = 0; i < path.points.size(); i += pointMarkerInterval) {
-                    String lineName = linesById.get(path.lineId);
+                    //TODO: on a day when not all lines are there (like a weekend), don't make this crash, do this by including this in the API download
+                    String lineName = path.lineName;
 
                     //paint for the background
                     Paint bgPaint = new Paint();

@@ -531,13 +531,18 @@ public class NextBusTrainActivity extends AppCompatActivity {
             }
             //see if there is a pre-selected line sent in from elsewhere
             int preSelectIndex = 0;
+            boolean foundLine = false;
             if (preSelectedLineId != -1) {
                 for (int i = 0; i < lineNames.length; i++) {
                     if (preSelectedLineId == PersistentDataController.getLineIdMap(myContext).get(lineNames[i])) {
                         preSelectIndex = i;
+                        foundLine = true;
                         break;
                     }
                 }
+            }
+            if (preSelectedLineId != -1 && !foundLine) {
+                alertDialog("Error", "The line you were searching for was not found. That probably means it is not running today.", true);
             }
             //put everything into the spinner
             ArrayAdapter<String> adapter = new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item);
