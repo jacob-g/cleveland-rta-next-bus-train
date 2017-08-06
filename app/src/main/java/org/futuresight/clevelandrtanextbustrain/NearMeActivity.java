@@ -54,6 +54,7 @@ import org.xml.sax.InputSource;
 
 import java.io.StringReader;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -304,57 +305,6 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    private class GetTransfersTask extends AsyncTask<Integer, Void, Map<Station, List<Station>>> {
-        protected Map<Station, List<Station>> doInBackground(Integer... params) {
-            return PersistentDataController.getTransfers(NearMeActivity.this, params[0]);
-        }
-
-        protected void onPostExecute(Map<Station, List<Station>> transfers) {
-            if (transfers != null) {
-                for (Station s1 : transfers.keySet()) {
-                    //TODO: somehow display this on the map (ideally in a text box by the stop or something)
-                    List<String> transferStrings = new LinkedList<>();
-                    for (Station s2 : transfers.get(s1)) {
-                        transferStrings.add("Route X"); //PersistentDataController.getLineIdMap(NearMeActivity.this).get();
-                    }
-                    //TODO: make all these markers disappear when changing the setting
-                    //TODO: credit for transfer icon: https://www.flaticon.com/free-icon/transfer_159791#term=transfer&page=1&position=19
-                    /*LatLng pos = null;
-                    for (Station st : visibleStations) {
-                        if (st.equals(s1)) {
-                            pos = st.getLatLng(); break;
-                        }
-                    }
-                    if (pos != null) {
-                        System.out.println("Adding marker");
-                        // add marker to Map
-                        Bitmap.Config conf = Bitmap.Config.ARGB_8888;
-                        Bitmap bmp = Bitmap.createBitmap(200, 16 * (transferStrings.size() + 2), conf);
-                        Canvas canvas = new Canvas(bmp);
-
-                        Paint paint = new Paint();
-                        paint.setColor(Color.BLACK);
-                        paint.setStrokeWidth(1);
-                        paint.setTextSize(16);
-
-                        canvas.drawText("Transfer to:", 0, 16, paint);
-                        int i = 2;
-                        for (String s : transferStrings) {
-                            canvas.drawText(s, 0, 16 * i, paint); // paint defines the text color, stroke width, size
-                            i++;
-                        }
-                        mMap.addMarker(new MarkerOptions()
-                                .position(pos)
-                                //.icon(BitmapDescriptorFactory.fromResource(R.drawable.marker2))
-                                .icon(BitmapDescriptorFactory.fromBitmap(bmp))
-                                .anchor(0.5f, 1)
-                        );
-                    }*/
-                }
-            }
-        }
-    }
-
     private static class OnViewGlobalLayoutListener implements ViewTreeObserver.OnGlobalLayoutListener {
         private View view;
 
@@ -433,7 +383,7 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    Map<String, Integer> lineIdMap;
+    Map<String, Integer> lineIdMap = new HashMap<>();
     SparseArray<String> linesById = new SparseArray<>();;
     String[] lines;
     HashMap<Integer, List<Polyline>> pathsByLineId = new HashMap<>();
@@ -447,15 +397,7 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected List<ColoredPointList> doInBackground(Void... params) {
-            //get the line IDs and then assign then to the list of line names by ID
-            lineIdMap = PersistentDataController.getLineIdMap(NearMeActivity.this);
-            for (String lineName : PersistentDataController.getLineIdMap(NearMeActivity.this).keySet()) {
-                int lineId = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineName);
-                linesById.put(lineId, lineName);
-            }
-
-            //get the line list
-            lines = PersistentDataController.getLines(NearMeActivity.this);
+            //see if it's expired
             String cfgValue = PersistentDataController.getConfig(NearMeActivity.this, DatabaseHandler.CONFIG_LAST_SAVED_ALL_PATHS);
             boolean expired = false;
 
@@ -548,6 +490,9 @@ public class NearMeActivity extends FragmentActivity
                 if (linesById.get(path.lineId) == null) {
                     linesById.put(path.lineId, path.lineName);
                 }
+                if (!lineIdMap.containsKey(path.lineName)) {
+                    lineIdMap.put(path.lineName, path.lineId);
+                }
 
                 //add markers along the path to label it
                 for (int i = 0; i < path.points.size(); i += pointMarkerInterval) {
@@ -604,6 +549,20 @@ public class NearMeActivity extends FragmentActivity
                         pathMarkersByLineId.get(path.lineId).add(newMarker);
                     }
                 }
+            }
+            //save the lines array
+            int size = lineIdMap.size();
+            lines = new String[size];
+            PersistentDataController.LineForSorting[] linesForSorting = new PersistentDataController.LineForSorting[size];
+            int i = 0;
+            for (String lineName : lineIdMap.keySet()) {
+                PersistentDataController.LineForSorting l = new PersistentDataController.LineForSorting(lineName);
+                linesForSorting[i] = l;
+                i++;
+            }
+            Arrays.sort(linesForSorting);
+            for (i = 0; i < size; i++) {
+                lines[i] = linesForSorting[i].toString();
             }
             //mark the task as done by removing the progress bar
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingLinesRow));
@@ -784,7 +743,7 @@ public class NearMeActivity extends FragmentActivity
                 int[] routeIds = new int[lineNamesArray.length];
                 ServiceAlertsController.getAlertsByLine(NearMeActivity.this, lineNamesArray, null); //pre-fetch all service alerts to speed things up
                 for (int j = 0; j < lineNamesArray.length; j++) {
-                    routeIds[j] = PersistentDataController.getLineIdMap(NearMeActivity.this).get(lineNamesArray[j]);
+                    routeIds[j] = lineIdMap.get(lineNamesArray[j]);
                     List<Map<String, String>> serviceAlerts = ServiceAlertsController.getAlertsByLine(NearMeActivity.this, new String[]{lineNamesArray[j]}, null);
                     for (Object[] entry : stopList) {
                         if ((entry[5]).equals(routeIds[j])) {

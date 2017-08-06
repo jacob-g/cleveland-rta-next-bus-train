@@ -49,9 +49,9 @@ public abstract class PersistentDataController {
     public static final int noLocationRefreshPeriod = 60 * 60 * 12;
     public static final int API_VERSION = 2; //the API version when making queries on the FST server
 
-    private static class LineForSorting implements Comparable<LineForSorting> {
-        int id;
-        String name;
+    public static class LineForSorting implements Comparable<LineForSorting> {
+        private final int id;
+        private final String name;
         final static Pattern p = Pattern.compile("^(\\d+)[a-zA-Z]? ");
         public LineForSorting(String l) {
             Matcher m = p.matcher(l);
