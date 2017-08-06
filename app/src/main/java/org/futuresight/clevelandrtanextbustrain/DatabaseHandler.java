@@ -277,20 +277,30 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // Create tables again
         if (oldVersion < 2) { //need to add lines to the line path table
-            db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_ID + " INTEGER");
+            //db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_ID + " INTEGER");
+            db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
         }
         if (oldVersion < 3) { //create a table for line-specific alerts
-            db.execSQL("CREATE TABLE IF NOT EXISTS " + LINE_ALERTS_TABLE + "("
+            db.execSQL("DROP TABLE IF EXISTS " + LINE_ALERTS_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + ALERTS_TABLE);
+            db.execSQL("DROP TABLE IF EXISTS " + CACHED_LINE_ALERTS_TABLE);
+            /*db.execSQL("CREATE TABLE IF NOT EXISTS " + LINE_ALERTS_TABLE + "("
                     + ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + FIELD_LINE_ID + " INTEGER,"
                     + FIELD_ALERT_ID + " INTEGER,"
-                    + FIELD_EXPIRES + " INTEGER)");
+                    + FIELD_EXPIRES + " INTEGER)");*/
         }
         if (oldVersion < 4) { //create a table for line-specific alerts
-            db.execSQL("ALTER TABLE " + ALL_STOPS_TABLE + " ADD COLUMN " + FIELD_IS_TRANSFER + " INTEGER");
+            db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
+            //db.execSQL("ALTER TABLE " + ALL_STOPS_TABLE + " ADD COLUMN " + FIELD_IS_TRANSFER + " INTEGER");
         }
-        if (oldVersion < 5) { //add the line name to the paths table
-            db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_NAME + " TEXT");
+        if (oldVersion < 5) { //add the line name to the paths table, current version is 5
+            db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
+
+            setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
+            setConfig(db, CONFIG_LAST_SAVED_ALL_PATHS, "0");
+            setConfig(db, CONFIG_LAST_SAVED_ALL_STOPS, "0");
+            //db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_NAME + " TEXT");
         }
         onCreate(db);
     }
@@ -313,6 +323,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.execSQL("DROP TABLE IF EXISTS " + ESCEL_STATUSES_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
         db.execSQL("DROP TABLE IF EXISTS " + LINE_PATHS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + LINE_ALERTS_TABLE);
         setConfig(db, CONFIG_LAST_SAVED_LINES, "0");
         setConfig(db, CONFIG_LAST_SAVED_ALL_PATHS, "0");
         setConfig(db, CONFIG_LAST_SAVED_ALL_STOPS, "0");
