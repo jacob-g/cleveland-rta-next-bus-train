@@ -1162,6 +1162,8 @@ public class NearMeActivity extends FragmentActivity
                 @Override
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
+                    startTimer(0); //immediately update nearby stops
+                    //remove the marker in the middle of the map
                     if (mapCenterMarker != null) {
                         mapCenterMarker.remove();
                         mapCenterMarker = null;
