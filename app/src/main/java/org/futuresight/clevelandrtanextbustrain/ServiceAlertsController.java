@@ -103,6 +103,7 @@ public abstract class ServiceAlertsController {
                     PersistentDataController.markAsSavedForLineAlerts(context, cachedLineIds);
                 } else {
                     //HTTP request failed or whatever
+                    alertList = null;
                 }
             }
         } catch (Exception e) {

@@ -88,6 +88,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         private Context myContext;
         private String[] routes;
         private int[] routeIds;
+        private String[][] originalParams;
         public GetServiceAlertsTask(Context context) {
             myContext = context;
 
@@ -100,6 +101,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         protected List<Map<String, String>> doInBackground(String[][]... params) {
             routes = new String[params[0].length];
             routeIds = new int[params[0].length];
+            originalParams = params[0];
             int i = 0;
             for (String[] s : params[0]) {
                 routes[i] = s[0]; //save the route for later in case we want to color the results
@@ -107,7 +109,7 @@ public class ServiceAlertsActivity extends AppCompatActivity {
                 i++;
             }
             List<Map<String, String>> out = ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
-            if (!out.isEmpty()) {
+            if (out != null && !out.isEmpty()) {
                 List<Integer> ids = new ArrayList<>();
                 for (Map<String, String> alert : out) {
                     ids.add(Integer.parseInt(alert.get("id")));
@@ -118,6 +120,28 @@ public class ServiceAlertsActivity extends AppCompatActivity {
         }
 
         protected void onPostExecute(List<Map<String, String>> alertList) {
+            if (alertList == null) {
+                //if the markers didn't load properly, give an option to try again or exit
+                AlertDialog alertDialog = new AlertDialog.Builder(myContext).create();
+                alertDialog.setTitle(getResources().getString(R.string.error));
+                alertDialog.setMessage(getResources().getString(R.string.failed_to_load_alerts_try_again));
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                new GetServiceAlertsTask(ServiceAlertsActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, originalParams);
+                            }
+                        });
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                finish();
+                            }
+                        });
+                alertDialog.show();
+                return;
+            }
             //put the data into the layout
             LinearLayout serviceAlertsLayout = (LinearLayout) findViewById(R.id.serviceAlertVerticalLayout);
             serviceAlertsLayout.removeAllViews();
