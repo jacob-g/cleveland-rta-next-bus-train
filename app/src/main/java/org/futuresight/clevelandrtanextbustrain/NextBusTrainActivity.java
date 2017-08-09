@@ -777,6 +777,25 @@ public class NextBusTrainActivity extends AppCompatActivity {
             //parse the result as JSON
             try {
                 if (stopList == null) {
+                    blankAll();
+                    //show dialog asking to reload arrivals
+                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                    alertDialog.setTitle(getResources().getString(R.string.error));
+                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_arrivals_try_again));
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    stopSelectedListener.onItemSelected(null, null, 0, -1L);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                }
+                            });
+                    alertDialog.show();
                     return;
                 }
                 //populate the text fields with the stop data
@@ -828,14 +847,18 @@ public class NextBusTrainActivity extends AppCompatActivity {
             int routeId = PersistentDataController.getLineIdMap(myContext).get(params[0]);
             route = params[0]; //save the route for later in case we want to color the results
             int unread = 0; //0 if all alerts are unread, 1 if there are any new ones
+            int count = -1;
             List<Map<String, String>> alerts = ServiceAlertsController.getAlertsByLine(myContext, new String[]{route}, new int[]{routeId});
-            for (Map<String, String> alert : alerts) {
-                if (alert.containsKey("new") && alert.get("new").equals("true")) {
-                    unread = 1;
-                    break;
+            if (alerts != null) {
+                count = alerts.size();
+                for (Map<String, String> alert : alerts) {
+                    if (alert.containsKey("new") && alert.get("new").equals("true")) {
+                        unread = 1;
+                        break;
+                    }
                 }
             }
-            return new int[]{alerts.size(), unread};
+            return new int[]{count, unread};
         }
 
         protected void onPostExecute(int[] params) {

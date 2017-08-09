@@ -89,4 +89,5 @@
     <string name="line_not_found">The line you were searching for was not found. That probably means it is not running today.</string>
     <string name="failed_to_load_lines_try_again">Failed to load lines. Try again?</string>
     <string name="failed_to_load_alerts_try_again">Failed to load alerts. Try again?</string>
+    <string name="failed_to_load_arrivals_try_again">Failed to load arrivals. Try again?</string>
 </resources>
