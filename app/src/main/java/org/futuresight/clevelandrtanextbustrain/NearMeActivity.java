@@ -174,7 +174,9 @@ public class NearMeActivity extends FragmentActivity
                                                                       } else {
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
                                                                           sender.setImageResource(R.drawable.mr_group_expand);
-                                                                          startTimer(0); //immediately start updating the display again
+                                                                          if (loadedStops && loadedLines) {
+                                                                              startTimer(0); //immediately start updating the display again
+                                                                          }
                                                                       }
                                                                       //also update the height of the whole thing
                                                                       ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -418,6 +420,10 @@ public class NearMeActivity extends FragmentActivity
                     while (more) {
                         page++;
                         String httpData = NetworkController.basicHTTPRequest("https://nexttrain.futuresight.org/api/coords?page=" + page + "&version=" + PersistentDataController.API_VERSION);
+                        if (httpData == null) {
+                            paths = null;
+                            break;
+                        }
                         DocumentBuilder dBuilder = DocumentBuilderFactory.newInstance().newDocumentBuilder();
                         Document doc = dBuilder.parse(new InputSource(new StringReader(httpData)));
                         Node rootNode = doc.getDocumentElement();
@@ -450,7 +456,9 @@ public class NearMeActivity extends FragmentActivity
                             }
                         }
                     }
-                    db.cacheAllPaths(paths);
+                    if (paths != null) {
+                        db.cacheAllPaths(paths);
+                    }
                 }
             } catch (Exception e) {
                 e.printStackTrace();
@@ -460,10 +468,34 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected void onProgressUpdate(Integer... progress) {
-            ((ProgressBar)findViewById(R.id.loadingLinesBar)).setProgress(progress[0]);
+            if (findViewById(R.id.loadingLinesBar) != null) {
+                ((ProgressBar) findViewById(R.id.loadingLinesBar)).setProgress(progress[0]);
+            }
         }
 
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
+            if (paths == null) {
+                //if the paths didn't load properly, give an option to try again or exit
+                AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
+                alertDialog.setTitle(getResources().getString(R.string.error));
+                alertDialog.setMessage(getResources().getString(R.string.failed_to_load_lines_try_again));
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                new GetPointsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            }
+                        });
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                finish();
+                            }
+                        });
+                alertDialog.show();
+                return;
+            }
             //put the paths on the map
             Set<NumberPair> addedSectors = new TreeSet<>();
             final double sectorLatSize = .001;
@@ -575,7 +607,8 @@ public class NearMeActivity extends FragmentActivity
             }
             loadedLines = true;
 
-            if (loadedStops && loadedLines) {
+            if (loadedStops) {
+                startTimer(0);
                 showStationsOnLine(selectedLine);
             }
         }
@@ -631,6 +664,28 @@ public class NearMeActivity extends FragmentActivity
         }
 
         protected void onPostExecute(List<Station> stops) {
+            if (stops == null || stops.isEmpty()) {
+                //if the markers didn't load properly, give an option to try again or exit
+                AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
+                alertDialog.setTitle(getResources().getString(R.string.error));
+                alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
+                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                new GetStopsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            }
+                        });
+                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.dismiss();
+                                finish();
+                            }
+                        });
+                alertDialog.show();
+                return;
+            }
             //initialize pins
             favoritePin = BitmapDescriptorFactory.fromAsset("icons/favoritepin.png");
             busPin = BitmapDescriptorFactory.fromAsset("icons/blackbuspin.png");
@@ -690,13 +745,13 @@ public class NearMeActivity extends FragmentActivity
             ((TableLayout)findViewById(R.id.belowMapLayout)).removeView(findViewById(R.id.loadingStopsRow));
             loadedStops = true;
 
-            if (loadedStops && loadedLines) {
+            if (loadedLines) {
+                startTimer(0);
                 showStationsOnLine(selectedLine);
             }
         }
     }
 
-    final Map<Integer, Boolean> shownLines = new HashMap<>();
     final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
     final int STATION_LIST_LIMIT = 15;
     int deltaIndex;
@@ -1124,7 +1179,7 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if (updateStopsNearMeTimer == null && loadedStops) {
+        if (updateStopsNearMeTimer == null && loadedStops && loadedLines) {
             startTimer(0);
         }
     }
@@ -1162,7 +1217,9 @@ public class NearMeActivity extends FragmentActivity
                 @Override
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
-                    startTimer(0); //immediately update nearby stops
+                    if (loadedStops && loadedLines) {
+                        startTimer(0); //immediately update nearby stops
+                    }
                     //remove the marker in the middle of the map
                     if (mapCenterMarker != null) {
                         mapCenterMarker.remove();
