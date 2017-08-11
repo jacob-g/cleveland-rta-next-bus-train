@@ -498,7 +498,7 @@ public class NearMeActivity extends FragmentActivity
             }
             //put the paths on the map
             Set<NumberPair> addedSectors = new TreeSet<>();
-            final double sectorLatSize = .001;
+            final double sectorLatSize = .0005;
             final double sectorLngSize = .002;
             for (ColoredPointList path : paths) {
                 //get the path and store it
@@ -527,42 +527,44 @@ public class NearMeActivity extends FragmentActivity
                 }
 
                 //add markers along the path to label it
+                //create the image
+                String lineName = path.lineName;
+
+                //paint for the background
+                Paint bgPaint = new Paint();
+                bgPaint.setColor(path.color);
+                bgPaint.setStrokeWidth(1);
+
+                //paint for the text
+                Paint textPaint = new Paint();
+                textPaint.setColor(lineColor);
+                textPaint.setStrokeWidth(1);
+                textPaint.setTextSize(pointMarkerFontSize);
+                textPaint.setStrokeWidth(1);
+                textPaint.setTextSize(pointMarkerFontSize);
+                int width = (int)textPaint.measureText(lineName);
+
+                //create the image
+                Bitmap.Config conf = Bitmap.Config.ARGB_8888;
+                Bitmap bmp = Bitmap.createBitmap(width, pointMarkerFontSize + 4, conf);
+                Canvas canvas = new Canvas(bmp);
+                canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bgPaint);
+
+                //put the text on
+                canvas.drawText(lineName, 0, 24, textPaint); // paint defines the text color, stroke width, size
                 for (int i = 0; i < path.points.size(); i += pointMarkerInterval) {
-                    //TODO: on a day when not all lines are there (like a weekend), don't make this crash, do this by including this in the API download
-                    String lineName = path.lineName;
-
-                    //paint for the background
-                    Paint bgPaint = new Paint();
-                    bgPaint.setColor(path.color);
-                    bgPaint.setStrokeWidth(1);
-
-                    //paint for the text
-                    Paint textPaint = new Paint();
-                    textPaint.setColor(lineColor);
-                    textPaint.setStrokeWidth(1);
-                    textPaint.setTextSize(pointMarkerFontSize);
-                    textPaint.setStrokeWidth(1);
-                    textPaint.setTextSize(pointMarkerFontSize);
-                    int width = (int)textPaint.measureText(lineName);
-
-                    //create the image
-                    Bitmap.Config conf = Bitmap.Config.ARGB_8888;
-                    Bitmap bmp = Bitmap.createBitmap(width, pointMarkerFontSize + 4, conf);
-                    Canvas canvas = new Canvas(bmp);
-                    canvas.drawRect(0, 0, canvas.getWidth(), canvas.getHeight(), bgPaint);
-
-                    //put the text on
-                    canvas.drawText(lineName, 0, 24, textPaint); // paint defines the text color, stroke width, size
-
                     //prevent collisions, and if there is one, jump to the next possible point
                     NumberPair pos = null;
                     LatLng coords = null;
                     int k = 0;
                     while ((pos == null || addedSectors.contains(pos)) && i + k < path.points.size()) {
+                        if (k > 0) {
+                            System.out.println("Collision!");
+                        }
                         coords = path.points.get(i + k);
                         pos = new NumberPair((int)(coords.latitude / sectorLatSize), (int)((coords.longitude) / sectorLngSize));
                         k++;
-                        if (k > pointMarkerStopInterval) { //if we're already halfway to the next point, just skip it
+                        if (k > pointMarkerStopInterval || i + k + 1 == path.points.size()) { //if we're already halfway to the next point, just skip it
                             coords = null;
                             break;
                         }
