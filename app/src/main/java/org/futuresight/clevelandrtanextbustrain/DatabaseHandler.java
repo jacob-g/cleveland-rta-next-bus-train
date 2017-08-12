@@ -827,18 +827,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         List<NearMeActivity.ColoredPointList> outList = new ArrayList<>();
         Cursor cursor = db.rawQuery(selectQuery, null);
         int lastPath = -1;
-        boolean first = true;
         NearMeActivity.ColoredPointList path = new NearMeActivity.ColoredPointList(Color.BLACK, 0, "");
         if (cursor.moveToFirst()) {
             do {
                 if (lastPath != cursor.getInt(0)) {
                     lastPath = cursor.getInt(0);
-                    if (first) {
-                        first = false;
-                    } else {
-                        outList.add(path);
-                    }
                     path = new NearMeActivity.ColoredPointList(Color.rgb(cursor.getInt(3), cursor.getInt(4), cursor.getInt(5)), cursor.getInt(6), cursor.getString(7));
+                    outList.add(path);
                 }
                 path.points.add(new LatLng(cursor.getDouble(1), cursor.getDouble(2)));
             } while (cursor.moveToNext());

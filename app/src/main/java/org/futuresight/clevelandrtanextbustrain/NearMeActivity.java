@@ -558,9 +558,6 @@ public class NearMeActivity extends FragmentActivity
                     LatLng coords = null;
                     int k = 0;
                     while ((pos == null || addedSectors.contains(pos)) && i + k < path.points.size()) {
-                        if (k > 0) {
-                            System.out.println("Collision!");
-                        }
                         coords = path.points.get(i + k);
                         pos = new NumberPair((int)(coords.latitude / sectorLatSize), (int)((coords.longitude) / sectorLngSize));
                         k++;
