@@ -1164,6 +1164,7 @@ public class NearMeActivity extends FragmentActivity
 
     boolean hasLocation = false;
     boolean followingUser = false;
+    float lastAccuracy = Float.MAX_VALUE;
     @Override
     public void onLocationChanged(Location location) {
         if (followingUser) {
@@ -1176,7 +1177,8 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if (updateStopsNearMeTimer == null && loadedStops && loadedLines) {
+        if ((location.getAccuracy() < lastAccuracy || updateStopsNearMeTimer == null) && loadedStops && loadedLines) {
+            lastAccuracy = location.getAccuracy();
             startTimer(0);
         }
     }

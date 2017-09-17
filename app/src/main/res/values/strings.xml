@@ -61,7 +61,7 @@
     <string name="view_on_map">View on map</string>
     <string name="nearbystations">Nearby stations (within %d meters of where you clicked)</string>
     <string name="confirmfrydb">Are you sure you want to erase everything? This means you will lose all of your settings and saved locations.</string>
-    <string name="image_credits">The icons used in the &quot;Near Me&quot; section app were taken from Flaticon.com. The base GPS pin (https://www.flaticon.com/free-icon/gps-pin_8131) and bus icons (http://www.freepik.com/free-icon/front-of-bus_695855.htm) are by Freepik, the train icon is by Scott de Jonge (https://www.flaticon.com/free-icon/train-on-railroad_8661), the transfer icon is made by Gregor Cresnar (https://www.flaticon.com/free-icon/transfer_159791), and the star icon is by Madebyoliver (https://www.flaticon.com/free-icon/star_148841). Many thanks to them!</string>
+    <string name="image_credits">The icons used in the &quot;Near Me&quot; section app were taken from Flaticon.com. The base GPS pin (https://www.flaticon.com/free-icon/gps-pin_8131) and bus icons (http://www.freepik.com/free-icon/front-of-bus_695855.htm) are by Freepik, the train icon is by Scott de Jonge (https://www.flaticon.com/free-icon/train-on-railroad_8661), the transfer icon is made by Gregor Cresnar (https://www.flaticon.com/free-icon/transfer_159791), and the star icon is by Madebyoliver (https://www.flaticon.com/free-icon/star_148841).</string>
     <string name="nextconnectdown">It appears that the source of the arrival information is temporarily down. Please come back later. We apologize for the inconvenience.</string>
     <string name="favorite_pin">Favorite pin</string>
     <string name="rail_pin">Rail pin</string>
@@ -90,4 +90,7 @@
     <string name="failed_to_load_lines_try_again">Failed to load lines. Try again?</string>
     <string name="failed_to_load_alerts_try_again">Failed to load alerts. Try again?</string>
     <string name="failed_to_load_arrivals_try_again">Failed to load arrivals. Try again?</string>
+    <string name="data">Data</string>
+    <string name="data_credits">All of the relevant information in this app originates from the Greater Cleveland Regional Transit Authority (GCRTA). The arrivals information, stop lists, and map paths come from the GCRTA NextConnect service, while service alerts, system maps, and escalator/elevator statuses come directly from the GCRTA website.</string>
+    <string name="images">Images</string>
 </resources>

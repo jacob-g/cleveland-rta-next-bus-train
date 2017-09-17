@@ -23,12 +23,26 @@
             android:textColor="?android:attr/textColorPrimary" />
 
         <TextView
-            android:text="Images"
+            android:id="@+id/textView9"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
+            android:text="@string/data"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="18sp" />
+
+        <TextView
+            android:id="@+id/textView26"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/data_credits" />
+
+        <TextView
             android:id="@+id/textView22"
-            android:textSize="18sp"
-            android:textColor="?android:attr/textColorPrimary" />
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/images"
+            android:textColor="?android:attr/textColorPrimary"
+            android:textSize="18sp" />
 
         <TextView
             android:id="@+id/textView23"
