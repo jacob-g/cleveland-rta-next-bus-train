@@ -252,11 +252,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     private String getConfig(SQLiteDatabase db, String key) {
         String selectQuery = "SELECT " + FIELD_VALUE + " FROM " + CONFIG_TABLE + " WHERE " + FIELD_NAME + "=?";
         Cursor cursor = db.rawQuery(selectQuery, new String[]{key});
+        String out;
         if (cursor.moveToFirst()) {
-            return cursor.getString(0);
+            out = cursor.getString(0);
         } else {
-            return "";
+            out = "";
         }
+        cursor.close();
+        return out;
     }
 
     public String getConfig(String key) {
@@ -397,6 +400,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                     stations.add(st);
                 } while (cursor.moveToNext());
             }
+            cursor.close();
         } catch (Exception e) {
             e.printStackTrace();
             return stations;
@@ -409,6 +413,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         SQLiteDatabase db = this.getWritableDatabase();
         Cursor cursor = db.rawQuery("SELECT 1 FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_DIR_ID + "=" + dirId + " AND " + FIELD_STATION_ID + "=" + stationId, null);
         boolean out = cursor.moveToFirst();
+        cursor.close();
         db.close();
         return out;
     }
@@ -457,6 +462,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 outMap.put(name, id);
             } while (cursor.moveToNext());
         }
+        cursor.close();
         db.close();
         return outMap;
     }
@@ -479,7 +485,10 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         String selectQuery = "SELECT " + ID + "," + FIELD_NAME + " FROM " + LINES_TABLE + " ORDER BY " + FIELD_NAME + " ASC";
 
         Cursor cursor = db.rawQuery(selectQuery, null);
-        return cursor.getCount() > 0;
+        boolean out = cursor.getCount() > 0;
+        cursor.close();
+        db.close();
+        return out;
     }
 
     public void saveLines(Map<String, Integer> lines) {
@@ -523,6 +532,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 outMap.put(name, id);
             } while (cursor.moveToNext());
         }
+        cursor.close();
         db.close();
         return outMap;
     }
@@ -557,6 +567,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 outMap.put(name, id);
             } while (cursor.moveToNext());
         }
+        cursor.close();
         db.close();
         return outMap;
     }
@@ -602,9 +613,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
                 db.insert(LINE_ALERTS_TABLE, null, values);
             }
+            cursor.close();
             db.execSQL("DELETE FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_EXPIRES + "<" + PersistentDataController.getCurTime() + " AND " + FIELD_LINE_ID + "=" + lineId);
+            db.close();
             return false;
         } else {
+            cursor.close();
+
             //insert the alert
             ContentValues values = new ContentValues();
             values.put(ID, alertId);
@@ -687,6 +702,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 outList.add(alertInfo);
             } while (cursor.moveToNext());
         }
+        cursor.close();
         db.close();
         return outList;
     }
@@ -709,6 +725,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         } else {
             outList = null;
         }
+        cursor.close();
         db.close();
         return outList;
     }
