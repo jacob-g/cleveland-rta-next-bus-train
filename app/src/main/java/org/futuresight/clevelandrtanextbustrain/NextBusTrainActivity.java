@@ -33,13 +33,14 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 public class NextBusTrainActivity extends AppCompatActivity {
-    String[] directions = new String[1];
-    Map<String, Integer> dirIds = new HashMap<>();
-    String[] stops = new String[1];
-    Map<String, Integer> stopIds = new HashMap<>();
-    Map<String,Integer> alertCounts = new HashMap<>(); //lines for we have already checked service alerts
+    private String[] directions = new String[1];
+    private Map<String, Integer> dirIds = new HashMap<>();
+    private String[] stops = new String[1];
+    private Map<String, Integer> stopIds = new HashMap<>();
 
     private int preSelectedLineId = -1, preSelectedDirId = -1, preSelectedStopId = -1;
+
+    private boolean showingErrorDialog = false;
 
     private final int updateInterval = 30; //the number of seconds to wait before refreshing the train information
 
@@ -528,6 +529,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             if (lineNames.length == 0) {
                 alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
+                return;
             }
             //see if there is a pre-selected line sent in from elsewhere
             int preSelectIndex = 0;
@@ -601,24 +603,33 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 Spinner dirSpinner = (Spinner) findViewById(R.id.dirSpinner);
                 Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) { //connection failed
-                    //show dialog asking to reload directions
-                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
-                    alertDialog.setTitle(getResources().getString(R.string.error));
-                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_directions_try_again));
-                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    routeSelectedListener.onItemSelected(null, null, 0, -1L);
-                                }
-                            });
-                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    alertDialog.show();
+                    if (!showingErrorDialog) {
+                        //show dialog asking to reload directions if one isn't already showing
+                        showingErrorDialog = true;
+                        AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                        alertDialog.setTitle(getResources().getString(R.string.error));
+                        alertDialog.setMessage(getResources().getString(R.string.failed_to_load_directions_try_again));
+                        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                        routeSelectedListener.onItemSelected(null, null, 0, -1L);
+                                    }
+                                });
+                        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                        alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                showingErrorDialog = false;
+                            }
+                        });
+                        alertDialog.show();
+                    }
 
                     //leave the dropdown blank
                     dirSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{}));
@@ -688,24 +699,33 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 System.out.println("Got stations");
                 Spinner stationSpinner = (Spinner) findViewById(R.id.stationSpinner);
                 if (result == null) {
-                    //show dialog asking to reload if the connection failed
-                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
-                    alertDialog.setTitle(getResources().getString(R.string.error));
-                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
-                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    dirSelectedListener.onItemSelected(null, null, 0, -1L);
-                                }
-                            });
-                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    alertDialog.show();
+                    if (!showingErrorDialog) {
+                        //show dialog asking to reload if the connection failed and a dialog isn't already showing
+                        showingErrorDialog = true;
+                        AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                        alertDialog.setTitle(getResources().getString(R.string.error));
+                        alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
+                        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                        dirSelectedListener.onItemSelected(null, null, 0, -1L);
+                                    }
+                                });
+                        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                    }
+                                });
+                        alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                showingErrorDialog = false;
+                            }
+                        });
+                        alertDialog.show();
+                    }
 
                     //leave the dropdown empty
                     stationSpinner.setAdapter(new ArrayAdapter<>(myContext, android.R.layout.simple_spinner_item, new String[]{""}));
@@ -778,24 +798,34 @@ public class NextBusTrainActivity extends AppCompatActivity {
             try {
                 if (stopList == null) {
                     blankAll();
-                    //show dialog asking to reload arrivals
-                    AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
-                    alertDialog.setTitle(getResources().getString(R.string.error));
-                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_arrivals_try_again));
-                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                    stopSelectedListener.onItemSelected(null, null, 0, -1L);
-                                }
-                            });
-                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
-                            new DialogInterface.OnClickListener() {
-                                public void onClick(DialogInterface dialog, int which) {
-                                    dialog.dismiss();
-                                }
-                            });
-                    alertDialog.show();
+                    if (!showingErrorDialog) {
+                        //show dialog asking to reload arrivals if one isn't already showing
+                        showingErrorDialog = true;
+                        AlertDialog alertDialog = new AlertDialog.Builder(NextBusTrainActivity.this).create();
+                        alertDialog.setTitle(getResources().getString(R.string.error));
+                        alertDialog.setMessage(getResources().getString(R.string.failed_to_load_arrivals_try_again));
+                        alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        dialog.dismiss();
+                                        stopSelectedListener.onItemSelected(null, null, 0, -1L);
+                                    }
+                                });
+                        alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                                new DialogInterface.OnClickListener() {
+                                    public void onClick(DialogInterface dialog, int which) {
+                                        //TODO: make this cancel the task
+                                        dialog.dismiss();
+                                    }
+                                });
+                        alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                            @Override
+                            public void onDismiss(DialogInterface dialog) {
+                                showingErrorDialog = false;
+                            }
+                        });
+                        alertDialog.show();
+                    }
                     return;
                 }
                 //populate the text fields with the stop data
