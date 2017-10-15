@@ -620,6 +620,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
+                                        finish();
                                     }
                                 });
                         alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
@@ -716,6 +717,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
                                         dialog.dismiss();
+                                        finish();
                                     }
                                 });
                         alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
@@ -814,8 +816,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
                         alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
                                 new DialogInterface.OnClickListener() {
                                     public void onClick(DialogInterface dialog, int which) {
-                                        //TODO: make this cancel the task
                                         dialog.dismiss();
+                                        finish();
                                     }
                                 });
                         alertDialog.setOnDismissListener(new DialogInterface.OnDismissListener() {
