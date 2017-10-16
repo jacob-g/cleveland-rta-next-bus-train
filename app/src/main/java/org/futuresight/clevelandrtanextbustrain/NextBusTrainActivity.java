@@ -82,7 +82,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 String selectedRouteStr = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis))) {
                     System.out.println("Line selected!");
-                    if (lastSelectedPos != pos) { //if the current route is being selected again, ignore it
+                    if (lastSelectedPos != pos || selectingFromFavorites) { //if the current route is being selected again, ignore it
                         System.out.println(" -> (" + selectedRouteStr + ")");
                         new GetDirectionsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr);
                         new GetServiceAlertsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr);
@@ -174,7 +174,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     };
 
     private class SaveFavoriteTask extends AsyncTask<Integer, Void, LatLng> {
-        private Context myContext;
+        private final Context myContext;
         String stationName, dirName, lineName, name;
         int stationId, dirId, lineId;
         public SaveFavoriteTask(Context context, String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
@@ -368,11 +368,14 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 System.out.println("Direction selected");
                 if (!selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedRouteStr.equals("") &&
                         !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) && !selectedDirStr.equals("")) {
-                    if (!selectedRouteStr.equals(lastRoute) || !selectedDirStr.equals(lastDirection)) { //ignore re-selections
+                    if (!selectedRouteStr.equals(lastRoute) || !selectedDirStr.equals(lastDirection) || selectingFromFavorites) { //ignore re-selections
                         new GetStopsTask(NextBusTrainActivity.this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr); //NextBusTrainActivity.this sometimes results in nullpointerexception
                         lastRoute = selectedRouteStr;
                         lastDirection = selectedDirStr;
                         System.out.println(" -> (" + selectedRouteStr + ", " + selectedDirStr + ")");
+                        if (selectingFromFavorites) {
+                            selectingFromFavorites = false; //this is the last step where duplicate entries need to be repeated when selecting from favorites, so mark that we are no longer doing so
+                        }
                     } else {
                         System.out.println(" -> (Ignored)");
                     }
@@ -511,7 +514,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     private class GetLinesTask extends AsyncTask<Void, Void, String[]> {
-        private Context myContext;
+        private final Context myContext;
+
         public GetLinesTask(Context context) {
             myContext = context;
 
@@ -520,12 +524,12 @@ public class NextBusTrainActivity extends AppCompatActivity {
             lineSpinner.setAdapter(adapter);
             lineSpinner.setEnabled(false);
         }
+
         protected String[] doInBackground(Void... params) {
             return PersistentDataController.getLines(myContext);
         }
 
         protected void onPostExecute(String[] lineNames) {
-            System.out.println("Got lines");
             Spinner lineSpinner = (Spinner) findViewById(R.id.lineSpinner);
             if (lineNames.length == 0) {
                 alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nextconnectdown), true);
@@ -558,6 +562,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
         }
     }
 
+    private boolean selectingFromFavorites = false;
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
@@ -565,12 +570,13 @@ public class NextBusTrainActivity extends AppCompatActivity {
             preSelectedStopId = data.getExtras().getInt("stopId");
             preSelectedDirId = data.getExtras().getInt("dirId");
             preSelectedLineId = data.getExtras().getInt("lineId");
+            selectingFromFavorites = true; //mark that we are selecting a favorite so it doesn't ignore duplicate lines or whatever
             new GetLinesTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
         }
     }
 
     private class GetDirectionsTask extends AsyncTask<String, Void, Map<String, Integer>> {
-        private Context myContext;
+        private final Context myContext;
         private Map<String, Integer> dirs;
         private int route;
         public GetDirectionsTask(Context context) {
@@ -666,7 +672,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     private class GetStopsTask extends AsyncTask<String, Void, Map<String, Integer>> {
-        private Context myContext;
+        private final Context myContext;
         private int myRouteId, myDirId;
         private String curSelection = "";
         public GetStopsTask(Context context) {
@@ -760,11 +766,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     //task to get the times of the bus/train
     private class GetTimesTask extends AsyncTask<String, Void, List<String[]>> {
-        private Context myContext;
+        private final Context myContext;
         private int stopId;
         public GetTimesTask(Context context, boolean showLoading) {
+            myContext = context;
             try {
-                myContext = context;
                 if (showLoading) {
                     blankAll();
                     ((TextView) findViewById(R.id.train1destbox)).setText(getResources().getString(R.string.loadingellipsis));
@@ -774,6 +780,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 e.printStackTrace();
             }
         }
+
         protected List<String[]> doInBackground(String... params) {
             try {
                 if (params[0] == null || params[1] == null || params[2] == null) {
@@ -870,7 +877,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
     //task to get the times of the bus/train
     private class GetServiceAlertsTask extends AsyncTask<String, Void, int[]> {
-        private Context myContext;
+        private final Context myContext;
         private String route;
         public GetServiceAlertsTask(Context context) {
             myContext = context;
@@ -911,7 +918,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     }
 
     private class GetEscalatorElevatorStatus extends AsyncTask<Integer, Void, List<EscalatorElevatorAlert>> {
-        private Context myContext;
+        private final Context myContext;
         public GetEscalatorElevatorStatus(Context context) {
             myContext = context;
         }

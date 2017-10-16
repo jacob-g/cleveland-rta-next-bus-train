@@ -249,13 +249,12 @@
                     </TableRow>
                 </TableLayout>
 
-                <!--
                 <Button
                     android:id="@+id/scheduleBtn"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="@string/full_schedule" />
-                    -->
+                    android:text="@string/full_schedule"
+                    android:visibility="gone" /> <!-- TODO: unhide this when full schedules are ready -->
 
                 <Button
                     android:id="@+id/serviceAlertsBtn"
