@@ -44,7 +44,7 @@ public class MainMenu extends AppCompatActivity {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
 
-        //new GetServiceAlertsTask(this).execute(); //TODO: reimplement this once the relevant bugs are fixed
+        new GetServiceAlertsTask(this).execute();
     }
 
     //task to get the times of the bus/train
@@ -52,7 +52,7 @@ public class MainMenu extends AppCompatActivity {
         private Context myContext;
         private String[] routes;
         private int[] routeIds;
-        public GetServiceAlertsTask(Context context) {
+        GetServiceAlertsTask(Context context) {
             myContext = context;
         }
         protected int[] doInBackground(Void... params) {
@@ -95,8 +95,7 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        //new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR); //TODO: put this back once the bug is fixed
-        //it appears that the bug is that the database is being locked while this is running and if any other pages are opened while this is running, this will result in a database crash
+        new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     @Override
