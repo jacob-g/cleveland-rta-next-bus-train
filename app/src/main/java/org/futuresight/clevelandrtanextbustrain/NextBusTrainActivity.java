@@ -400,8 +400,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
                 System.out.println("Stop selected (" + selectedRouteStr + ", " + selectedDirStr + ", " + selectedStopStr + ")");
 
-                //TODO: change the color of the homescreen button as appropriate for alerts
-
                 if (!selectedRouteStr.equals("") && !selectedRouteStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedDirStr.equals("") && !selectedDirStr.equals(getResources().getString(R.string.loadingellipsis)) &&
                         !selectedStopStr.equals("") && !selectedStopStr.equals(getResources().getString(R.string.loadingellipsis))) {
