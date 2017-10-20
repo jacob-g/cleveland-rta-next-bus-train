@@ -655,7 +655,6 @@ public class NearMeActivity extends FragmentActivity
     private boolean loadedStops = false;
     private boolean loadedLines = false;
     boolean autoFocused = false;
-    private final int updateInterval = 15; //the interval to update the display of stops below the map
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -752,9 +751,44 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
-    final int STATION_LIST_LIMIT = 25;
-    int deltaIndex;
+    //TODO: make this run periodically
+    private class UpdateNearbyArrivalsTask extends AsyncTask<Queue<Integer>, Void, SparseArray<List<String[]>>> {
+        private final SparseArray<Station> oldNearbyStops;
+        public UpdateNearbyArrivalsTask() {
+            oldNearbyStops = new SparseArray<>();
+        }
+
+        //TODO: make sure that the list didn't update in the meantime (only replace the value in the text box if the
+        protected SparseArray<List<String[]>> doInBackground(Queue<Integer>... params) {
+            SparseArray<List<String[]>> out = new SparseArray<>();
+            while (!params[0].isEmpty()) {
+                int index = params[0].remove();
+                Station st = listedNearbyStops.get(index);
+                oldNearbyStops.put(index, st);
+                List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                out.put(index, arrivals);
+            }
+            return out;
+        }
+
+        protected void onPostExecute(SparseArray<List<String[]>> stopList) {
+            for (int i = 0; i < stopList.size(); i++) {
+                int index = stopList.keyAt(i);
+                List<String[]> arrivals = stopList.get(index);
+                String arrivalText = "N/A";
+                if (!arrivals.isEmpty()) {
+                    arrivalText = arrivals.get(0)[1] + "\n" + arrivals.get(0)[2];
+                }
+                final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
+                if (belowMapLayout.getChildCount() > index && oldNearbyStops.get(index).equals(listedNearbyStops.get(index))) { //make sure the stop is still listed in the same position before updating it
+                    ((TextView)((TableRow)belowMapLayout.getChildAt(index)).getChildAt(1)).setText(arrivalText);
+                }
+            }
+        }
+    }
+
+    private final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
+    private SparseArray<Station> listedNearbyStops = new SparseArray<>();
     //the task to populate the list of nearby stops shown below the map, separate from the task that gets the arrivals
     private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, SparseArray<SparseArray<ObjectByDistance<Station>>>> {
         public GetStopsNearMeTask() {
@@ -790,8 +824,11 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(SparseArray<SparseArray<ObjectByDistance<Station>>> closestStationByLine) {
             try {
-                //TODO: clean this up
                 final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
+                TableRow[] formerRows = new TableRow[belowMapLayout.getChildCount()];
+                for (int i = 0; i < belowMapLayout.getChildCount(); i++) {
+                    formerRows[i] = (TableRow)belowMapLayout.getChildAt(i);
+                }
                 belowMapLayout.removeAllViews();
 
                 PriorityQueue<ObjectByDistance<Station>> linePriorities = new PriorityQueue<>();
@@ -809,8 +846,8 @@ public class NearMeActivity extends FragmentActivity
                     linePriorities.add(highestPriority);
                 }
 
+                Queue<Integer> indicesToUpdate = new LinkedList<>();
                 int index = 0;
-                deltaIndex = 0;
                 while (!linePriorities.isEmpty()) {
                     int lineId = linePriorities.remove().getObj().getLineId();
                     //add a row to the table with colspan 2 with just the name of the line
@@ -832,122 +869,52 @@ public class NearMeActivity extends FragmentActivity
                     lineNameParams.span = 2;
                     lineNameParams.width = TableRow.LayoutParams.MATCH_PARENT;
                     lineNameRow.addView(lineNameView, 0, lineNameParams);
-                    belowMapLayout.addView(lineNameRow);
+                    belowMapLayout.addView(lineNameRow, index);
+                    index++;
 
                     SparseArray<ObjectByDistance<Station>> closestStationsOnLine = closestStationByLine.get(lineId);
                     for (int j = 0; j < closestStationsOnLine.size(); j++) {
                         int dirId = closestStationsOnLine.keyAt(j);
                         Station st = closestStationsOnLine.get(dirId).getObj();
+                        Station oldSt = listedNearbyStops.get(index, null);
+                        if (oldSt == null || !st.equals(oldSt)) {
+                            indicesToUpdate.add(index);
+                            listedNearbyStops.put(index, st);
 
-                        //for each direction for this line, add another row with the directions and upcoming arrivals
-                        TableRow arrivalRow = new TableRow(NearMeActivity.this);
+                            //for each direction for this line, add another row with the directions and upcoming arrivals
+                            TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
-                        TextView stationNameView = new TextView(NearMeActivity.this);
-                        String stopName = st.getStationName().replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
-                        stationNameView.setText(st.getDirName() + ":\n" + stopName);
-                        stationNameView.setTextColor(Color.BLUE);
-                        final int myIndex = index;
-                        /*stationNameView.setOnClickListener(new View.OnClickListener() {
-                            private boolean opened = false;
+                            TextView stationNameView = new TextView(NearMeActivity.this);
+                            String stopName = st.getStationName().replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
+                            stationNameView.setText(st.getDirName() + ":\n" + stopName);
+                            stationNameView.setTextColor(Color.BLUE);
 
-                            @Override
-                            public void onClick(View v) { //TODO: remove the whole delta system and just make it part of the table row
-                                if (opened) {
-                                    return;
-                                }
-                                opened = true;
+                            TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+                            params.weight = 1;
+                            stationNameView.setLayoutParams(params);
+                            arrivalRow.addView(stationNameView, 0);
 
-                                LinearLayout.LayoutParams optionButtonParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+                            TextView stationLineView = new TextView(NearMeActivity.this);
+                            stationLineView.setMaxWidth(250);
+                            String arrivalText = getResources().getString(R.string.loadingellipsis);
+                            stationLineView.setText(arrivalText);
+                            params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+                            params.weight = 0;
+                            stationLineView.setLayoutParams(params);
+                            arrivalRow.addView(stationLineView, 1);
 
-                                cancelTimer();
-
-                                //show a new table row below the one containing the station that was selected with a button to show the location of the station and a button to view arrivals information for it
-                                final TableRow optionsRow = new TableRow(NearMeActivity.this);
-                                LinearLayout optionsLayout = new LinearLayout(NearMeActivity.this);
-                                optionsLayout.setOrientation(LinearLayout.HORIZONTAL);
-
-                                //the button to focus on the station on the map
-                                ImageButton viewBtn = new ImageButton(NearMeActivity.this);
-                                viewBtn.setImageResource(R.drawable.places_ic_search);
-                                viewBtn.setLayoutParams(optionButtonParams);
-                                viewBtn.setOnClickListener(new Button.OnClickListener() {
-                                    public void onClick(View v) {
-                                        if (locationArrowMarker != null) {
-                                            locationArrowMarker.remove();
-                                        }
-                                        locationArrowMarker = mMap.addMarker(new MarkerOptions().position(station.getLatLng()));
-                                        locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
-                                        locationArrowMarker.setZIndex(3);
-
-                                        mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(station.getLatLng(), 17));
-                                        followingUser = false;
-                                    }
-                                });
-                                optionsLayout.addView(viewBtn);
-
-                                //the button to open the arrivals page
-                                ImageButton arrivalsBtn = new ImageButton(NearMeActivity.this);
-                                arrivalsBtn.setImageResource(android.R.drawable.ic_menu_recent_history);
-                                arrivalsBtn.setLayoutParams(optionButtonParams);
-                                arrivalsBtn.setOnClickListener(new Button.OnClickListener() {
-                                    public void onClick(View v) {
-                                        Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
-                                        intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
-                                        intent.putExtra("lineId", station.getLineId());
-                                        intent.putExtra("lineName", station.getLineName());
-                                        intent.putExtra("dirId", station.getDirId());
-                                        intent.putExtra("stopId", station.getStationId());
-                                        intent.putExtra("stopName", station.getStationName());
-                                        startActivity(intent);
-                                        if (apiClient != null) {
-                                            apiClient.disconnect();
-                                        }
-                                        finish();
-                                        startActivity(intent);
-                                    }
-                                });
-                                optionsLayout.addView(arrivalsBtn);
-
-                                //the button to collapse this display
-                                ImageButton collapseBtn = new ImageButton(NearMeActivity.this);
-                                collapseBtn.setImageResource(R.drawable.mr_group_collapse);
-                                collapseBtn.setLayoutParams(optionButtonParams);
-                                collapseBtn.setOnClickListener(new Button.OnClickListener() {
-                                    public void onClick(View v) {
-                                        deltaIndex--;
-                                        belowMapLayout.removeView(optionsRow);
-                                        opened = false;
-                                    }
-                                });
-                                optionsLayout.addView(collapseBtn);
+                            belowMapLayout.addView(arrivalRow);
+                        } else {
+                            //TODO: recycle existing content
+                            belowMapLayout.addView(formerRows[index]);
+                        }
 
 
-                                optionsRow.addView(optionsLayout);
-
-                                belowMapLayout.addView(optionsRow, myIndex + deltaIndex + 1);
-                                startTimer(updateInterval * 1000);
-
-                                deltaIndex++;
-                            }
-                        });*/
-                        TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-                        params.weight = 1;
-                        stationNameView.setLayoutParams(params);
-                        arrivalRow.addView(stationNameView, 0);
-
-                        TextView stationLineView = new TextView(NearMeActivity.this);
-                        stationLineView.setMaxWidth(250);
-                        String arrivalText = "Placeholder";
-                        stationLineView.setText(arrivalText);
-                        params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
-                        params.weight = 0;
-                        stationLineView.setLayoutParams(params);
-                        arrivalRow.addView(stationLineView, 1);
-
-                        belowMapLayout.addView(arrivalRow);
                         index++;
                     }
                 }
+                new UpdateNearbyArrivalsTask().execute(indicesToUpdate);
+                System.out.println("Indices to update: " + indicesToUpdate);
             } catch (Exception e) {
                 e.printStackTrace();
             }
