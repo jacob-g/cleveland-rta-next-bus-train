@@ -65,6 +65,8 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -751,37 +753,84 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    //TODO: make this run periodically
+    //a timer to automatically update the nearby arrivals
+    private Timer updateStopsNearMeTimer;
+    private final int updateInterval = 15;
+    private void startTimer(int delay) {
+        updateStopsNearMeTimer = new Timer();
+        updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), delay, updateInterval * 1000);
+    }
+
+    private void cancelTimer() {
+        if (updateStopsNearMeTimer != null) {
+            updateStopsNearMeTimer.cancel();
+        }
+    }
+
+    //the task to update the nearby stop arrivals
+    class GetStopsNearMeTimerTask extends TimerTask {
+        public GetStopsNearMeTimerTask(){
+        }
+
+        public void run() {
+            //in order to access the map, this has to run on the UI thread
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    new UpdateNearbyArrivalsTask().execute();
+                }
+            });
+        }
+    }
+
+    //the task to update the arrival times at all of the nearby stops
     private class UpdateNearbyArrivalsTask extends AsyncTask<Queue<Integer>, Void, SparseArray<List<String[]>>> {
         private final SparseArray<Station> oldNearbyStops;
         public UpdateNearbyArrivalsTask() {
             oldNearbyStops = new SparseArray<>();
         }
 
-        //TODO: make sure that the list didn't update in the meantime (only replace the value in the text box if the
         protected SparseArray<List<String[]>> doInBackground(Queue<Integer>... params) {
+            Queue<Integer> q;
+            if (params.length == 0) {
+                q = new LinkedList<>();
+                for (int i = 0; i + 3 < highestNearbyStopIndex; i += 3) {
+                    q.add(i + 1);
+                    q.add(i + 2);
+                }
+            } else {
+                q = params[0];
+            }
             SparseArray<List<String[]>> out = new SparseArray<>();
-            while (!params[0].isEmpty()) {
-                int index = params[0].remove();
-                Station st = listedNearbyStops.get(index);
-                oldNearbyStops.put(index, st);
-                List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
-                out.put(index, arrivals);
+            while (!q.isEmpty()) {
+                try {
+                    int index = q.remove();
+                    Station st = listedNearbyStops.get(index);
+                    oldNearbyStops.put(index, st);
+                    List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                    out.put(index, arrivals);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
             return out;
         }
 
         protected void onPostExecute(SparseArray<List<String[]>> stopList) {
             for (int i = 0; i < stopList.size(); i++) {
-                int index = stopList.keyAt(i);
-                List<String[]> arrivals = stopList.get(index);
-                String arrivalText = "N/A";
-                if (!arrivals.isEmpty()) {
-                    arrivalText = arrivals.get(0)[1] + "\n" + arrivals.get(0)[2];
-                }
-                final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
-                if (belowMapLayout.getChildCount() > index && oldNearbyStops.get(index).equals(listedNearbyStops.get(index))) { //make sure the stop is still listed in the same position before updating it
-                    ((TextView)((TableRow)belowMapLayout.getChildAt(index)).getChildAt(1)).setText(arrivalText);
+                try {
+                    int index = stopList.keyAt(i);
+                    List<String[]> arrivals = stopList.get(index);
+                    String arrivalText = "N/A";
+                    if (!arrivals.isEmpty()) {
+                        arrivalText = arrivals.get(0)[1] + "\n" + arrivals.get(0)[2];
+                    }
+                    final TableLayout belowMapLayout = ((TableLayout) findViewById(R.id.belowMapLayout));
+                    if (belowMapLayout.getChildCount() > index && oldNearbyStops.get(index).equals(listedNearbyStops.get(index))) { //make sure the stop is still listed in the same position before updating it
+                        ((TextView) ((TableRow) belowMapLayout.getChildAt(index)).getChildAt(1)).setText(arrivalText);
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
         }
@@ -789,6 +838,7 @@ public class NearMeActivity extends FragmentActivity
 
     private final int MAX_STATION_BOTTOM_DISPLAY_DISTANCE = 800;
     private SparseArray<Station> listedNearbyStops = new SparseArray<>();
+    private int highestNearbyStopIndex = 0;
     //the task to populate the list of nearby stops shown below the map, separate from the task that gets the arrivals
     private class GetStopsNearMeTask extends AsyncTask<LatLng, Void, SparseArray<SparseArray<ObjectByDistance<Station>>>> {
         public GetStopsNearMeTask() {
@@ -903,16 +953,17 @@ public class NearMeActivity extends FragmentActivity
                             stationLineView.setLayoutParams(params);
                             arrivalRow.addView(stationLineView, 1);
 
+                            //TODO: add an onclicklistener to show the buttons like in the old version
+
                             belowMapLayout.addView(arrivalRow);
                         } else {
-                            //TODO: recycle existing content
                             belowMapLayout.addView(formerRows[index]);
                         }
-
 
                         index++;
                     }
                 }
+                highestNearbyStopIndex = index;
                 new UpdateNearbyArrivalsTask().execute(indicesToUpdate);
                 System.out.println("Indices to update: " + indicesToUpdate);
             } catch (Exception e) {
@@ -1136,7 +1187,6 @@ public class NearMeActivity extends FragmentActivity
 
     boolean hasLocation = false;
     boolean followingUser = false;
-    float lastAccuracy = Float.MAX_VALUE;
     @Override
     public void onLocationChanged(Location location) {
         if (followingUser) {
@@ -1151,6 +1201,9 @@ public class NearMeActivity extends FragmentActivity
         }
         if (loadedStops && loadedLines) {
             reloadNearbyStops();
+            if (updateStopsNearMeTimer == null) {
+                startTimer(0);
+            }
         }
     }
 
