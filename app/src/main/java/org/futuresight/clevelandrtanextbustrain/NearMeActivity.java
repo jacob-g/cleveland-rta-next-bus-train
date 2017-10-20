@@ -921,7 +921,7 @@ public class NearMeActivity extends FragmentActivity
                     SparseArray<ObjectByDistance<Station>> closestStationsOnLine = closestStationByLine.get(lineId);
                     for (int j = 0; j < closestStationsOnLine.size(); j++) {
                         int dirId = closestStationsOnLine.keyAt(j);
-                        Station st = closestStationsOnLine.get(dirId).getObj();
+                        final Station st = closestStationsOnLine.get(dirId).getObj();
                         Station oldSt = listedNearbyStops.get(index, null);
                         if (oldSt == null || !st.equals(oldSt) || index >= formerRows.length) {
                             indicesToUpdate.add(index);
@@ -930,16 +930,82 @@ public class NearMeActivity extends FragmentActivity
                             //for each direction for this line, add another row with the directions and upcoming arrivals
                             TableRow arrivalRow = new TableRow(NearMeActivity.this);
 
+                            LinearLayout stationNameLayout = new LinearLayout(NearMeActivity.this);
+                            stationNameLayout.setOrientation(LinearLayout.VERTICAL);
                             TextView stationNameView = new TextView(NearMeActivity.this);
                             String stopName = st.getStationName().replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
                             stationNameView.setText(st.getDirName() + ":\n" + stopName);
                             stationNameView.setTextColor(Color.BLUE);
+                            stationNameLayout.addView(stationNameView);
 
                             TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
                             params.weight = 1;
                             stationNameView.setLayoutParams(params);
-                            arrivalRow.addView(stationNameView, 0);
 
+                            //a layout for the options to see arrivals and the location on the map
+                            final LinearLayout stationActionsLayout = new LinearLayout(NearMeActivity.this);
+                            LinearLayout.LayoutParams optionButtonParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
+                            optionButtonParams.weight = 1f;
+
+                            //the button to show the location on the map
+                            ImageButton viewBtn = new ImageButton(NearMeActivity.this);
+                            viewBtn.setImageResource(R.drawable.places_ic_search);
+                            viewBtn.setLayoutParams(optionButtonParams);
+                            viewBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    if (locationArrowMarker != null) {
+                                        locationArrowMarker.remove();
+                                    }
+                                    locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                                    locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                                    locationArrowMarker.setZIndex(3);
+
+                                    mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(st.getLatLng(), 17));
+                                    followingUser = false;
+                                }
+                            });
+                            stationActionsLayout.addView(viewBtn);
+
+                            //a button to view the arrivals
+                            ImageButton arrivalsBtn = new ImageButton(NearMeActivity.this);
+                            arrivalsBtn.setImageResource(android.R.drawable.ic_menu_recent_history);
+                            arrivalsBtn.setLayoutParams(optionButtonParams);
+                            arrivalsBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    Intent intent = new Intent(NearMeActivity.this, NextBusTrainActivity.class);
+                                    intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
+                                    intent.putExtra("lineId", st.getLineId());
+                                    intent.putExtra("lineName", st.getLineName());
+                                    intent.putExtra("dirId", st.getDirId());
+                                    intent.putExtra("stopId", st.getStationId());
+                                    intent.putExtra("stopName", st.getStationName());
+                                    startActivity(intent);
+                                    if (apiClient != null) {
+                                        apiClient.disconnect();
+                                    }
+                                    finish();
+                                    startActivity(intent);
+                                }
+                            });
+                            stationActionsLayout.addView(arrivalsBtn);
+
+                            //a button to collapse the display
+                            ImageButton collapseBtn = new ImageButton(NearMeActivity.this);
+                            collapseBtn.setImageResource(R.drawable.mr_group_collapse);
+                            collapseBtn.setLayoutParams(optionButtonParams);
+                            collapseBtn.setOnClickListener(new Button.OnClickListener() {
+                                public void onClick(View v) {
+                                    stationActionsLayout.setVisibility(View.GONE);
+                                }
+                            });
+                            stationActionsLayout.addView(collapseBtn);
+
+                            stationActionsLayout.setVisibility(View.GONE);
+                            stationNameLayout.addView(stationActionsLayout);
+
+                            arrivalRow.addView(stationNameLayout, 0);
+
+                            //the box where the arrival info is shown
                             TextView stationLineView = new TextView(NearMeActivity.this);
                             stationLineView.setMaxWidth(250);
                             String arrivalText = getResources().getString(R.string.loadingellipsis);
@@ -949,7 +1015,11 @@ public class NearMeActivity extends FragmentActivity
                             stationLineView.setLayoutParams(params);
                             arrivalRow.addView(stationLineView, 1);
 
-                            //TODO: add an onclicklistener to show the buttons like in the old version
+                            stationNameView.setOnClickListener(new TextView.OnClickListener() {
+                                public void onClick(View v) {
+                                    stationActionsLayout.setVisibility(View.VISIBLE);
+                                }
+                            });
 
                             belowMapLayout.addView(arrivalRow);
                         } else {

@@ -56,28 +56,36 @@ public class MainMenu extends AppCompatActivity {
             myContext = context;
         }
         protected int[] doInBackground(Void... params) {
-            PersistentDataController.getLineIdMap(myContext); //pre-load the line ID map just in case
-            String[][] faves = PersistentDataController.getFavoriteLines(myContext);
-            if (faves.length == 0) {
-                return new int[]{0, 0};
-            }
-            routes = new String[faves[0].length];
-            routeIds = new int[faves[0].length];
-            int i = 0;
-            for (String[] s : faves) {
-                routes[i] = s[0]; //save the route for later in case we want to color the results
-                routeIds[i] = Integer.parseInt(s[1]);
-                i++;
-            }
-            List<Map<String, String>> alerts = ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
-            int unread = 0;
-            for (Map<String, String> alert : alerts) {
-                if (alert.containsKey("new") && alert.get("new").equals("true")) {
-                    unread = 1;
-                    break;
+            if (NetworkController.connected(MainMenu.this)) { //don't try this if not connected to the internet
+                try {
+                    PersistentDataController.getLineIdMap(myContext); //pre-load the line ID map just in case
+                    String[][] faves = PersistentDataController.getFavoriteLines(myContext);
+                    if (faves.length == 0) {
+                        return new int[]{0, 0};
+                    }
+                    routes = new String[faves[0].length];
+                    routeIds = new int[faves[0].length];
+                    int i = 0;
+                    for (String[] s : faves) {
+                        routes[i] = s[0]; //save the route for later in case we want to color the results
+                        routeIds[i] = Integer.parseInt(s[1]);
+                        i++;
+                    }
+                    List<Map<String, String>> alerts = ServiceAlertsController.getAlertsByLine(myContext, routes, routeIds);
+                    int unread = 0;
+                    for (Map<String, String> alert : alerts) {
+                        if (alert.containsKey("new") && alert.get("new").equals("true")) {
+                            unread = 1;
+                            break;
+                        }
+                    }
+                    return new int[]{alerts.size(), unread};
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
             }
-            return new int[]{alerts.size(), unread};
+            return new int[]{0, 0};
+
         }
 
         protected void onPostExecute(int[] params) {
