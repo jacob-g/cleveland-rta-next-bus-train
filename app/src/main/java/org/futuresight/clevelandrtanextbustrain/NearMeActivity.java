@@ -201,10 +201,6 @@ public class NearMeActivity extends FragmentActivity
                     lastSearchedMarker.remove();
                 }
                 lastSearchedMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng()).snippet(place.getName().toString()));
-                //reload the stops near where the map is
-                if (loadedStops && loadedLines) {
-                    reloadNearbyStops();
-                }
             }
 
             @Override
@@ -847,7 +843,6 @@ public class NearMeActivity extends FragmentActivity
         protected SparseArray<SparseArray<ObjectByDistance<Station>>> doInBackground(LatLng... params) {
             SparseArray<SparseArray<ObjectByDistance<Station>>> closestStationByLine = new SparseArray<>();
 
-            //TODO: reformulate this so that it works with the sectors to minimize runtime and get the closest on each line
             for (Station st : stationList) {
                 double d = PersistentDataController.distance(params[0], st.getLatLng());
                 if (d < MAX_STATION_BOTTOM_DISPLAY_DISTANCE) {
@@ -872,6 +867,7 @@ public class NearMeActivity extends FragmentActivity
             return closestStationByLine;
         }
 
+        private final float lineHeaderFontSize = 14f;
         protected void onPostExecute(SparseArray<SparseArray<ObjectByDistance<Station>>> closestStationByLine) {
             try {
                 final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
@@ -908,7 +904,7 @@ public class NearMeActivity extends FragmentActivity
                     lineNameView.setText(lineName);
                     lineNameView.setTextAlignment(View.TEXT_ALIGNMENT_CENTER);
                     lineNameView.setTypeface(null, Typeface.BOLD);
-                    lineNameView.setTextSize(14f); //TODO: make this a constant
+                    lineNameView.setTextSize(lineHeaderFontSize);
                     lineNameView.setBackgroundColor(color);
                     if (Color.red(color) + Color.green(color) + Color.blue(color) < 384) {
                         lineNameView.setTextColor(Color.WHITE);
@@ -927,7 +923,7 @@ public class NearMeActivity extends FragmentActivity
                         int dirId = closestStationsOnLine.keyAt(j);
                         Station st = closestStationsOnLine.get(dirId).getObj();
                         Station oldSt = listedNearbyStops.get(index, null);
-                        if (oldSt == null || !st.equals(oldSt)) {
+                        if (oldSt == null || !st.equals(oldSt) || index >= formerRows.length) {
                             indicesToUpdate.add(index);
                             listedNearbyStops.put(index, st);
 
@@ -962,10 +958,15 @@ public class NearMeActivity extends FragmentActivity
 
                         index++;
                     }
+
+                    if (closestStationsOnLine.size() == 1) { //make sure that there are always two table rows for each line
+                        belowMapLayout.addView(new TableRow(NearMeActivity.this));
+                        listedNearbyStops.put(index, null);
+                        index++;
+                    }
                 }
                 highestNearbyStopIndex = index;
                 new UpdateNearbyArrivalsTask().execute(indicesToUpdate);
-                System.out.println("Indices to update: " + indicesToUpdate);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -996,6 +997,13 @@ public class NearMeActivity extends FragmentActivity
     private BitmapDescriptor transferPin;
     @Override
     public void onCameraChange(CameraPosition cameraPosition) {
+        if (loadedStops && loadedLines) { //reload the list of nearby stops
+            reloadNearbyStops();
+            if (updateStopsNearMeTimer == null) {
+                startTimer(0);
+            }
+        }
+
         if (!followingUser) {
             if (mapCenterMarker != null) {
                 mapCenterMarker.remove();
@@ -1199,12 +1207,6 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if (loadedStops && loadedLines) {
-            reloadNearbyStops();
-            if (updateStopsNearMeTimer == null) {
-                startTimer(0);
-            }
-        }
     }
 
     //call this once we have permission to track the current user's location
@@ -1222,9 +1224,6 @@ public class NearMeActivity extends FragmentActivity
                 @Override
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
-                    if (loadedStops && loadedLines) {
-                        reloadNearbyStops(); //immediately update nearby stops
-                    }
                     //remove the marker in the middle of the map
                     if (mapCenterMarker != null) {
                         mapCenterMarker.remove();
