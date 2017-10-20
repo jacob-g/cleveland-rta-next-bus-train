@@ -65,8 +65,6 @@ import java.util.Map;
 import java.util.PriorityQueue;
 import java.util.Queue;
 import java.util.Set;
-import java.util.Timer;
-import java.util.TimerTask;
 import java.util.TreeSet;
 
 import javax.xml.parsers.DocumentBuilder;
@@ -171,13 +169,10 @@ public class NearMeActivity extends FragmentActivity
                                                                           //hide the below map display
                                                                           belowMapLayout.setVisibility(View.GONE);
                                                                           sender.setImageResource(R.drawable.mr_group_collapse);
-                                                                          cancelTimer(); //since the display isn't showing, don't bother updating it
                                                                       } else {
+                                                                          //show the below map display
                                                                           belowMapLayout.setVisibility(View.VISIBLE);
                                                                           sender.setImageResource(R.drawable.mr_group_expand);
-                                                                          if (loadedStops && loadedLines) {
-                                                                              startTimer(0); //immediately start updating the display again
-                                                                          }
                                                                       }
                                                                       //also update the height of the whole thing
                                                                       ScrollView belowMapScrollView = (ScrollView)findViewById(R.id.belowMapScrollView);
@@ -204,10 +199,9 @@ public class NearMeActivity extends FragmentActivity
                     lastSearchedMarker.remove();
                 }
                 lastSearchedMarker = mMap.addMarker(new MarkerOptions().position(place.getLatLng()).snippet(place.getName().toString()));
-                //reset the timer so that the stops near the searched location show up immediately
+                //reload the stops near where the map is
                 if (loadedStops && loadedLines) {
-                    cancelTimer();
-                    startTimer(0);
+                    reloadNearbyStops();
                 }
             }
 
@@ -766,40 +760,6 @@ public class NearMeActivity extends FragmentActivity
         public GetStopsNearMeTask() {
         }
 
-        public class MultiPriorityObject<E extends Comparable<E>> implements Comparable<MultiPriorityObject<E>> {
-            private int highestPriority = -1;
-            private String highestSecondary = "";
-            private double smallestDist = Double.MAX_VALUE;
-            public final E payload;
-            public MultiPriorityObject(E obj) {
-                payload = obj;
-            }
-            public void add(int priority, double dist, String secondary) {
-                if (priority > highestPriority) {
-                    highestPriority = priority;
-                }
-                if (secondary.compareTo(highestSecondary) > 0) {
-                    highestSecondary = secondary;
-                }
-                if (dist < smallestDist) {
-                    smallestDist = dist;
-                }
-            }
-            public int compareTo(MultiPriorityObject<E> other) {
-                if (highestPriority > other.highestPriority) {
-                    return 1;
-                } else if (highestPriority > other.highestPriority) {
-                    return -1;
-                } else if (smallestDist < other.smallestDist) {
-                    return 1;
-                } else if (smallestDist > other.smallestDist) {
-                    return -1;
-                } else {
-                    return this.highestSecondary.compareTo(other.highestSecondary);
-                }
-            }
-        }
-
         protected SparseArray<SparseArray<ObjectByDistance<Station>>> doInBackground(LatLng... params) {
             SparseArray<SparseArray<ObjectByDistance<Station>>> closestStationByLine = new SparseArray<>();
 
@@ -834,11 +794,25 @@ public class NearMeActivity extends FragmentActivity
                 final TableLayout belowMapLayout = ((TableLayout)findViewById(R.id.belowMapLayout));
                 belowMapLayout.removeAllViews();
 
-                int index = 0;
-                deltaIndex = 0;
-                //TODO: have this work by priority
+                PriorityQueue<ObjectByDistance<Station>> linePriorities = new PriorityQueue<>();
                 for (int i = 0; i < closestStationByLine.size(); i++) {
                     int lineId = closestStationByLine.keyAt(i);
+                    SparseArray<ObjectByDistance<Station>> closestStationsOnLine = closestStationByLine.get(lineId);
+                    ObjectByDistance<Station> highestPriority = null;
+                    for (int j = 0; j < closestStationsOnLine.size(); j++) {
+                        int dirId = closestStationsOnLine.keyAt(j);
+                        ObjectByDistance<Station> priority = closestStationsOnLine.get(dirId);
+                        if (highestPriority == null || priority.compareTo(highestPriority) < 0) {
+                            highestPriority = priority;
+                        }
+                    }
+                    linePriorities.add(highestPriority);
+                }
+
+                int index = 0;
+                deltaIndex = 0;
+                while (!linePriorities.isEmpty()) {
+                    int lineId = linePriorities.remove().getObj().getLineId();
                     //add a row to the table with colspan 2 with just the name of the line
                     TableRow lineNameRow = new TableRow(NearMeActivity.this);
                     String lineName = linesById.get(lineId);
@@ -980,15 +954,8 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    private void cancelTimer() {
-        if (updateStopsNearMeTimer != null) {
-            updateStopsNearMeTimer.cancel();
-        }
-    }
-
-    private void startTimer(int delay) {
-        updateStopsNearMeTimer = new Timer();
-        updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), delay, updateInterval * 1000);
+    private void reloadNearbyStops() {
+        new GetStopsNearMeTask().execute(mMap.getCameraPosition().target);
     }
 
     @Override
@@ -1215,27 +1182,8 @@ public class NearMeActivity extends FragmentActivity
                 followingUser = true;
             }
         }
-        if ((location.getAccuracy() < lastAccuracy || updateStopsNearMeTimer == null) && loadedStops && loadedLines) {
-            lastAccuracy = location.getAccuracy();
-            startTimer(0);
-        }
-    }
-
-    private Timer updateStopsNearMeTimer;
-
-    //the task to update the nearby stops
-    class GetStopsNearMeTimerTask extends TimerTask {
-        public GetStopsNearMeTimerTask(){
-        }
-
-        public void run() {
-            //in order to access the map, this has to run on the UI thread
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    new GetStopsNearMeTask().execute(mMap.getCameraPosition().target);
-                }
-            });
+        if (loadedStops && loadedLines) {
+            reloadNearbyStops();
         }
     }
 
@@ -1255,7 +1203,7 @@ public class NearMeActivity extends FragmentActivity
                 public boolean onMyLocationButtonClick() {
                     followingUser = true;
                     if (loadedStops && loadedLines) {
-                        startTimer(0); //immediately update nearby stops
+                        reloadNearbyStops(); //immediately update nearby stops
                     }
                     //remove the marker in the middle of the map
                     if (mapCenterMarker != null) {
