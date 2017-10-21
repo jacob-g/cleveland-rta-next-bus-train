@@ -641,7 +641,7 @@ public class NearMeActivity extends FragmentActivity
         }
     }
 
-    final double sectorSize = 0.005;
+    final double sectorSize = 0.004;
     final char railType = 'r';
     private int focusStationId = -1;
     Map<NumberPair, List<Station>> markerSectors = new HashMap<>();
@@ -803,8 +803,10 @@ public class NearMeActivity extends FragmentActivity
                     int index = q.remove();
                     Station st = listedNearbyStops.get(index);
                     oldNearbyStops.put(index, st);
-                    List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
-                    out.put(index, arrivals);
+                    if (st != null) {
+                        List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                        out.put(index, arrivals);
+                    }
                 } catch (Exception e) {
                     e.printStackTrace();
                 }
@@ -1103,6 +1105,14 @@ public class NearMeActivity extends FragmentActivity
 
         if (alreadyVisible) {
             LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
+            new UpdateMarkersTask().execute(bounds);
+        }
+    }
+
+    //a task to update the list of nearby stops, put in an AsyncTask to run it separately from the other stuff that happens when the camera moves
+    private class UpdateMarkersTask extends AsyncTask<LatLngBounds, Void, Queue<Station>> {
+        protected Queue<Station> doInBackground(LatLngBounds... params) {
+            LatLngBounds bounds = params[0];
             double minLat = bounds.southwest.latitude, minLng = bounds.southwest.longitude, maxLat = bounds.northeast.latitude, maxLng = bounds.northeast.longitude;
 
             minLat -= sectorSize;
@@ -1111,46 +1121,57 @@ public class NearMeActivity extends FragmentActivity
             maxLng += sectorSize;
 
 
+            Queue<Station> stationList = new LinkedList<>();
             int minLatInt = (int)Math.floor(minLat / sectorSize);
             int maxLatInt = (int)Math.ceil(maxLat / sectorSize);
             int minLngInt = (int)Math.floor(minLng / sectorSize);
             int maxLngInt = (int)Math.ceil(maxLng / sectorSize);
             for (Iterator it = markerSectors.keySet().iterator(); it.hasNext(); ) {
-                NumberPair pos = (NumberPair)it.next();
+                NumberPair pos = (NumberPair) it.next();
                 if (minLatInt <= pos.first && pos.first <= maxLatInt && minLngInt <= pos.second && pos.second <= maxLngInt) {
                     if (spotsAdded.add(pos)) {
-                        for (Station st: markerSectors.get(pos)) {
-                            Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                            if (st.getStationId() == focusStationId) {
-                                locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                                locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
-                                locationArrowMarker.setZIndex(3);
-                            }
-
-                            if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
-                                m.setIcon(favoritePin);
-                                m.setZIndex(3);
-                            } else if (shownLine == st.getLineId() && st.isTransfer()) { //if only showing one line, mark transfers
-                                m.setIcon(transferPin);
-                                m.setZIndex(2);
-                            } else if (st.getType() == railType) {
-                                m.setIcon(railPin);
-                                m.setZIndex(1);
-                            } else {
-                                m.setIcon(busPin);
-                                m.setZIndex(0);
-                            }
-                            markers.put(m, st);
-                            if (alreadyVisible && visibleStations.contains(st)) {
-                                m.setVisible(true);
-                            } else {
-                                m.setVisible(false);
-                            }
+                        for (Station st : markerSectors.get(pos)) {
+                            stationList.add(st);
                         }
+                        it.remove();
                     }
-                    it.remove();
                 }
             }
+            return stationList;
+        }
+
+        protected void onPostExecute(Queue<Station> stationList) {
+            int time = PersistentDataController.getCurTime();
+            while (!stationList.isEmpty()) {
+                Station st = stationList.remove();
+                Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                if (st.getStationId() == focusStationId) {
+                    locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                    locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                    locationArrowMarker.setZIndex(3);
+                }
+
+                if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
+                    m.setIcon(favoritePin);
+                    m.setZIndex(3);
+                } else if (shownLine == st.getLineId() && st.isTransfer()) { //if only showing one line, mark transfers
+                    m.setIcon(transferPin);
+                    m.setZIndex(2);
+                } else if (st.getType() == railType) {
+                    m.setIcon(railPin);
+                    m.setZIndex(1);
+                } else {
+                    m.setIcon(busPin);
+                    m.setZIndex(0);
+                }
+                markers.put(m, st);
+                if (alreadyVisible && visibleStations.contains(st)) {
+                    m.setVisible(true);
+                } else {
+                    m.setVisible(false);
+                }
+            }
+            int finalTime = PersistentDataController.getCurTime();
         }
     }
 
