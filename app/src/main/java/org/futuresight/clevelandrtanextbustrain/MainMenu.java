@@ -63,8 +63,8 @@ public class MainMenu extends AppCompatActivity {
                     if (faves.length == 0) {
                         return new int[]{0, 0};
                     }
-                    routes = new String[faves[0].length];
-                    routeIds = new int[faves[0].length];
+                    routes = new String[faves.length];
+                    routeIds = new int[faves.length];
                     int i = 0;
                     for (String[] s : faves) {
                         routes[i] = s[0]; //save the route for later in case we want to color the results

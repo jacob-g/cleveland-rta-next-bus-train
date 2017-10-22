@@ -1027,6 +1027,7 @@ public class NearMeActivity extends FragmentActivity
                             arrivalRow.addView(stationArrivalView, 1);
 
                             belowMapLayout.addView(arrivalRow);
+                            //set the columns to adjust size appropriately
                             belowMapLayout.setColumnStretchable(0, true);
                             belowMapLayout.setColumnShrinkable(1, false);
                         } else {
