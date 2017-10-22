@@ -935,19 +935,28 @@ public class NearMeActivity extends FragmentActivity
                             LinearLayout stationNameLayout = new LinearLayout(NearMeActivity.this);
                             stationNameLayout.setOrientation(LinearLayout.VERTICAL);
                             TextView stationNameView = new TextView(NearMeActivity.this);
-                            String stopName = st.getStationName().replace(" (Published Stop)", "").replace(" STATION", "").replace(" Stn", "");
+                            String stopName = st.getStationName().replace(" (Published Stop)", "").replace("Station", "").replace(" STATION", "").replace(" Stn", "");
                             stationNameView.setText(st.getDirName() + ":\n" + stopName);
                             stationNameView.setTextColor(Color.BLUE);
+
                             stationNameLayout.addView(stationNameView);
 
-                            TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
+                            //TODO: force this to display properly - have a minimum width for both the left and right parts and in between, prioritize the left
+                            TableRow.LayoutParams params = new TableRow.LayoutParams(TableRow.LayoutParams.MATCH_PARENT, TableRow.LayoutParams.WRAP_CONTENT);
                             params.weight = 1;
-                            stationNameView.setLayoutParams(params);
+                            stationNameLayout.setLayoutParams(params);
 
                             //a layout for the options to see arrivals and the location on the map
                             final LinearLayout stationActionsLayout = new LinearLayout(NearMeActivity.this);
                             LinearLayout.LayoutParams optionButtonParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.MATCH_PARENT);
                             optionButtonParams.weight = 1f;
+
+                            //make it so clicking on the station name will show the options
+                            stationNameView.setOnClickListener(new TextView.OnClickListener() {
+                                public void onClick(View v) {
+                                    stationActionsLayout.setVisibility(View.VISIBLE);
+                                }
+                            });
 
                             //the button to show the location on the map
                             ImageButton viewBtn = new ImageButton(NearMeActivity.this);
@@ -1008,20 +1017,14 @@ public class NearMeActivity extends FragmentActivity
                             arrivalRow.addView(stationNameLayout, 0);
 
                             //the box where the arrival info is shown
-                            TextView stationLineView = new TextView(NearMeActivity.this);
-                            stationLineView.setMaxWidth(250);
+                            TextView stationArrivalView = new TextView(NearMeActivity.this);
+                            stationArrivalView.setMaxWidth(250);
                             String arrivalText = getResources().getString(R.string.loadingellipsis);
-                            stationLineView.setText(arrivalText);
+                            stationArrivalView.setText(arrivalText);
                             params = new TableRow.LayoutParams(TableRow.LayoutParams.WRAP_CONTENT, TableRow.LayoutParams.WRAP_CONTENT);
                             params.weight = 0;
-                            stationLineView.setLayoutParams(params);
-                            arrivalRow.addView(stationLineView, 1);
-
-                            stationNameView.setOnClickListener(new TextView.OnClickListener() {
-                                public void onClick(View v) {
-                                    stationActionsLayout.setVisibility(View.VISIBLE);
-                                }
-                            });
+                            stationArrivalView.setLayoutParams(params);
+                            arrivalRow.addView(stationArrivalView, 1);
 
                             belowMapLayout.addView(arrivalRow);
                         } else {
@@ -1105,14 +1108,6 @@ public class NearMeActivity extends FragmentActivity
 
         if (alreadyVisible) {
             LatLngBounds bounds = mMap.getProjection().getVisibleRegion().latLngBounds;
-            new UpdateMarkersTask().execute(bounds);
-        }
-    }
-
-    //a task to update the list of nearby stops, put in an AsyncTask to run it separately from the other stuff that happens when the camera moves
-    private class UpdateMarkersTask extends AsyncTask<LatLngBounds, Void, Queue<Station>> {
-        protected Queue<Station> doInBackground(LatLngBounds... params) {
-            LatLngBounds bounds = params[0];
             double minLat = bounds.southwest.latitude, minLng = bounds.southwest.longitude, maxLat = bounds.northeast.latitude, maxLng = bounds.northeast.longitude;
 
             minLat -= sectorSize;
@@ -1132,46 +1127,37 @@ public class NearMeActivity extends FragmentActivity
                     if (spotsAdded.add(pos)) {
                         for (Station st : markerSectors.get(pos)) {
                             stationList.add(st);
+                            Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                            if (st.getStationId() == focusStationId) {
+                                locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
+                                locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
+                                locationArrowMarker.setZIndex(3);
+                            }
+
+                            if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
+                                m.setIcon(favoritePin);
+                                m.setZIndex(3);
+                            } else if (shownLine == st.getLineId() && st.isTransfer()) { //if only showing one line, mark transfers
+                                m.setIcon(transferPin);
+                                m.setZIndex(2);
+                            } else if (st.getType() == railType) {
+                                m.setIcon(railPin);
+                                m.setZIndex(1);
+                            } else {
+                                m.setIcon(busPin);
+                                m.setZIndex(0);
+                            }
+                            markers.put(m, st);
+                            if (alreadyVisible && visibleStations.contains(st)) {
+                                m.setVisible(true);
+                            } else {
+                                m.setVisible(false);
+                            }
                         }
                         it.remove();
                     }
                 }
             }
-            return stationList;
-        }
-
-        protected void onPostExecute(Queue<Station> stationList) {
-            int time = PersistentDataController.getCurTime();
-            while (!stationList.isEmpty()) {
-                Station st = stationList.remove();
-                Marker m = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                if (st.getStationId() == focusStationId) {
-                    locationArrowMarker = mMap.addMarker(new MarkerOptions().position(st.getLatLng()));
-                    locationArrowMarker.setIcon(BitmapDescriptorFactory.fromResource(android.R.drawable.arrow_down_float));
-                    locationArrowMarker.setZIndex(3);
-                }
-
-                if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
-                    m.setIcon(favoritePin);
-                    m.setZIndex(3);
-                } else if (shownLine == st.getLineId() && st.isTransfer()) { //if only showing one line, mark transfers
-                    m.setIcon(transferPin);
-                    m.setZIndex(2);
-                } else if (st.getType() == railType) {
-                    m.setIcon(railPin);
-                    m.setZIndex(1);
-                } else {
-                    m.setIcon(busPin);
-                    m.setZIndex(0);
-                }
-                markers.put(m, st);
-                if (alreadyVisible && visibleStations.contains(st)) {
-                    m.setVisible(true);
-                } else {
-                    m.setVisible(false);
-                }
-            }
-            int finalTime = PersistentDataController.getCurTime();
         }
     }
 
