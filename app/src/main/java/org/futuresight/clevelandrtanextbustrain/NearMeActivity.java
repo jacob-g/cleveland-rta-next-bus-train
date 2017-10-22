@@ -384,7 +384,7 @@ public class NearMeActivity extends FragmentActivity
     Map<Integer, List<Polyline>> pathsByLineId = new HashMap<>(); //the list of paths for a line given its id
     Map<Integer, List<Marker>> pathMarkersByLineId = new HashMap<>(); //the markers on a given line given its id
 
-
+    private boolean showingPathsErrorDialog = false;
     private class GetPointsTask extends AsyncTask<Void, Integer, List<NearMeActivity.ColoredPointList>> {
         private final int pointMarkerInterval = 20; //how frequently to place the line labels on the paths
         private final int pointMarkerStopInterval = pointMarkerInterval / 2; //where to stop if trying to avoid a collision
@@ -471,25 +471,36 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<NearMeActivity.ColoredPointList> paths) {
             if (paths == null) {
-                //if the paths didn't load properly, give an option to try again or exit
-                AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
-                alertDialog.setTitle(getResources().getString(R.string.error));
-                alertDialog.setMessage(getResources().getString(R.string.failed_to_load_lines_try_again));
-                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                new GetPointsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                if (!showingPathsErrorDialog) {
+                    showingPathsErrorDialog = true;
+                    //if the paths didn't load properly, give an option to try again or exit
+                    AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
+                    alertDialog.setTitle(getResources().getString(R.string.error));
+                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_lines_try_again));
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    new GetPointsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    finish();
+                                }
+                            });
+                    alertDialog.setOnDismissListener(new AlertDialog.OnDismissListener() {
+                            public void onDismiss(DialogInterface dialog){
+                                showingPathsErrorDialog = false;
                             }
-                        });
-                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                finish();
-                            }
-                        });
-                alertDialog.show();
+
+                        }
+                    );
+                    alertDialog.setCancelable(true);
+                    alertDialog.show();
+                }
                 return;
             }
             //put the paths on the map
@@ -652,7 +663,8 @@ public class NearMeActivity extends FragmentActivity
 
     private boolean loadedStops = false;
     private boolean loadedLines = false;
-    boolean autoFocused = false;
+    private boolean autoFocused = false;
+    private boolean showingStopsErrorDialog = false;
     private class GetStopsTask extends AsyncTask<Void, Void, List<Station>> {
 
         public GetStopsTask() {
@@ -663,25 +675,35 @@ public class NearMeActivity extends FragmentActivity
 
         protected void onPostExecute(List<Station> stops) {
             if (stops == null || stops.isEmpty()) {
-                //if the markers didn't load properly, give an option to try again or exit
-                AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
-                alertDialog.setTitle(getResources().getString(R.string.error));
-                alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
-                alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                new GetStopsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                            }
-                        });
-                alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
-                        new DialogInterface.OnClickListener() {
-                            public void onClick(DialogInterface dialog, int which) {
-                                dialog.dismiss();
-                                finish();
-                            }
-                        });
-                alertDialog.show();
+                if (!showingStopsErrorDialog) {
+                    showingStopsErrorDialog = true;
+                    //if the markers didn't load properly, give an option to try again or exit
+                    AlertDialog alertDialog = new AlertDialog.Builder(NearMeActivity.this).create();
+                    alertDialog.setTitle(getResources().getString(R.string.error));
+                    alertDialog.setMessage(getResources().getString(R.string.failed_to_load_stops_try_again));
+                    alertDialog.setButton(AlertDialog.BUTTON_POSITIVE, getResources().getString(R.string.yes),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    new GetStopsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                                }
+                            });
+                    alertDialog.setButton(AlertDialog.BUTTON_NEGATIVE, getResources().getString(R.string.no),
+                            new DialogInterface.OnClickListener() {
+                                public void onClick(DialogInterface dialog, int which) {
+                                    dialog.dismiss();
+                                    finish();
+                                }
+                            });
+                    alertDialog.setOnDismissListener(new AlertDialog.OnDismissListener() {
+                                 public void onDismiss(DialogInterface dialog) {
+                                     showingStopsErrorDialog = false;
+                                 }
+
+                             }
+                    );
+                    alertDialog.show();
+                }
                 return;
             }
             //initialize pins
