@@ -44,7 +44,7 @@ public class MainMenu extends AppCompatActivity {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
 
-        new GetServiceAlertsTask(this).execute();
+        //new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     //task to get the times of the bus/train
@@ -103,7 +103,7 @@ public class MainMenu extends AppCompatActivity {
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        //new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }
 
     @Override
