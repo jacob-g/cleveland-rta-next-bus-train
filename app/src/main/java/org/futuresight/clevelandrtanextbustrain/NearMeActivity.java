@@ -795,7 +795,7 @@ public class NearMeActivity extends FragmentActivity
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
-                    new UpdateNearbyArrivalsTask().execute();
+                    new UpdateNearbyArrivalsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
                 }
             });
         }
@@ -1066,7 +1066,7 @@ public class NearMeActivity extends FragmentActivity
                     }
                 }
                 highestNearbyStopIndex = index;
-                new UpdateNearbyArrivalsTask().execute(indicesToUpdate);
+                new UpdateNearbyArrivalsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, indicesToUpdate);
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -1074,7 +1074,7 @@ public class NearMeActivity extends FragmentActivity
     }
 
     private void reloadNearbyStops() {
-        new GetStopsNearMeTask().execute(mMap.getCameraPosition().target);
+        new GetStopsNearMeTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, mMap.getCameraPosition().target);
     }
 
     @Override
