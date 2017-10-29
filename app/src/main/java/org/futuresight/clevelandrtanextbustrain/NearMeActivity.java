@@ -14,6 +14,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
+import android.text.Layout;
 import android.util.SparseArray;
 import android.view.View;
 import android.view.ViewTreeObserver;
@@ -843,7 +844,7 @@ public class NearMeActivity extends FragmentActivity
                     List<String[]> arrivals = stopList.get(index);
                     String arrivalText = "N/A";
                     if (!arrivals.isEmpty()) {
-                        arrivalText = arrivals.get(0)[1] + "\n" + arrivals.get(0)[2];
+                        arrivalText = arrivals.get(0)[1] + "\n" + arrivals.get(0)[2] + "\n" + arrivals.get(0)[3];
                     }
                     final TableLayout belowMapLayout = ((TableLayout) findViewById(R.id.belowMapLayout));
                     if (belowMapLayout.getChildCount() > index && oldNearbyStops.get(index).equals(listedNearbyStops.get(index))) { //make sure the stop is still listed in the same position before updating it
@@ -960,6 +961,7 @@ public class NearMeActivity extends FragmentActivity
                             String stopName = st.getStationName().replace(" (Published Stop)", "").replace("Station", "").replace(" STATION", "").replace(" Stn", "");
                             stationNameView.setText(st.getDirName() + ":\n" + stopName);
                             stationNameView.setTextColor(Color.BLUE);
+                            stationNameView.setBreakStrategy(Layout.BREAK_STRATEGY_SIMPLE);
 
                             stationNameLayout.addView(stationNameView);
 
