@@ -43,6 +43,19 @@ public class MainMenu extends AppCompatActivity {
         if (!NetworkController.connected(this)) {
             alertDialog(getResources().getString(R.string.network), getResources().getString(R.string.nonetworkmsg), false);
         }
+        if (getIntent().hasExtra("nextactivity")) {
+            switch (getIntent().getExtras().getString("nextactivity")) {
+                case "nextbustrain":
+                    Intent intent = new Intent(this, NextBusTrainActivity.class);
+                    intent.putExtra("lineId", getIntent().getExtras().getInt("lineId"));
+                    intent.putExtra("dirId", getIntent().getExtras().getInt("dirId"));
+                    intent.putExtra("stopId", getIntent().getExtras().getInt("stopId"));
+                    startActivityForResult(intent, 1);
+                    break;
+                default:
+                    break;
+            }
+        }
 
         //new GetServiceAlertsTask(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
     }

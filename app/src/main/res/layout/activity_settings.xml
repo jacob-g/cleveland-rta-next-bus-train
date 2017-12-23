@@ -167,5 +167,14 @@
             android:layout_column="0"
             android:onClick="fryDb"/>
 
+        <!--<Button
+            android:id="@+id/button3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_column="1"
+            android:layout_row="10"
+            android:onClick="fryStations"
+            android:text="Delete Stations" /> -->
+
     </GridLayout>
 </RelativeLayout>

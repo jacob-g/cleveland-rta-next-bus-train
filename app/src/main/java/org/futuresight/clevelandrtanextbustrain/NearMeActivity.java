@@ -1161,6 +1161,7 @@ public class NearMeActivity extends FragmentActivity
                                 locationArrowMarker.setZIndex(3);
                             }
 
+
                             if (favoriteStations.contains(st)) { //mark with a star if it's a favorite
                                 m.setIcon(favoritePin);
                                 m.setZIndex(3);

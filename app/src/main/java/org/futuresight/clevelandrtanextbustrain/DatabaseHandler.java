@@ -338,6 +338,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void fryStations() { //erase everything, hopefully not needed
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
+        setConfig(db, CONFIG_LAST_SAVED_ALL_STOPS, "0");
+        onCreate(db);
+
+        PersistentDataController.removeCachedStuff();
+
+        // Create tables again
+        db.close();
+    }
+
     public void fry() { //erase everything, hopefully not needed
         SQLiteDatabase db = this.getWritableDatabase();
 

@@ -139,4 +139,10 @@ public class SettingsActivity extends AppCompatActivity {
         db.fryCache();
         db.close();
     }
+
+    public void fryStations(View v) {
+        DatabaseHandler db = new DatabaseHandler(this);
+        db.fryStations();
+        db.close();
+    }
 }

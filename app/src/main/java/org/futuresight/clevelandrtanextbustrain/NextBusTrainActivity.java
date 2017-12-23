@@ -449,6 +449,24 @@ public class NextBusTrainActivity extends AppCompatActivity {
             return;
         }
 
+        if (this.getCallingActivity() == null) {
+            //alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nohomescreenshortcuts), true);
+            Intent intent = new Intent(NextBusTrainActivity.this, MainMenu.class);
+            intent.putExtra("nextactivity", "nextbustrain");
+            if (getIntent().hasExtra("lineId")) {
+                intent.putExtra("lineId", getIntent().getExtras().getInt("lineId"));
+            }
+            if (getIntent().hasExtra("dirId")) {
+                intent.putExtra("dirId", getIntent().getExtras().getInt("dirId"));
+            }
+            if (getIntent().hasExtra("stopId")) {
+                intent.putExtra("stopId", getIntent().getExtras().getInt("stopId"));
+            }
+            startActivity(intent);
+            finish();
+            return;
+        }
+
         //get the original list of routes
         try {
             //see if a pre-selected location was sent in
