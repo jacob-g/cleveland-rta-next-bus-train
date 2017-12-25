@@ -8,8 +8,8 @@ android {
         applicationId "org.futuresight.clevelandrtanextbustrain"
         minSdkVersion 24
         targetSdkVersion 25
-        versionCode 17
-        versionName "1.0.0.0.16"
+        versionCode 18
+        versionName "1.0.0.0.17"
 
         multiDexEnabled true
     }
