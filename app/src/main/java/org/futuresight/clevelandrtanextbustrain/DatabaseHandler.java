@@ -263,7 +263,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public String getConfig(String key) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         String out = getConfig(db, key);
         db.close();
         return out;
@@ -351,6 +351,19 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         db.close();
     }
 
+    public void fryAlerts() { //erase everything, hopefully not needed
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues values = new ContentValues();
+        values.put(FIELD_EXPIRES, 0);
+        db.update(ALERTS_TABLE, values, "1", new String[]{});
+        db.update(LINE_ALERTS_TABLE, values, "1", new String[]{});
+        db.update(CACHED_LINE_ALERTS_TABLE, values, "1", new String[]{});
+
+        // Create tables again
+        db.close();
+    }
+
     public void fry() { //erase everything, hopefully not needed
         SQLiteDatabase db = this.getWritableDatabase();
 
@@ -399,7 +412,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     public List<Station> getFavoriteLocations() {
         List<Station> stations = new ArrayList<>();
         String selectQuery = "SELECT f." + FIELD_NAME + ",f." + FIELD_STATION_NAME + ",f." + FIELD_STATION_ID + ",f." + FIELD_DIR_NAME + ",f." + FIELD_DIR_ID + ",l." + NAME + ",f." + FIELD_LINE_ID + ",f." + FIELD_LAT + ",f." + FIELD_LNG + " FROM " + FAVORITE_LOCATIONS_TABLE + " AS f LEFT JOIN " + LINES_TABLE + " AS l ON l." + ID + "=f." + FIELD_LINE_ID + " ORDER BY f." + FIELD_STATION_NAME + " ASC";
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         try {
             Cursor cursor = db.rawQuery(selectQuery, null);
             if (cursor.moveToFirst()) {
@@ -423,7 +436,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public boolean hasFavoriteLocation(int lineId, int dirId, int stationId) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT 1 FROM " + FAVORITE_LOCATIONS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_DIR_ID + "=" + dirId + " AND " + FIELD_STATION_ID + "=" + stationId, null);
         boolean out = cursor.moveToFirst();
         cursor.close();
@@ -449,6 +462,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public Map<String, Integer> getStoredLines() {
+        int lineExpiry = PersistentDataController.getLineExpiry(context);
         SQLiteDatabase db = this.getWritableDatabase();
 
         Map<String, Integer> outMap = new HashMap<>();
@@ -459,7 +473,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
         if (lastSavedStr != "") {
             lastSavedInt = Integer.parseInt(lastSavedStr);
         }
-        if (lastSavedInt < PersistentDataController.getCurTime() - PersistentDataController.getLineExpiry(context)) {
+        if (lastSavedInt < PersistentDataController.getCurTime() - lineExpiry) {
             db.execSQL("DELETE FROM " + LINES_TABLE);
             db.close(); // Closing database connection
             return outMap;
@@ -531,7 +545,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public Map<String, Integer> getDirs(int lineId) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         Map<String, Integer> outMap = new TreeMap<>();
 
@@ -551,13 +565,14 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public void saveDirs(int lineId, Map<String, Integer> directions) {
+        int lineExpiry = PersistentDataController.getLineExpiry(context);
         SQLiteDatabase db = this.getWritableDatabase();
         for (String dirName : directions.keySet()) {
             ContentValues values = new ContentValues();
             values.put(FIELD_DIR_ID, directions.get(dirName));
             values.put(NAME, dirName);
             values.put(FIELD_LINE_ID, lineId);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getLineExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + lineExpiry);
             db.insert(DIRS_TABLE, null, values);
         }
         //delete old ones
@@ -566,7 +581,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public Map<String, Integer> getStations(int lineId, int dirId) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         Map<String, Integer> outMap = new TreeMap<>();
 
@@ -586,6 +601,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public void saveStations(int lineId, int dirId, Map<String, Integer> stations) {
+        int stationExpiry = PersistentDataController.getStationExpiry(context);
         SQLiteDatabase db = this.getWritableDatabase();
         db.beginTransaction();
         String sql = "INSERT INTO " + STATIONS_TABLE + "(" + FIELD_DIR_ID + "," + NAME + "," + FIELD_LINE_ID + "," + FIELD_STATION_ID + "," + FIELD_EXPIRES + ") VALUES(?,?,?,?,?)";
@@ -596,7 +612,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             statement.bindString(2, name);
             statement.bindLong(3, lineId);
             statement.bindLong(4, stations.get(name));
-            statement.bindLong(5, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry(context));
+            statement.bindLong(5, PersistentDataController.getCurTime() + stationExpiry);
             statement.execute();
         }
         db.setTransactionSuccessful();
@@ -608,6 +624,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     //save an alert, returns true if it's new and false if it's an update
     public boolean saveAlert(int alertId, int lineId, String title, String url, String text) {
+        int alertExpiry = PersistentDataController.getAlertExpiry(context);
         SQLiteDatabase db = this.getWritableDatabase();
         //PROBLEM: cache it for the LINE instead of just the alert as a whole (probably need a separate table for this)
         Cursor cursor = db.rawQuery("SELECT 1 FROM " + ALERTS_TABLE + " WHERE " + ID + "=" + alertId, null);
@@ -615,7 +632,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             ContentValues values = new ContentValues();
             values.put(FIELD_TITLE, title);
             values.put(FIELD_DESCRIPTION, text);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + alertExpiry);
             db.update(ALERTS_TABLE, values, ID + "=" + alertId, null);
             cursor.close();
             cursor = db.rawQuery("SELECT 1 FROM " + LINE_ALERTS_TABLE + " WHERE " + FIELD_ALERT_ID + "=" + alertId + " AND " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + PersistentDataController.getCurTime(), null);
@@ -623,7 +640,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values = new ContentValues();
                 values.put(FIELD_LINE_ID, lineId);
                 values.put(FIELD_ALERT_ID, alertId);
-                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + alertExpiry);
                 db.insert(LINE_ALERTS_TABLE, null, values);
             }
             cursor.close();
@@ -641,13 +658,13 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_TITLE, title);
             values.put(FIELD_URL, url);
             values.put(FIELD_DESCRIPTION, text);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + alertExpiry);
             db.insert(ALERTS_TABLE, null, values);
 
             values = new ContentValues();
             values.put(FIELD_LINE_ID, lineId);
             values.put(FIELD_ALERT_ID, alertId);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + alertExpiry);
             db.insert(LINE_ALERTS_TABLE, null, values);
 
             //delete old alerts, start with the alert entry linking the line with the alert
@@ -676,20 +693,20 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public void markAsSavedForLineAlerts(List<Integer> lineIds) {
+        int alertExpiry = PersistentDataController.getAlertExpiry(context);
         //mark the line as cached
         SQLiteDatabase db = this.getWritableDatabase();
         for (int lineId : lineIds) {
             ContentValues values = new ContentValues();
             values.put(FIELD_LINE_ID, lineId);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getAlertExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + alertExpiry);
             db.insert(CACHED_LINE_ALERTS_TABLE, null, values);
         }
         db.close();
     }
 
     public List<Map<String, String>> getAlerts(int lineId) {
-        List<Map<String, String>> out = new ArrayList<>();
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         //first see if the data is cached at all
         String selectQuery = "SELECT 1 FROM " + CACHED_LINE_ALERTS_TABLE + " WHERE " + FIELD_LINE_ID + "=" + lineId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime());
@@ -722,7 +739,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
 
     //returns null if there isn't anything cached and an empty list if there aren't any alerts
     public List<EscalatorElevatorAlert> getEscElStatusesForStation (int stationId) {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         String selectQuery = "SELECT " + FIELD_NAME + "," + FIELD_STATUS + " FROM " + ESCEL_STATUSES_TABLE + " WHERE " + FIELD_STATION_ID + "=" + stationId + " AND " + FIELD_EXPIRES + ">=" + (PersistentDataController.getCurTime()) + " ORDER BY " + FIELD_NAME + " ASC";
 
@@ -744,6 +761,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public void saveEscElStatuses(int stationId, List<EscalatorElevatorAlert> statuses) {
+        int stationExpiry = PersistentDataController.getStationExpiry(context);
         SQLiteDatabase db = this.getWritableDatabase();
         if (statuses.isEmpty()) {
             //no escalators or elevators, but cache that too
@@ -751,7 +769,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             values.put(FIELD_STATION_ID, stationId);
             values.put(FIELD_NAME, "");
             values.put(FIELD_STATUS, -1);
-            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getStationExpiry(context));
+            values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + stationExpiry);
             db.insert(ESCEL_STATUSES_TABLE, null, values);
         } else {
             for (EscalatorElevatorAlert status : statuses) {
@@ -759,7 +777,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
                 values.put(FIELD_STATION_ID, stationId);
                 values.put(FIELD_NAME, status.name);
                 values.put(FIELD_STATUS, status.working ? 1 : 0);
-                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + PersistentDataController.getEscElExpiry(context));
+                values.put(FIELD_EXPIRES, PersistentDataController.getCurTime() + stationExpiry);
                 db.insert(ESCEL_STATUSES_TABLE, null, values);
             }
         }
@@ -795,7 +813,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<Station> getCachedStopLocations() {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         String selectQuery = "SELECT " + FIELD_STATION_ID + "," + FIELD_NAME + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + "," + FIELD_DIR_NAME + "," + FIELD_DIR_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_TYPE + "," + FIELD_IS_TRANSFER + " FROM " + ALL_STOPS_TABLE + " ORDER BY " + FIELD_STATION_ID + " ASC";
 
@@ -850,7 +868,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public List<NearMeActivity.ColoredPointList> getAllPaths() {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
 
         String selectQuery = "SELECT " + FIELD_PATH_ID + "," + FIELD_LAT + "," + FIELD_LNG + "," + FIELD_RED + "," + FIELD_GREEN + "," + FIELD_BLUE + "," + FIELD_LINE_ID + "," + FIELD_LINE_NAME + " FROM " + LINE_PATHS_TABLE + " ORDER BY " + FIELD_PATH_ID + " ASC, " + ID + " ASC";
 
@@ -876,7 +894,7 @@ public class DatabaseHandler extends SQLiteOpenHelper {
     }
 
     public Map<String, String> getDestMappings() {
-        SQLiteDatabase db = this.getWritableDatabase();
+        SQLiteDatabase db = this.getReadableDatabase();
         Map<String, String> out = new HashMap<>();
         String selectQuery = "SELECT " + FIELD_ORIGINAL + "," + FIELD_REPLACEMENT + " FROM " + DEST_MAPPINGS_TABLE + " WHERE " + FIELD_EXPIRES + ">" + PersistentDataController.getCurTime();
         Cursor cursor = db.rawQuery(selectQuery, null);

@@ -142,7 +142,8 @@ public class SettingsActivity extends AppCompatActivity {
 
     public void fryStations(View v) {
         DatabaseHandler db = new DatabaseHandler(this);
-        db.fryStations();
+        //db.fryStations();
+        db.fryAlerts();
         db.close();
     }
 }
