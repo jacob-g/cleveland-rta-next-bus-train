@@ -620,6 +620,7 @@ public class NearMeActivity extends FragmentActivity
             loadedLines = true;
 
             if (loadedStops) {
+                reloadNearbyStops();
                 showStationsOnLine(selectedLine);
             }
         }
@@ -767,6 +768,7 @@ public class NearMeActivity extends FragmentActivity
             loadedStops = true;
 
             if (loadedLines) {
+                reloadNearbyStops();
                 showStationsOnLine(selectedLine);
             }
         }

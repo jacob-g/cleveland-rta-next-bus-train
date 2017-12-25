@@ -99,16 +99,6 @@
         <activity
             android:name=".ScheduleActivity"
             android:label="@string/schedule" />
-        <activity
-            android:name=".NearMeSearchActivity"
-            android:configChanges="orientation|keyboardHidden|screenSize"
-            android:label="@string/title_activity_near_me_search"
-            android:parentActivityName=".NearMeActivity"
-            android:theme="@style/FullscreenTheme">
-            <meta-data
-                android:name="android.support.PARENT_ACTIVITY"
-                android:value="org.futuresight.clevelandrtanextbustrain.NearMeActivity" />
-        </activity>
     </application>
 
 </manifest>
