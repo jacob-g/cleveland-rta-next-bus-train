@@ -323,12 +323,13 @@ public class NextBusTrainActivity extends AppCompatActivity {
                                 break;
                         }
 
-                        Intent shortcutIntent = new Intent(getApplicationContext(), NextBusTrainActivity.class);
+                        Intent shortcutIntent = new Intent(getApplicationContext(), MainMenu.class);
                         shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                         shortcutIntent.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP);
                         shortcutIntent.putExtra("stopId",stationId);
                         shortcutIntent.putExtra("lineId",lineId);
                         shortcutIntent.putExtra("dirId",dirId);
+                        shortcutIntent.putExtra("nextactivity","nextbustrain");
 
                         Intent addIntent = new Intent();
                         addIntent.putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent);
@@ -449,7 +450,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
             return;
         }
 
-        if (this.getCallingActivity() == null) {
+        if (isTaskRoot()) {
             //alertDialog(getResources().getString(R.string.error), getResources().getString(R.string.nohomescreenshortcuts), true);
             Intent intent = new Intent(NextBusTrainActivity.this, MainMenu.class);
             intent.putExtra("nextactivity", "nextbustrain");
