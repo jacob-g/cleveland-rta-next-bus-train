@@ -922,10 +922,10 @@ public class NearMeActivity extends FragmentActivity
                 Queue<Integer> indicesToUpdate = new LinkedList<>();
                 int index = 0;
                 while (!linePriorities.isEmpty()) {
-                    int lineId = linePriorities.remove().getObj().getLineId();
+                    final int lineId = linePriorities.remove().getObj().getLineId();
                     //add a row to the table with colspan 2 with just the name of the line
                     TableRow lineNameRow = new TableRow(NearMeActivity.this);
-                    String lineName = linesById.get(lineId);
+                    final String lineName = linesById.get(lineId);
                     int color = colorsByLineId.get(lineId);
                     TextView lineNameView = new TextView(NearMeActivity.this);
                     lineNameView.setText(lineName);
@@ -944,6 +944,44 @@ public class NearMeActivity extends FragmentActivity
                     lineNameRow.addView(lineNameView, 0, lineNameParams);
                     belowMapLayout.addView(lineNameRow, index);
                     index++;
+
+                    lineNameView.setOnClickListener(
+                            new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    AlertDialog.Builder dlgBuilder = new AlertDialog.Builder(NearMeActivity.this);
+                                    dlgBuilder.setTitle(lineName);
+                                    dlgBuilder.setMessage(getResources().getString(R.string.focusonlyonline));
+                                    dlgBuilder.setPositiveButton("Show just this line", new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            int index = -1;
+                                            for (int i = 0; i < lines.length; i++) {
+                                                if (lines[i].equals(lineName)) {
+                                                    index = i + 1; break;
+                                                }
+                                            }
+                                            if (index >= 0) {
+                                                showStationsOnLine(index);
+                                            }
+                                        }
+                                    });
+                                    dlgBuilder.setNegativeButton(getResources().getString(R.string.cancel), new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+
+                                        }
+                                    });
+                                    dlgBuilder.setNeutralButton(getResources().getString(R.string.showalllines), new DialogInterface.OnClickListener() {
+                                        @Override
+                                        public void onClick(DialogInterface dialog, int which) {
+                                            showStationsOnLine(0);
+                                        }
+                                    });
+                                    dlgBuilder.show();
+                                }
+                            }
+                    );
 
                     SparseArray<ObjectByDistance<Station>> closestStationsOnLine = closestStationByLine.get(lineId);
                     for (int j = 0; j < closestStationsOnLine.size(); j++) {

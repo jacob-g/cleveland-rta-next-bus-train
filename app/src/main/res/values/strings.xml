@@ -93,4 +93,6 @@
     <string name="data">Data</string>
     <string name="data_credits">All of the relevant information in this app originates from the Greater Cleveland Regional Transit Authority (GCRTA). The arrivals information, stop lists, and map paths come from the GCRTA NextConnect service, while service alerts, system maps, and escalator/elevator statuses come directly from the GCRTA website.</string>
     <string name="images">Images</string>
+    <string name="focusonlyonline">Do you want to focus only on this line?</string>
+    <string name="showalllines">Show all lines</string>
 </resources>
