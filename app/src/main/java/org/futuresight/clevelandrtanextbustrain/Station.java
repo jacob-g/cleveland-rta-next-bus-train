@@ -11,6 +11,7 @@ public class Station {
     private LatLng loc;
     public char type = 'b';
     private boolean transfer = false;
+    private int chainId;
 
     public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
         this.stationName = stationName;
@@ -117,6 +118,14 @@ public class Station {
         } else {
             return false;
         }
+    }
+
+    public void chain(int id) {
+        chainId = id;
+    }
+
+    public int getChainId() {
+        return chainId;
     }
 
     public void setLatLng(LatLng l) {

@@ -506,6 +506,9 @@ public abstract class PersistentDataController {
                                     break;
                                 case "ls":
                                     NodeList lineNodes = curNode.getChildNodes();
+                                    double lat, lng;
+                                    boolean transfer;
+
                                     for (int j = 0; j < lineNodes.getLength(); j++) {
                                         Node lineNode = lineNodes.item(j);
                                         if (lineNode.getNodeName().equals("l")) {
@@ -519,12 +522,13 @@ public abstract class PersistentDataController {
                                                 if (stopNode.getNodeName().equals("s")) {
                                                     int id = Integer.parseInt(stopNode.getAttributes().getNamedItem("i").getTextContent());
                                                     String name = stopNode.getAttributes().getNamedItem("n").getTextContent();
-                                                    double lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
-                                                    double lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
-                                                    boolean transfer = stopNode.getAttributes().getNamedItem("t") != null;
+                                                    lat = Double.parseDouble(stopNode.getAttributes().getNamedItem("lt").getTextContent());
+                                                    lng = Double.parseDouble(stopNode.getAttributes().getNamedItem("ln").getTextContent());
+                                                    transfer = stopNode.getAttributes().getNamedItem("t") != null;
 
                                                     Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType, transfer);
                                                     out.add(st);
+                                                    st.chain(Integer.parseInt(stopNode.getAttributes().getNamedItem("c").getTextContent()));
                                                 }
                                             }
                                         }
