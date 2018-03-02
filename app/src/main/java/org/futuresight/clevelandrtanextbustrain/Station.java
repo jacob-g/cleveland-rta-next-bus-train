@@ -11,7 +11,7 @@ public class Station {
     private LatLng loc;
     public char type = 'b';
     private boolean transfer = false;
-    private int chainId;
+    private int chainId = 0;
 
     public Station(String stationName, int stationId, String dirName, int dirId, String lineName, int lineId, String name) {
         this.stationName = stationName;

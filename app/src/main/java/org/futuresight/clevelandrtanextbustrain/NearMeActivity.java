@@ -829,7 +829,7 @@ public class NearMeActivity extends FragmentActivity
                     Station st = listedNearbyStops.get(index);
                     oldNearbyStops.put(index, st);
                     if (st != null) {
-                        List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId());
+                        List<String[]> arrivals = NetworkController.getStopTimes(NearMeActivity.this, st.getLineId(), st.getDirId(), st.getStationId(), st.getChainId());
                         out.put(index, arrivals);
                     }
                 } catch (Exception e) {

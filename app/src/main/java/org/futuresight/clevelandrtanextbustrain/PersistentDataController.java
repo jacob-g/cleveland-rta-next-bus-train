@@ -528,7 +528,9 @@ public abstract class PersistentDataController {
 
                                                     Station st = new Station(name, id, directions.get(dirId), dirId, lineName, lineId, "", lat, lng, lineType, transfer);
                                                     out.add(st);
-                                                    st.chain(Integer.parseInt(stopNode.getAttributes().getNamedItem("c").getTextContent()));
+                                                    if (stopNode.getAttributes().getNamedItem("c") != null) {
+                                                        st.chain(Integer.parseInt(stopNode.getAttributes().getNamedItem("c").getTextContent()));
+                                                    }
                                                 }
                                             }
                                         }
