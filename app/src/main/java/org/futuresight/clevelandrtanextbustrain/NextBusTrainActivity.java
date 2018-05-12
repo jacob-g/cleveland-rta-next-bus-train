@@ -37,6 +37,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     private Map<String, Integer> dirIds = new HashMap<>();
     private String[] stops = new String[1];
     private Map<String, Integer> stopIds = new HashMap<>();
+    TimerTask updateTimesTimerTask;
 
     private int preSelectedLineId = -1, preSelectedDirId = -1, preSelectedStopId = -1;
 
@@ -62,7 +63,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
                 runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
-                        new GetTimesTask(NextBusTrainActivity.this, false).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
+                        try {
+                            new GetTimesTask(NextBusTrainActivity.this, false).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
                     }
                 });
             }
@@ -492,8 +497,8 @@ public class NextBusTrainActivity extends AppCompatActivity {
 
             //create a timer to get the list of stops as appropriate
             Timer timer = new Timer();
-            TimerTask updateTimes = new UpdateTimesTask(this.findViewById(android.R.id.content));
-            timer.scheduleAtFixedRate(updateTimes, 0, updateInterval * 1000);
+            updateTimesTimerTask = new UpdateTimesTask(this.findViewById(android.R.id.content));
+            timer.scheduleAtFixedRate(updateTimesTimerTask, 0, updateInterval * 1000);
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -503,8 +508,7 @@ public class NextBusTrainActivity extends AppCompatActivity {
     public void onSaveInstanceState(Bundle savedInstanceState) {
         // Save the user's current state
         try {
-            System.out.println("Saving activity state");
-
+            //save the current station, direction, and line ID
             final String stationName = ((Spinner) findViewById(R.id.stationSpinner)).getSelectedItem().toString();
             final String dirName = ((Spinner) findViewById(R.id.dirSpinner)).getSelectedItem().toString();
             final String lineName = ((Spinner) findViewById(R.id.lineSpinner)).getSelectedItem().toString();
@@ -515,6 +519,11 @@ public class NextBusTrainActivity extends AppCompatActivity {
             savedInstanceState.putInt("stationId", stationId);
             savedInstanceState.putInt("dirId", dirId);
             savedInstanceState.putInt("lineId", lineId);
+
+            //make sure to cancel the timer task for updating the times
+            if (updateTimesTimerTask != null) {
+                updateTimesTimerTask.cancel();
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
