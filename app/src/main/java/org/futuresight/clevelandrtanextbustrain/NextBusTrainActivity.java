@@ -31,6 +31,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ThreadPoolExecutor;
 
 public class NextBusTrainActivity extends AppCompatActivity {
     private String[] directions = new String[1];
@@ -59,17 +60,24 @@ public class NextBusTrainActivity extends AppCompatActivity {
             if (selectedRouteStr.equals("") || selectedDirStr.equals("") || selectedStopStr.equals("")) {
                 //nothing is selected, so try again later
             } else {
-                //run on the UI thread in order to avoid problems
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            new GetTimesTask(NextBusTrainActivity.this, false).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
-                        } catch (Exception e) {
-                            e.printStackTrace();
+                try {
+                    //run on the UI thread in order to avoid problems
+                    runOnUiThread(new Runnable() {
+                        @Override
+                        public void run() {
+                            try {
+                                ThreadPoolExecutor executor = ((ThreadPoolExecutor)AsyncTask.THREAD_POOL_EXECUTOR);
+                                if (!executor.isShutdown() && !executor.isTerminated()) {
+                                    new GetTimesTask(NextBusTrainActivity.this, false).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, selectedRouteStr, selectedDirStr, selectedStopStr);
+                                }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
                         }
-                    }
-                });
+                    });
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
         }
     }
@@ -519,11 +527,6 @@ public class NextBusTrainActivity extends AppCompatActivity {
             savedInstanceState.putInt("stationId", stationId);
             savedInstanceState.putInt("dirId", dirId);
             savedInstanceState.putInt("lineId", lineId);
-
-            //make sure to cancel the timer task for updating the times
-            if (updateTimesTimerTask != null) {
-                updateTimesTimerTask.cancel();
-            }
         } catch (Exception e) {
             e.printStackTrace();
         }

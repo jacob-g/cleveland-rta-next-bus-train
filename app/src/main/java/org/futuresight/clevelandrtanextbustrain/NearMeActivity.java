@@ -69,6 +69,7 @@ import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.TreeSet;
+import java.util.concurrent.ThreadPoolExecutor;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -778,6 +779,7 @@ public class NearMeActivity extends FragmentActivity
     private Timer updateStopsNearMeTimer;
     private final int updateInterval = 15;
     private void startTimer(int delay) {
+        cancelTimer();
         updateStopsNearMeTimer = new Timer();
         updateStopsNearMeTimer.scheduleAtFixedRate(new GetStopsNearMeTimerTask(), delay, updateInterval * 1000);
     }
@@ -795,12 +797,23 @@ public class NearMeActivity extends FragmentActivity
 
         public void run() {
             //in order to access the map, this has to run on the UI thread
-            runOnUiThread(new Runnable() {
-                @Override
-                public void run() {
-                    new UpdateNearbyArrivalsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-                }
-            });
+            try {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        try {
+                            ThreadPoolExecutor executor = ((ThreadPoolExecutor)AsyncTask.THREAD_POOL_EXECUTOR);
+                            if (!executor.isShutdown() && !executor.isTerminated()) {
+                                new UpdateNearbyArrivalsTask().executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+                            }
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
     }
 
