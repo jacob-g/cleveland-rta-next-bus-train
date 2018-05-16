@@ -308,10 +308,6 @@ public class DatabaseHandler extends SQLiteOpenHelper {
             //db.execSQL("ALTER TABLE " + LINE_PATHS_TABLE + " ADD COLUMN " + FIELD_LINE_NAME + " TEXT");
         }
 
-        if (oldVersion < 6) { //add the line name to the paths table, current version is 6
-            db.execSQL("DROP TABLE IF EXISTS " + STATIONS_TABLE);
-        }
-
         if (oldVersion < 7) { //add the chain id to the all stops table, current version is 7
             db.execSQL("DROP TABLE IF EXISTS " + ALL_STOPS_TABLE);
         }
