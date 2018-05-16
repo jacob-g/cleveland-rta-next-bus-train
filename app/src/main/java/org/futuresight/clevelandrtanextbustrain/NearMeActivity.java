@@ -787,6 +787,7 @@ public class NearMeActivity extends FragmentActivity
     private void cancelTimer() {
         if (updateStopsNearMeTimer != null) {
             updateStopsNearMeTimer.cancel();
+            updateStopsNearMeTimer = null;
         }
     }
 
