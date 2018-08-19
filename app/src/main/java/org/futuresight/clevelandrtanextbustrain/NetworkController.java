@@ -191,6 +191,7 @@ public abstract class NetworkController {
         }
     }
 
+    //FIXME: getting blank results
     public static List<String[]> getStopTimes(Context context, int routeId, int dirId, int stopId1, int stopId2) {
         Map<String, String> destMappings = PersistentDataController.getDestMappings(context);
         List<String[]> stopList = new ArrayList<>(6);
@@ -207,11 +208,11 @@ public abstract class NetworkController {
                 if (stopId2 != 0) {
                     System.out.println(stopId);
                 }
-                String result = performPostCall("http://www.nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
+                String result = performPostCall("http://nextconnect.riderta.com/Arrivals.aspx/getStopTimes", "{routeID: " + routeId + ", directionID: " + dirId + ", stopID:" + stopId + ", useArrivalTimes: false}");
                 if (!connected(context) || result == null || result.equals("")) {
                     return null;
                 }
-                //it's d->stops->0->crossings, then an array with the stop information
+                //it's d->routeStops->0->stops->0->crossings, then an array with the stop information
 
 
                 try {
@@ -220,7 +221,10 @@ public abstract class NetworkController {
 
                     JSONObject json = new JSONObject(result);
                     JSONObject root = json.getJSONObject("d");
-                    JSONArray stopsJson = root.getJSONArray("stops");
+
+                    JSONObject routeStops0JSON = root.getJSONArray("routeStops").getJSONObject(0);
+
+                    JSONArray stopsJson = routeStops0JSON.getJSONArray("stops");
                     JSONObject stops0JSON = stopsJson.getJSONObject(0);
                     if (!stops0JSON.isNull("crossings")) {
                         JSONArray stopsListJson = stops0JSON.getJSONArray("crossings");
@@ -264,6 +268,11 @@ public abstract class NetworkController {
                                 }
                                 String dest = curStopJson.getString("destination");
                                 dest = destMappings.containsKey(dest) ? destMappings.get(dest) : dest; //use the destination mapping
+
+                                if (dest == null || dest == "null") {
+                                    dest = "(Not available)";
+                                }
+
                                 String[] stopInfo = {time + period, dest, timeLeft + " minute" + (timeLeft == 1 ? "" : "s"), schedInfo};
                                 arrivalsQueue.add(new ObjectWithPriority<String[], Integer>(stopInfo, timeLeft));
                             }
