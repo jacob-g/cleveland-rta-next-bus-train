@@ -191,7 +191,6 @@ public abstract class NetworkController {
         }
     }
 
-    //FIXME: getting blank results
     public static List<String[]> getStopTimes(Context context, int routeId, int dirId, int stopId1, int stopId2) {
         Map<String, String> destMappings = PersistentDataController.getDestMappings(context);
         List<String[]> stopList = new ArrayList<>(6);

@@ -7,9 +7,9 @@ android {
     defaultConfig {
         applicationId "org.futuresight.clevelandrtanextbustrain"
         minSdkVersion 23
-        targetSdkVersion 25
-        versionCode 19
-        versionName "1.0.0.0.18"
+        targetSdkVersion 26
+        versionCode 20
+        versionName "1.0.0.0.19"
 
         multiDexEnabled true
     }
