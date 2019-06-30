@@ -32,7 +32,7 @@
             android:layout_marginRight="60dp"><!-- TODO: make this resize appropriately so that it doesn't cover up the my location button and looks appropriate -->
             <fragment
                 android:id="@+id/autocomplete"
-                android:name="com.google.android.gms.location.places.ui.PlaceAutocompleteFragment"
+                android:name="com.google.android.libraries.places.compat.ui.PlaceAutocompleteFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -68,8 +68,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="match_parent"
                     android:layout_weight="0"
-                    android:src="@drawable/mr_group_expand"
-                    app:srcCompat="@drawable/mr_group_expand" />
+                    android:src="@android:drawable/arrow_down_float"
+                    app:srcCompat="@android:drawable/arrow_down_float" />
 
                 <Button
                     android:id="@+id/chooseLineBtn"
@@ -80,115 +80,59 @@
                     android:visibility="visible" />
             </LinearLayout>
 
-            <LinearLayout
+            <TableLayout
                 android:id="@+id/belowMapLayout"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
+                android:stretchColumns="1"
                 android:visibility="visible">
 
-                <TableLayout
-                    android:id="@+id/nearbyStopsTable"
+                <TableRow
+                    android:id="@+id/loadingStopsRow"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone">
+                    android:layout_height="match_parent">
 
-                </TableLayout>
+                    <TextView
+                        android:id="@+id/loadingStopsLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="0"
+                        android:text="Stops" />
 
-                <TableLayout
-                    android:id="@+id/stopArrivalsTable"
+                    <ProgressBar
+                        android:id="@+id/loadingStopsBar"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:layout_row="0"
+                        android:progress="0" />
+                </TableRow>
+
+                <TableRow
+                    android:id="@+id/loadingLinesRow"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stretchColumns="*"
-                    android:visibility="gone">
+                    android:layout_height="match_parent">
 
-                    <TableRow
+                    <TextView
+                        android:id="@+id/loadingLinesLabel"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="1"
+                        android:text="Lines" />
+
+                    <ProgressBar
+                        android:id="@+id/loadingLinesBar"
+                        style="?android:attr/progressBarStyleHorizontal"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
+                        android:layout_height="wrap_content"
+                        android:layout_column="0"
+                        android:layout_row="1" />
 
-                        <LinearLayout
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_span="2"
-                            android:orientation="horizontal">
+                </TableRow>
 
-                            <ImageButton
-                                android:id="@+id/belowMapBackBtn"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="0"
-                                android:cropToPadding="false"
-                                android:src="?android:attr/actionModeCloseDrawable" />
-
-                            <TextView
-                                android:id="@+id/belowMapStationNameView"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layout_weight="1"
-                                android:breakStrategy="simple"
-                                android:text="Station Name"
-                                android:textAppearance="@style/TextAppearance.AppCompat"
-                                android:textSize="18sp" />
-
-                        </LinearLayout>
-                    </TableRow>
-                </TableLayout>
-
-                <TableLayout
-                    android:id="@+id/loadingTable"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:stretchColumns="1"
-                    android:visibility="visible">
-
-                    <TableRow
-                        android:id="@+id/loadingLinesRow"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent">
-
-                        <TextView
-                            android:id="@+id/loadingLinesLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_column="0"
-                            android:layout_row="1"
-                            android:text="Lines" />
-
-                        <ProgressBar
-                            android:id="@+id/loadingLinesBar"
-                            style="@style/Widget.AppCompat.ProgressBar.Horizontal"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_column="0"
-                            android:layout_row="1" />
-
-                    </TableRow>
-
-                    <TableRow
-                        android:id="@+id/loadingStopsRow"
-                        android:layout_width="match_parent"
-                        android:layout_height="match_parent">
-
-                        <TextView
-                            android:id="@+id/loadingStopsLabel"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:layout_column="0"
-                            android:layout_row="0"
-                            android:text="Stops" />
-
-                        <ProgressBar
-                            android:id="@+id/loadingStopsBar"
-                            style="?android:attr/progressBarStyleHorizontal"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_row="0"
-                            android:progress="0" />
-                    </TableRow>
-
-                </TableLayout>
-
-            </LinearLayout>
+            </TableLayout>
 
         </LinearLayout>
 

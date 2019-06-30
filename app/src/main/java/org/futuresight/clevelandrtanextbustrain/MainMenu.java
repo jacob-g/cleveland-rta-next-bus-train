@@ -147,6 +147,11 @@ public class MainMenu extends AppCompatActivity {
         startActivityForResult(intent, 1);
     }
 
+    public void openLiveMap(View v) {
+        Intent intent = new Intent(this, LiveMapActivity.class);
+        startActivityForResult(intent, 1);
+    }
+
     public void openNearMe(View v) {
         Intent intent = new Intent(this, NearMeActivity.class);
         startActivityForResult(intent, 1);

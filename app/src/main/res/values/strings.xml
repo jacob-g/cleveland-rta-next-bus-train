@@ -95,4 +95,5 @@
     <string name="images">Images</string>
     <string name="focusonlyonline">Do you want to focus only on this line?</string>
     <string name="showalllines">Show all lines</string>
+    <string name="title_activity_live_map">Live Map</string>
 </resources>
